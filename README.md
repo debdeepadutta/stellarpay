@@ -54,9 +54,18 @@ Follow these steps to get your local development environment up and running.
 
 ## 📸 Screenshots
 
-| Dashboard View | Connect Wallet |
-| :--- | :--- |
-| ![Dashboard Placeholder](https://via.placeholder.com/400x250?text=StellarPay+Dashboard) | ![Connect Placeholder](https://via.placeholder.com/400x250?text=Freighter+Connection) |
+### Wallet Connected State and Balance Displayed
+![Wallet Connected](./screenshots/wallet_connected.png)
+
+### Transaction Confirmation
+![Transaction Confirmation](./screenshots/transaction_confirm.png)
+
+### Successful Testnet Transaction
+![Transaction Successful](./screenshots/transaction_success.png)
+
+### Verified on StellarExpert
+![StellarExpert](./screenshots/stellar_expert.png)
+
 
 ## 🔮 Future Improvements
 
@@ -66,9 +75,6 @@ Follow these steps to get your local development environment up and running.
 - [ ] **Dark/Light Mode**: Dynamic theme switching based on user preference.
 - [ ] **Multi-sig Support**: Integrate multi-signature transaction workflows.
 
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ---
 
