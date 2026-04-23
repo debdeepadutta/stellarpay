@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # 🚀 StellarPay: Modern Testnet dApp
 
 StellarPay is a premium, high-performance decentralized application (dApp) built on the **Stellar Testnet**. It enables users to connect their Freighter wallet, monitor their XLM balances in real-time, and send secure transactions with a sleek, modern UI.
@@ -72,3 +73,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ---
 
 Built with ❤️ for the Stellar Ecosystem.
+=======
+# stellarpay
+A Stellar Testnet XLM transfer dashboard with Freighter Wallet integration — built with React, Vite &amp; Stellar SDK
+>>>>>>> 52a86ebe77fb41505219788749a2f78cf10551bf
