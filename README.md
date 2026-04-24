@@ -9,6 +9,7 @@
 [![Soroban](https://img.shields.io/badge/Soroban-Smart%20Contract-FF6B35?style=for-the-badge)](https://soroban.stellar.org)
 [![Vitest](https://img.shields.io/badge/Tested-Vitest-6E9F18?style=for-the-badge&logo=vitest&logoColor=white)](https://vitest.dev)
 [![Vercel](https://img.shields.io/badge/Deployed-Vercel-000000?style=for-the-badge&logo=vercel&logoColor=white)](https://stellarpay-lac.vercel.app/)
+[![CI/CD Pipeline](https://github.com/debdeepadutta/stellarpay/actions/workflows/ci.yml/badge.svg)](https://github.com/debdeepadutta/stellarpay/actions/workflows/ci.yml)
 
 **A modern decentralized application (dApp) built on the Stellar Testnet that allows users to donate XLM using multiple wallets, powered by Soroban smart contracts — built across 3 progressive challenge levels.**
 
