@@ -1,15 +1,11 @@
-import { defineConfig } from 'vite'
+import { defineConfig } from 'vitest/config'
 import react from '@vitejs/plugin-react'
-import tailwindcss from '@tailwindcss/vite'
 import { nodePolyfills } from 'vite-plugin-node-polyfills'
 
-// https://vite.dev/config/
 export default defineConfig({
   plugins: [
     react(),
-    tailwindcss(),
     nodePolyfills({
-      // Polyfill Buffer and process — required by Stellar SDK in the browser
       include: ['buffer', 'process'],
       globals: {
         Buffer: true,
@@ -18,9 +14,6 @@ export default defineConfig({
       },
     }),
   ],
-  optimizeDeps: {
-    include: ['@stellar/freighter-api'],
-  },
   test: {
     globals: true,
     environment: 'jsdom',
