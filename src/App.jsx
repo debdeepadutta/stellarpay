@@ -4,6 +4,7 @@ import {
   Networks, 
   StrKey,
   Transaction,
+  Account,
   rpc,
   xdr,
   nativeToScVal,
@@ -57,7 +58,7 @@ const toI128 = (value) => {
 };
 
 // Dummy account for read-only simulations (doesn't need to be funded)
-const DUMMY_ACCOUNT = new Horizon.Account("GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF", "0");
+const DUMMY_ACCOUNT = new Account("GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF", "0");
 
 function App() {
   // UI and Wallet States
