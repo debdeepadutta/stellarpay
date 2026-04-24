@@ -29,7 +29,10 @@ jobs:
           npm_config_build_from_source: true
 
       - name: Run Vitest
-        run: npm test -- --reporter=verbose
+        run: |
+          mv vite.config.js vite.config.js.bak
+          npm test -- --reporter=verbose
+          mv vite.config.js.bak vite.config.js
         env:
           CI: true
 
