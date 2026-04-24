@@ -32,7 +32,7 @@ import TransactionStatus from './components/TransactionStatus';
 
 const server = new Horizon.Server("https://horizon-testnet.stellar.org");
 const rpcServer = new rpc.Server("https://soroban-testnet.stellar.org");
-const CONTRACT_ID = "CASAA3IFQURK5RPCVJILEKMW6GICAO6Q5OKGHUMQ4EMZIAYWW6YLT3VZ"; // Deployed contract ID
+const CONTRACT_ID = "CA2UK75IFINHQYCMBYT7TXRMMHEP4FHYCFZOEHKGZOFTJBMI2AUT27LY"; // Deployed contract ID with Logger support
 
 const kit = new StellarWalletsKit({
   network: WalletNetwork.TESTNET,
@@ -60,6 +60,29 @@ const toI128 = (value) => {
 // Dummy account for read-only simulations (doesn't need to be funded)
 const DUMMY_ACCOUNT = new Account("GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF", "0");
 
+// Production Error Parser
+const parseStellarError = (err) => {
+  const msg = err.message || "Unknown error";
+  const str = msg.toLowerCase();
+  
+  if (str.includes("insufficient balance") || str.includes("op_underfunded")) {
+    return "Insufficient balance! Please fund your wallet with more XLM.";
+  }
+  if (str.includes("tx_bad_auth") || str.includes("authentication failed")) {
+    return "Authentication failed. Please check if your wallet is on Testnet.";
+  }
+  if (str.includes("simulatecontract") || str.includes("simulation failed")) {
+    return "Smart contract simulation failed. The pool might be temporarily locked or inputs are invalid.";
+  }
+  if (str.includes("user rejected") || str.includes("rejected by the user")) {
+    return "Transaction was cancelled in your wallet.";
+  }
+  if (str.includes("timeout") || str.includes("deadline")) {
+    return "Network timeout. Your transaction might still be pending; check your balance in a moment.";
+  }
+  return msg;
+};
+
 function App() {
   // UI and Wallet States
   const [address, setAddress] = useState('');
@@ -74,6 +97,8 @@ function App() {
   const [txStatus, setTxStatus] = useState(null);
   const [txHash, setTxHash] = useState('');
   const [txCount, setTxCount] = useState(0);
+  const [isStale, setIsStale] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState(new Date().toLocaleTimeString());
   
   const connected = !!address;
 
@@ -91,10 +116,11 @@ function App() {
 
       // 2. Fetch Total Donations from Soroban
       await fetchTotalDonations();
+      setLastUpdated(new Date().toLocaleTimeString());
     } catch (e) {
       if (e.response?.status === 404) {
         setBalance('0.00');
-        setError('Account not funded.');
+        setError('Account not funded. Please use Friendbot to add test XLM.');
       }
     } finally {
       setIsFetchingBalance(false);
@@ -120,10 +146,14 @@ function App() {
       if (rpc.Api.isSimulationSuccess(result)) {
         const total = scValToNative(result.result.retval).toString();
         setTotalDonations(total);
+        setIsStale(false);
         localStorage.setItem('stellar_total_donations', total);
+      } else {
+        throw new Error("Simulation failed");
       }
     } catch (sorobanErr) {
-      console.warn("Soroban sync skipped (contract not deployed/reachable)");
+      console.warn("Soroban sync failed, using cached data");
+      setIsStale(true);
     } finally {
       setIsFetchingTotal(false);
     }
@@ -137,10 +167,10 @@ function App() {
     if (address) {
       fetchData(address);
 
-      // Real-time background sync every 15 seconds
+      // Real-time background sync every 5 seconds
       const pollInterval = setInterval(() => {
         fetchData(address);
-      }, 15000);
+      }, 5000);
 
       return () => clearInterval(pollInterval);
     }
@@ -280,7 +310,7 @@ function App() {
         setTxStatus('success');
         setTxHash(sendResponse.hash);
         setTxCount(prev => prev + 1);
-        toast.success('Donation successful!', { id: txToast });
+        toast.success('Donation successful and logged!', { id: txToast });
       } else {
         throw new Error("Transaction execution failed on-chain.");
       }
@@ -288,7 +318,7 @@ function App() {
       setTimeout(() => fetchData(address), 2000);
     } catch (e) {
       console.error("Donation Error:", e);
-      const msg = e.message || "An unexpected error occurred.";
+      const msg = parseStellarError(e);
       toast.error(msg, { id: txToast, duration: 6000 });
       setError(msg);
       setTxStatus('failure');
@@ -320,20 +350,25 @@ function App() {
         onDisconnect={handleDisconnect} 
       />
 
-      <main className="max-w-4xl mx-auto px-6 pt-32 pb-12">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+      <main className="max-w-4xl mx-auto px-4 sm:px-6 pt-24 sm:pt-32 pb-12">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8 items-start">
           
           {/* Left Column */}
           <div className="lg:col-span-7 space-y-8 animate-in fade-in slide-in-from-left duration-700">
             <div className="space-y-2">
-              <h1 className="text-4xl md:text-5xl font-extrabold text-white tracking-tight">
+              <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-white tracking-tight">
                 Stellar <span className="text-stellar-blue">Philanthropy</span>
               </h1>
-              <p className="text-slate-400 text-lg md:text-xl">Support the ecosystem through Soroban smart contracts.</p>
+              <p className="text-slate-400 text-base sm:text-lg md:text-xl">Support the ecosystem through Soroban smart contracts.</p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <WalletCard address={address} balance={balance} isFetching={isFetchingBalance} />
+              <WalletCard 
+                address={address} 
+                balance={balance} 
+                isFetching={isFetchingBalance} 
+                lastUpdated={lastUpdated}
+              />
               
               <div className="p-6 rounded-3xl glass border border-white/10 card-gradient flex flex-col justify-between">
                 <div className="flex items-center justify-between">
@@ -356,7 +391,10 @@ function App() {
                       <span className="text-slate-500 text-xs font-bold uppercase tracking-widest">Syncing</span>
                     </div>
                   ) : (
-                    <h3 className="text-3xl font-bold text-white mt-4">{totalDonations} <span className="text-sm font-normal text-slate-500">XLM</span></h3>
+                    <div className="space-y-1 mt-4">
+                      <h3 className="text-3xl font-bold text-white">{totalDonations} <span className="text-sm font-normal text-slate-500">XLM</span></h3>
+                      {isStale && <p className="text-[10px] text-rose-500/80 font-bold uppercase tracking-tighter">⚠️ Sync Offline (Cached)</p>}
+                    </div>
                   )}
                   <p className="text-xs text-stellar-blue font-medium mt-1 uppercase tracking-wider">Pool Snapshot</p>
                 </div>
@@ -375,7 +413,12 @@ function App() {
           {/* Right Column */}
           <div className="lg:col-span-5 animate-in fade-in slide-in-from-right duration-700 delay-200">
             {connected ? (
-              <DonateXLMForm key={txCount} onSend={handleDonate} isSending={isSending} />
+              <DonateXLMForm 
+                key={txCount} 
+                onSend={handleDonate} 
+                isSending={isSending} 
+                balance={balance}
+              />
             ) : (
               <div className="p-8 rounded-3xl glass border border-dashed border-white/10 flex flex-col items-center justify-center text-center space-y-6 py-20 group hover:border-stellar-blue/30 transition-colors">
                 <div className="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center text-slate-500 group-hover:scale-110 transition-transform duration-500">

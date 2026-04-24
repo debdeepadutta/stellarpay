@@ -1,18 +1,20 @@
 import React, { useState } from 'react';
 
-const DonateXLMForm = ({ onSend, isSending }) => {
+const DonateXLMForm = ({ onSend, isSending, balance }) => {
   const [amount, setAmount] = useState('');
+
+  const isOverBalance = parseFloat(amount) > parseFloat(balance);
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!amount) return;
+    if (!amount || isOverBalance) return;
     onSend(null, amount); // Send null for recipient as it's not used by contract
   };
 
   const quickAmounts = ['10', '50', '100'];
 
   return (
-    <div className="p-8 rounded-3xl glass border border-white/10 space-y-6 card-gradient group hover:border-stellar-blue/30 transition-all duration-500">
+    <div className="p-6 sm:p-8 rounded-3xl glass border border-white/10 space-y-6 card-gradient group hover:border-stellar-blue/30 transition-all duration-500">
       <div className="flex items-center gap-3">
         <div className="w-12 h-12 bg-stellar-blue/10 rounded-2xl flex items-center justify-center text-stellar-blue group-hover:scale-110 transition-transform">
           <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -38,10 +40,16 @@ const DonateXLMForm = ({ onSend, isSending }) => {
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
               placeholder="0.00" 
-              className="w-full bg-slate-900/50 border border-white/5 rounded-2xl px-6 py-5 text-2xl font-bold text-white focus:outline-none focus:ring-2 focus:ring-stellar-blue/50 transition-all placeholder:text-slate-700"
+              className={`w-full bg-slate-900/50 border rounded-2xl px-5 sm:px-6 py-4 sm:py-5 text-xl sm:text-2xl font-bold text-white focus:outline-none transition-all placeholder:text-slate-700 ${isOverBalance ? 'border-rose-500/50 focus:ring-rose-500/50' : 'border-white/5 focus:ring-2 focus:ring-stellar-blue/50'}`}
             />
-            <span className="absolute right-6 top-1/2 -translate-y-1/2 text-stellar-blue font-black text-sm tracking-tighter">XLM</span>
+            <span className={`absolute right-5 sm:right-6 top-1/2 -translate-y-1/2 font-black text-xs sm:text-sm tracking-tighter ${isOverBalance ? 'text-rose-500' : 'text-stellar-blue'}`}>XLM</span>
           </div>
+
+          {isOverBalance && (
+            <p className="text-[10px] text-rose-400 font-bold uppercase tracking-widest animate-pulse ml-1">
+              ⚠️ Insufficient Balance ({balance} Available)
+            </p>
+          )}
 
           <div className="flex gap-2">
             {quickAmounts.map(val => (
