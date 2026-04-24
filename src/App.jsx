@@ -9,7 +9,8 @@ import {
   nativeToScVal,
   scValToNative,
   Horizon,
-  Asset
+  Asset,
+  Address
 } from "@stellar/stellar-sdk";
 import { TransactionBuilder, Operation } from "@stellar/stellar-sdk";
 import { 
@@ -30,7 +31,7 @@ import TransactionStatus from './components/TransactionStatus';
 
 const server = new Horizon.Server("https://horizon-testnet.stellar.org");
 const rpcServer = new rpc.Server("https://soroban-testnet.stellar.org");
-const CONTRACT_ID = "CA4AINMRJWDKJUURUX4NGLA27XOWFAAEDLCMT5FHLHBTJ2X3CRPUBQOD"; // Deployed contract ID
+const CONTRACT_ID = "CASAA3IFQURK5RPCVJILEKMW6GICAO6Q5OKGHUMQ4EMZIAYWW6YLT3VZ"; // Deployed contract ID
 
 const kit = new StellarWalletsKit({
   network: WalletNetwork.TESTNET,
@@ -202,7 +203,11 @@ function App() {
         .addOperation(Operation.invokeContractFunction({
           contract: CONTRACT_ID,
           function: "donate",
-          args: [toI128(Math.floor(parseFloat(amount)))]
+          args: [
+            Address.fromString(address).toScVal(),
+            Address.fromString("CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC").toScVal(),
+            toI128(Math.floor(parseFloat(amount)))
+          ]
         }))
         .setTimeout(60)
         .build();
