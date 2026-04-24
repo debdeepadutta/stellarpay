@@ -21,6 +21,9 @@ export default defineConfig({
   optimizeDeps: {
     include: ['@stellar/freighter-api'],
   },
+  css: {
+    transformer: 'postcss',
+  },
   test: {
     globals: true,
     environment: 'jsdom',

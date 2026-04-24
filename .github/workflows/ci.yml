@@ -24,9 +24,7 @@ jobs:
         run: sudo apt-get install -y python3 build-essential
 
       - name: Install Dependencies
-        run: |
-          npm install
-          npm install lightningcss-linux-x64-gnu
+        run: npm install --include=optional
         env:
           npm_config_build_from_source: true
 
