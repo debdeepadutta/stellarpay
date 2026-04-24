@@ -8,9 +8,8 @@ on:
 
 jobs:
   frontend-ci:
-    name: Frontend CI (React + Vitest)
+    name: Frontend CI
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -22,30 +21,32 @@ jobs:
           cache: 'npm'
 
       - name: Install Dependencies
-        run: npm install
+        run: npm ci || npm install
 
-      - name: Run Tests
-        run: npm test
+      - name: Run Vitest
+        run: npm test -- --reporter=verbose
+        env:
+          CI: true
 
       - name: Build Project
         run: npm run build
 
   contracts-ci:
-    name: Smart Contracts CI (Rust)
+    name: Contracts CI
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Setup Rust Toolchain
+      - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: wasm32-unknown-unknown
 
-      - name: Run Contract Tests
+      - name: Test Donation Contract
         run: |
           cd contracts
-          cargo test
-          cd ../logger_contract
-          cargo test
+          cargo test --verbose
+
+      - name: Test Logger Contract
+        run: |
+          cd logger_contract
+          cargo test --verbose
