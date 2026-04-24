@@ -56,13 +56,17 @@ const toI128 = (value) => {
   );
 };
 
+// Dummy account for read-only simulations (doesn't need to be funded)
+const DUMMY_ACCOUNT = new Horizon.Account("GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF", "0");
+
 function App() {
   // UI and Wallet States
   const [address, setAddress] = useState('');
   const [walletName, setWalletName] = useState('');
   const [balance, setBalance] = useState('0.00');
-  const [totalDonations, setTotalDonations] = useState('0.00'); 
+  const [totalDonations, setTotalDonations] = useState(localStorage.getItem('stellar_total_donations') || '0.00'); 
   const [isFetchingBalance, setIsFetchingBalance] = useState(false);
+  const [isFetchingTotal, setIsFetchingTotal] = useState(false);
   const [error, setError] = useState(null);
   const [isConnecting, setIsConnecting] = useState(false);
   const [isSending, setIsSending] = useState(false);
@@ -85,26 +89,7 @@ function App() {
       setBalance(native ? parseFloat(native.balance).toFixed(4) : '0.00');
 
       // 2. Fetch Total Donations from Soroban
-      try {
-        const simTx = new TransactionBuilder(account, {
-          fee: "100",
-          networkPassphrase: Networks.TESTNET,
-        })
-          .addOperation(Operation.invokeContractFunction({
-            contract: CONTRACT_ID,
-            function: "get_total",
-            args: []
-          }))
-          .setTimeout(30)
-          .build();
-
-        const result = await rpcServer.simulateTransaction(simTx);
-        if (rpc.Api.isSimulationSuccess(result)) {
-          setTotalDonations(scValToNative(result.result.retval).toString());
-        }
-      } catch (sorobanErr) {
-        console.warn("Soroban sync skipped (contract not deployed/reachable)");
-      }
+      await fetchTotalDonations();
     } catch (e) {
       if (e.response?.status === 404) {
         setBalance('0.00');
@@ -114,6 +99,38 @@ function App() {
       setIsFetchingBalance(false);
     }
   };
+
+  const fetchTotalDonations = async () => {
+    setIsFetchingTotal(true);
+    try {
+      const simTx = new TransactionBuilder(DUMMY_ACCOUNT, {
+        fee: "100",
+        networkPassphrase: Networks.TESTNET,
+      })
+        .addOperation(Operation.invokeContractFunction({
+          contract: CONTRACT_ID,
+          function: "get_total",
+          args: []
+        }))
+        .setTimeout(30)
+        .build();
+
+      const result = await rpcServer.simulateTransaction(simTx);
+      if (rpc.Api.isSimulationSuccess(result)) {
+        const total = scValToNative(result.result.retval).toString();
+        setTotalDonations(total);
+        localStorage.setItem('stellar_total_donations', total);
+      }
+    } catch (sorobanErr) {
+      console.warn("Soroban sync skipped (contract not deployed/reachable)");
+    } finally {
+      setIsFetchingTotal(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchTotalDonations();
+  }, []);
 
   useEffect(() => {
     if (address) {
@@ -327,7 +344,19 @@ function App() {
                   </div>
                 </div>
                 <div>
-                  <h3 className="text-3xl font-bold text-white mt-4">{totalDonations} <span className="text-sm font-normal text-slate-500">XLM</span></h3>
+                  {isFetchingTotal ? (
+                    <div className="flex items-center gap-2 mt-4 animate-pulse">
+                      <div className="w-8 h-8 rounded-lg bg-white/5 border border-white/5 flex items-center justify-center">
+                        <svg className="w-4 h-4 animate-spin text-stellar-blue" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                        </svg>
+                      </div>
+                      <span className="text-slate-500 text-xs font-bold uppercase tracking-widest">Syncing</span>
+                    </div>
+                  ) : (
+                    <h3 className="text-3xl font-bold text-white mt-4">{totalDonations} <span className="text-sm font-normal text-slate-500">XLM</span></h3>
+                  )}
                   <p className="text-xs text-stellar-blue font-medium mt-1 uppercase tracking-wider">Pool Snapshot</p>
                 </div>
               </div>
