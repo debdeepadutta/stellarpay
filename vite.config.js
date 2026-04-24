@@ -7,7 +7,8 @@ import { nodePolyfills } from 'vite-plugin-node-polyfills'
 export default defineConfig({
   plugins: [
     react(),
-    tailwindcss(),
+    // Only load tailwindcss plugin if NOT in Vitest to avoid lightningcss binary issues in CI
+    !process.env.VITEST && tailwindcss(),
     nodePolyfills({
       // Polyfill Buffer and process — required by Stellar SDK in the browser
       include: ['buffer', 'process'],
