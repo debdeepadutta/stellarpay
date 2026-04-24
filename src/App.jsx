@@ -1,30 +1,66 @@
 import React, { useState, useEffect } from 'react';
 import toast, { Toaster } from 'react-hot-toast';
 import { 
-  Horizon, 
-  TransactionBuilder, 
-  Asset, 
-  Operation, 
   Networks, 
   StrKey,
-  Transaction 
+  Transaction,
+  rpc,
+  xdr,
+  nativeToScVal,
+  scValToNative,
+  Horizon,
+  Asset
 } from "@stellar/stellar-sdk";
+import { TransactionBuilder, Operation } from "@stellar/stellar-sdk";
 import { 
-  isConnected as isFreighterConnected, 
-  requestAccess, 
-  signTransaction 
-} from "@stellar/freighter-api";
+  StellarWalletsKit, 
+  WalletNetwork, 
+  FreighterModule,
+  xBullModule,
+  AlbedoModule,
+  HanaModule,
+  LobstrModule,
+  RabetModule
+} from "@creit.tech/stellar-wallets-kit";
+
 import Navbar from './components/Navbar';
 import WalletCard from './components/WalletCard';
-import SendXLMForm from './components/SendXLMForm';
+import DonateXLMForm from './components/SendXLMForm';
 import TransactionStatus from './components/TransactionStatus';
 
 const server = new Horizon.Server("https://horizon-testnet.stellar.org");
+const rpcServer = new rpc.Server("https://soroban-testnet.stellar.org");
+const CONTRACT_ID = "CA4AINMRJWDKJUURUX4NGLA27XOWFAAEDLCMT5FHLHBTJ2X3CRPUBQOD"; // Deployed contract ID
+
+const kit = new StellarWalletsKit({
+  network: WalletNetwork.TESTNET,
+  modules: [
+    new FreighterModule(),
+    new xBullModule(),
+    new AlbedoModule(),
+    new HanaModule(),
+    new LobstrModule(),
+    new RabetModule(),
+  ],
+});
+
+// Helper to force i128 ScVal for Soroban
+const toI128 = (value) => {
+  const b = BigInt(value);
+  return xdr.ScVal.scvI128(
+    new xdr.Int128Parts({
+      lo: xdr.Uint64.fromString((b & 0xFFFFFFFFFFFFFFFFn).toString()),
+      hi: xdr.Int64.fromString((b >> 64n).toString()),
+    })
+  );
+};
 
 function App() {
   // UI and Wallet States
   const [address, setAddress] = useState('');
+  const [walletName, setWalletName] = useState('');
   const [balance, setBalance] = useState('0.00');
+  const [totalDonations, setTotalDonations] = useState('0.00'); 
   const [isFetchingBalance, setIsFetchingBalance] = useState(false);
   const [error, setError] = useState(null);
   const [isConnecting, setIsConnecting] = useState(false);
@@ -35,17 +71,43 @@ function App() {
   
   const connected = !!address;
 
-  // Fetch Balance Logic
-  const fetchBalance = async (pubKey) => {
+  // Unified Fetch Logic (Balance + Contract State)
+  const fetchData = async (pubKey) => {
+    const activeAddress = pubKey || address;
+    if (!activeAddress) return;
+
     setIsFetchingBalance(true);
     try {
-      const account = await server.loadAccount(pubKey);
+      // 1. Fetch XLM Balance
+      const account = await server.loadAccount(activeAddress);
       const native = account.balances.find(b => b.asset_type === 'native');
       setBalance(native ? parseFloat(native.balance).toFixed(4) : '0.00');
+
+      // 2. Fetch Total Donations from Soroban
+      try {
+        const simTx = new TransactionBuilder(account, {
+          fee: "100",
+          networkPassphrase: Networks.TESTNET,
+        })
+          .addOperation(Operation.invokeContractFunction({
+            contract: CONTRACT_ID,
+            function: "get_total",
+            args: []
+          }))
+          .setTimeout(30)
+          .build();
+
+        const result = await rpcServer.simulateTransaction(simTx);
+        if (rpc.Api.isSimulationSuccess(result)) {
+          setTotalDonations(scValToNative(result.result.retval).toString());
+        }
+      } catch (sorobanErr) {
+        console.warn("Soroban sync skipped (contract not deployed/reachable)");
+      }
     } catch (e) {
       if (e.response?.status === 404) {
         setBalance('0.00');
-        setError('Account not funded. Use Friendbot to start.');
+        setError('Account not funded.');
       }
     } finally {
       setIsFetchingBalance(false);
@@ -54,119 +116,157 @@ function App() {
 
   useEffect(() => {
     if (address) {
-      fetchBalance(address);
+      fetchData(address);
+
+      // Real-time background sync every 15 seconds
+      const pollInterval = setInterval(() => {
+        fetchData(address);
+      }, 15000);
+
+      return () => clearInterval(pollInterval);
     }
-  }, [address]);
+  }, [address, txCount]);
 
   // Handlers
   const handleConnect = async () => {
     setError(null);
     setIsConnecting(true);
-    const connectionToast = toast.loading('Connecting to Freighter...');
     
     try {
-      // Robust check for Freighter extension
-      const isAvailable = (await isFreighterConnected()) || !!window.freighter || !!window.stlr;
-      
-      if (!isAvailable) {
-        toast.error('Freighter not found!', { id: connectionToast });
-        setError('Freighter wallet is not found. Please ensure it is installed and enabled.');
-        return;
-      }
-
-      // requestAccess() is the modern way to get the public key
-      const response = await requestAccess();
-      
-      // In Freighter v6, the public key is returned in the 'address' property
-      const publicKey = typeof response === 'object' ? response.address : response;
-      
-      if (publicKey && typeof publicKey === 'string') {
-        setAddress(publicKey);
-        toast.success('Wallet connected!', { id: connectionToast });
-      } else {
-        throw new Error("No public key returned. Please ensure you are logged into Freighter.");
-      }
+      await kit.openModal({
+        onClosed: () => setIsConnecting(false),
+        onWalletSelected: async (option) => {
+          try {
+            kit.setWallet(option.id);
+            const { address } = await kit.getAddress();
+            setAddress(address);
+            setWalletName(option.name);
+            toast.success(`${option.name} connected!`);
+          } catch (e) {
+            console.error("Connection failed:", e);
+            let msg = 'Failed to connect.';
+            const errStr = e.message?.toLowerCase() || '';
+            if (errStr.includes('not installed') || errStr.includes('not found') || errStr.includes('install')) {
+              msg = `${option.name} wallet is not installed or not found.`;
+            } else if (errStr.includes('reject') || errStr.includes('cancel')) {
+              msg = 'Connection request was rejected by the user.';
+            } else {
+              msg = e.message || msg;
+            }
+            toast.error(msg);
+            setError(msg);
+          } finally {
+            setIsConnecting(false);
+          }
+        }
+      });
     } catch (e) {
-      console.error("Link failed:", e);
-      const isRejection = e.message?.includes('User rejected') || e === 'User rejected';
-      const msg = isRejection ? 'Connection rejected.' : (e.message || 'Failed to connect.');
-      toast.error(msg, { id: connectionToast });
-      setError(msg);
-    } finally {
       setIsConnecting(false);
+      toast.error("Failed to open wallet selector.");
     }
   };
 
-  const handleDisconnect = () => {
+  const handleDisconnect = async () => {
+    await kit.disconnect();
     setAddress('');
+    setWalletName('');
     setBalance('0.00');
     setError(null);
     setTxStatus(null);
     toast.success('Wallet disconnected');
   };
 
-  const handleSend = async (recipient, amount) => {
+  const handleDonate = async (recipient, amount) => {
     setIsSending(true);
     setError(null);
-    setTxStatus(null);
+    setTxStatus('pending');
     setTxHash('');
 
-    const txToast = toast.loading('Building transaction...');
+    const txToast = toast.loading('Initiating donation...');
 
     try {
-      // 1. Logic
-      if (!StrKey.isValidEd25519PublicKey(recipient)) throw new Error("Invalid recipient address.");
-      if (parseFloat(amount) > parseFloat(balance)) throw new Error("Insufficient balance.");
+      // 1. Insufficient Balance Check
+      // We also account for a small buffer for the transaction fee
+      if (parseFloat(amount) + 0.01 > parseFloat(balance)) {
+        throw new Error("Insufficient balance! You need more XLM to cover the donation and network fees.");
+      }
 
-      // 2. Build
-      toast.loading('Building Step...', { id: txToast });
+      // 2. Build Invocation
+      toast.loading('Simulating Contract Call...', { id: txToast });
       const account = await server.loadAccount(address);
-      const baseFee = await server.fetchBaseFee();
       
-      const transaction = new TransactionBuilder(account, {
-        fee: baseFee,
+      const tx = new TransactionBuilder(account, {
+        fee: "1000",
         networkPassphrase: Networks.TESTNET,
       })
-        .addOperation(Operation.payment({
-          destination: recipient,
-          asset: Asset.native(),
-          amount: String(amount),
+        .addOperation(Operation.invokeContractFunction({
+          contract: CONTRACT_ID,
+          function: "donate",
+          args: [toI128(Math.floor(parseFloat(amount)))]
         }))
         .setTimeout(60)
         .build();
 
-      // 3. Sign
-      toast.loading('Signing Step...', { id: txToast });
-      const signResult = await signTransaction(transaction.toXDR(), { 
-        network: 'TESTNET',
-        networkPassphrase: Networks.TESTNET 
-      });
+      // 3. Simulation
+      let simulated;
+      try {
+        simulated = await rpcServer.simulateTransaction(tx);
+      } catch (e) {
+        throw new Error("Network error during simulation. Please try again.");
+      }
 
-      if (signResult?.error) throw new Error(`Signing failed: ${signResult.error}`);
-      
-      // Handle different return types (some versions return string, some object)
-      const signedXdr = typeof signResult === 'object' ? signResult.signedTxXdr : signResult;
-      if (!signedXdr) throw new Error("Wallet signed but returned no transaction data.");
+      if (rpc.Api.isSimulationError(simulated)) {
+        console.error("Simulation Error Details:", simulated.error);
+        throw new Error(`Contract simulation failed: ${simulated.error || "The pool might be temporarily locked."}`);
+      }
 
-      // 4. Submit
-      toast.loading('Submitting Step...', { id: txToast });
+      const preparedTx = rpc.assembleTransaction(tx, simulated).build();
+
+      // 4. Sign (Handle Rejection)
+      toast.loading(`Awaiting ${walletName} signature...`, { id: txToast });
+      let signedXdr;
+      try {
+        const result = await kit.signTransaction(preparedTx.toXDR(), {
+          networkPassphrase: Networks.TESTNET,
+        });
+        signedXdr = result.signedTxXdr;
+      } catch (e) {
+        if (e.message?.toLowerCase().includes('reject') || e.message?.toLowerCase().includes('cancel')) {
+          throw new Error("Transaction was rejected by the user.");
+        }
+        throw e;
+      }
+
+      if (!signedXdr) throw new Error("Wallet failed to return signed transaction.");
+
+      // 5. Submit and Poll
+      toast.loading('Confirming on Ledger...', { id: txToast });
+      const sendResponse = await rpcServer.sendTransaction(new Transaction(signedXdr, Networks.TESTNET));
       
-      // In SDK v15+, it's safer to reconstruct the transaction object from the signed XDR
-      const transactionToSubmit = new Transaction(signedXdr, Networks.TESTNET);
-      const result = await server.submitTransaction(transactionToSubmit);
+      if (sendResponse.status !== "PENDING") {
+        throw new Error(`RPC Error: ${sendResponse.status}`);
+      }
+
+      let getResult = await rpcServer.getTransaction(sendResponse.hash);
+      while (getResult.status === "NOT_FOUND" || getResult.status === "PENDING") {
+        await new Promise(r => setTimeout(r, 2000));
+        getResult = await rpcServer.getTransaction(sendResponse.hash);
+      }
+
+      if (getResult.status === rpc.Api.GetTransactionStatus.SUCCESS) {
+        setTxStatus('success');
+        setTxHash(sendResponse.hash);
+        setTxCount(prev => prev + 1);
+        toast.success('Donation successful!', { id: txToast });
+      } else {
+        throw new Error("Transaction execution failed on-chain.");
+      }
       
-      setTxStatus('success');
-      setTxHash(result.hash);
-      setTxCount(prev => prev + 1);
-      toast.success('Confirmed!', { id: txToast });
-      
-      setTimeout(() => fetchBalance(address), 2000);
+      setTimeout(() => fetchData(address), 2000);
     } catch (e) {
-      console.error("Critical Flow Error:", e);
-      let msg = e.response?.data?.extras?.result_codes?.transaction || e.message;
-      if (msg?.includes("Main Net")) msg = "Switch to Testnet in Freighter.";
-      
-      toast.error(`Error: ${msg}`, { id: txToast, duration: 8000 });
+      console.error("Donation Error:", e);
+      const msg = e.message || "An unexpected error occurred.";
+      toast.error(msg, { id: txToast, duration: 6000 });
       setError(msg);
       setTxStatus('failure');
     } finally {
@@ -192,6 +292,7 @@ function App() {
       <Navbar 
         isConnected={connected} 
         address={address} 
+        walletName={walletName}
         onConnect={handleConnect} 
         onDisconnect={handleDisconnect} 
       />
@@ -203,12 +304,29 @@ function App() {
           <div className="lg:col-span-7 space-y-8 animate-in fade-in slide-in-from-left duration-700">
             <div className="space-y-2">
               <h1 className="text-4xl md:text-5xl font-extrabold text-white tracking-tight">
-                Stellar <span className="text-stellar-blue">Dashboard</span>
+                Stellar <span className="text-stellar-blue">Philanthropy</span>
               </h1>
-              <p className="text-slate-400 text-lg md:text-xl">Secure and seamless XLM transfers.</p>
+              <p className="text-slate-400 text-lg md:text-xl">Support the ecosystem through Soroban smart contracts.</p>
             </div>
 
-            <WalletCard address={address} balance={balance} isFetching={isFetchingBalance} />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <WalletCard address={address} balance={balance} isFetching={isFetchingBalance} />
+              
+              <div className="p-6 rounded-3xl glass border border-white/10 card-gradient flex flex-col justify-between">
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-400 text-sm font-medium">Total Donations</span>
+                  <div className="p-2 bg-stellar-blue/10 rounded-xl text-stellar-blue">
+                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M2 10.5a1.5 1.5 0 113 0v6a1.5 1.5 0 01-3 0v-6zM6 10.333v5.43a2 2 0 001.106 1.79l.05.025A4 4 0 008.943 18h5.416a2 2 0 001.962-1.608l1.2-6A2 2 0 0015.56 8H12V4a2 2 0 00-2-2 1 1 0 00-1 1v.667a4 4 0 01-.8 2.4L6.8 7.933a4 4 0 00-.8 2.4z" />
+                    </svg>
+                  </div>
+                </div>
+                <div>
+                  <h3 className="text-3xl font-bold text-white mt-4">{totalDonations} <span className="text-sm font-normal text-slate-500">XLM</span></h3>
+                  <p className="text-xs text-stellar-blue font-medium mt-1 uppercase tracking-wider">Pool Snapshot</p>
+                </div>
+              </div>
+            </div>
             
             {(error || txStatus) && (
               <TransactionStatus 
@@ -222,7 +340,7 @@ function App() {
           {/* Right Column */}
           <div className="lg:col-span-5 animate-in fade-in slide-in-from-right duration-700 delay-200">
             {connected ? (
-              <SendXLMForm key={txCount} onSend={handleSend} isSending={isSending} />
+              <DonateXLMForm key={txCount} onSend={handleDonate} isSending={isSending} />
             ) : (
               <div className="p-8 rounded-3xl glass border border-dashed border-white/10 flex flex-col items-center justify-center text-center space-y-6 py-20 group hover:border-stellar-blue/30 transition-colors">
                 <div className="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center text-slate-500 group-hover:scale-110 transition-transform duration-500">
@@ -231,8 +349,8 @@ function App() {
                   </svg>
                 </div>
                 <div className="space-y-2">
-                  <h3 className="text-white font-bold text-xl">Get Started</h3>
-                  <p className="text-slate-400 text-sm max-w-[200px] mx-auto">Connect your wallet to manage your Stellar assets today.</p>
+                  <h3 className="text-white font-bold text-xl">Join the Cause</h3>
+                  <p className="text-slate-400 text-sm max-w-[200px] mx-auto">Connect your wallet to start making an impact.</p>
                 </div>
                 <button 
                   onClick={handleConnect}
