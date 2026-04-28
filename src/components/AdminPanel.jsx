@@ -185,44 +185,14 @@ const AdminPanel = ({ contractId, vaultContractId, connectedWallet, networkPassp
     );
   }
 
-  if (!isAdmin) {
-    return (
-      <div className="w-full max-w-2xl mx-auto bg-slate-900 border border-slate-800 rounded-3xl p-12 text-center">
-        <div className="w-20 h-20 bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-6 text-red-500">
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-          </svg>
-        </div>
-        <h2 className="text-2xl font-bold text-white mb-2">Access Denied</h2>
-        <p className="text-slate-500 mb-8 text-sm">This terminal is restricted to administrative personnel only.</p>
-        
-        <div className="space-y-4 max-w-md mx-auto">
-          <div className="text-left">
-            <div className="text-[10px] text-slate-600 uppercase font-black tracking-widest mb-1">Your Identity ({connectedWallet?.length})</div>
-            <div className="font-mono text-xs text-indigo-400 bg-indigo-500/5 py-3 px-4 rounded-xl border border-indigo-500/10 break-all leading-relaxed shadow-inner">
-              {connectedWallet}
-            </div>
-          </div>
-          
-          <div className="flex items-center justify-center py-2">
-            <div className="h-[1px] w-8 bg-slate-800"></div>
-            <div className="px-3 text-[10px] text-slate-700 font-bold">VS</div>
-            <div className="h-[1px] w-8 bg-slate-800"></div>
-          </div>
-
-          <div className="text-left">
-            <div className="text-[10px] text-slate-600 uppercase font-black tracking-widest mb-1">Required Authority ({adminAddress?.length || 0})</div>
-            <div className="font-mono text-xs text-rose-500/60 bg-rose-500/5 py-3 px-4 rounded-xl border border-rose-500/10 break-all leading-relaxed">
-              {adminAddress || "Fetching..."}
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="w-full max-w-4xl mx-auto space-y-8">
+      {!isAdmin && (
+        <div className="bg-amber-500/10 border border-amber-500/20 p-4 rounded-2xl flex gap-3 items-center mb-4">
+          <span className="text-xl">🛡️</span>
+          <p className="text-amber-400 text-xs font-bold uppercase tracking-widest">Running in Manual Override Mode - Signing will verify authority</p>
+        </div>
+      )}
       <div className="flex items-center justify-between">
         <h2 className="text-3xl font-black text-white flex items-center gap-3 italic tracking-tighter">
           <span className="p-2 bg-red-500 rounded-lg shadow-lg shadow-red-500/20">
