@@ -275,7 +275,7 @@ function AppContent() {
     setTxStatus('sending');
     try {
       console.log("Step 1: Building Transaction...");
-      const builder = new TransactionBuilder(new Account(address, "0"), { fee: "1000", networkPassphrase: Networks.TESTNET });
+      const builder = new TransactionBuilder(new Account(address, "0"), { fee: "10000", networkPassphrase: Networks.TESTNET });
       const tx = builder.addOperation(Operation.invokeContractFunction({
         contract: targetContractId,
         function: "donate",
