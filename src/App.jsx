@@ -416,12 +416,9 @@ function AppContent() {
 
 function App() {
   return (
-    <HelmetProvider>
-      <BrowserRouter>
-        <AppContent />
-      </BrowserRouter>
-    </HelmetProvider>
+    <AppContent />
   );
 }
+
 
 export default App;

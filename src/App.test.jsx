@@ -1,7 +1,26 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import React from 'react';
+import { MemoryRouter } from 'react-router-dom';
+import { HelmetProvider } from 'react-helmet-async';
 import App from './App';
+
+// ─── Firebase Mock ────────────────────────────────────────────────────────────
+vi.mock('./firebase', () => ({
+  db: { collection: vi.fn(), doc: vi.fn() }
+}));
+
+vi.mock('firebase/firestore', () => ({
+  collection: vi.fn(),
+  query: vi.fn(),
+  where: vi.fn(),
+  onSnapshot: vi.fn(() => vi.fn()),
+  addDoc: vi.fn(),
+  updateDoc: vi.fn(),
+  doc: vi.fn(),
+  serverTimestamp: vi.fn(),
+  orderBy: vi.fn()
+}));
 
 // ─── Wallet Kit Mock ─────────────────────────────────────────────────────────
 vi.mock("@creit.tech/stellar-wallets-kit", () => ({
@@ -14,6 +33,7 @@ vi.mock("@creit.tech/stellar-wallets-kit", () => ({
       getAddress: vi.fn().mockResolvedValue({
         address: 'GBYQD3REQAS6Z34CPQFXBJFOID6ZQFSYAIQM2C57ZKXPPBMRLIONL2F6',
       }),
+      getWalletName: vi.fn().mockResolvedValue('Freighter'),
       signTransaction: vi.fn().mockResolvedValue({ signedTxXdr: 'MOCK_SIGNED_XDR' }),
       disconnect: vi.fn(),
     };
@@ -30,27 +50,25 @@ vi.mock("@creit.tech/stellar-wallets-kit", () => ({
 // ─── Stellar SDK Mock ─────────────────────────────────────────────────────────
 vi.mock("@stellar/stellar-sdk", async (importOriginal) => {
   const actual = await importOriginal();
-
   const fakeAcct = {
-    accountId:               () => 'GBYQD3REQAS6Z34CPQFXBJFOID6ZQFSYAIQM2C57ZKXPPBMRLIONL2F6',
-    sequenceNumber:          () => '0',
+    accountId: () => 'GBYQD3REQAS6Z34CPQFXBJFOID6ZQFSYAIQM2C57ZKXPPBMRLIONL2F6',
+    sequenceNumber: () => '0',
     incrementSequenceNumber: () => {},
     balances: [{ asset_type: 'native', balance: '100.00' }],
   };
-
   return {
     ...actual,
     rpc: {
       Server: vi.fn().mockImplementation(function() {
         return {
           simulateTransaction: vi.fn().mockResolvedValue({ result: { retval: {} } }),
-          sendTransaction:     vi.fn().mockResolvedValue({ status: 'PENDING', hash: 'mock_hash' }),
-          getTransaction:      vi.fn().mockResolvedValue({ status: 'SUCCESS' }),
+          sendTransaction: vi.fn().mockResolvedValue({ status: 'PENDING', hash: 'mock_hash' }),
+          getTransaction: vi.fn().mockResolvedValue({ status: 'SUCCESS' }),
         };
       }),
       Api: {
         isSimulationSuccess: () => true,
-        isSimulationError:   vi.fn(() => false),
+        isSimulationError: vi.fn(() => false),
         GetTransactionStatus: { SUCCESS: 'SUCCESS' },
       },
       assembleTransaction: vi.fn(() => ({
@@ -59,8 +77,8 @@ vi.mock("@stellar/stellar-sdk", async (importOriginal) => {
     },
     Horizon: {
       Account: vi.fn().mockImplementation(function(id, seq) {
-        this.accountId               = () => id;
-        this.sequenceNumber          = () => seq;
+        this.accountId = () => id;
+        this.sequenceNumber = () => seq;
         this.incrementSequenceNumber = () => {};
       }),
       Server: vi.fn().mockImplementation(function() {
@@ -69,7 +87,7 @@ vi.mock("@stellar/stellar-sdk", async (importOriginal) => {
     },
     Transaction: vi.fn().mockImplementation(function() {
       this.toEnvelope = () => ({});
-      this.toXDR      = () => 'MOCK_TX_XDR';
+      this.toXDR = () => 'MOCK_TX_XDR';
     }),
   };
 });
@@ -81,37 +99,45 @@ describe('Stellar Philanthropy DApp', () => {
     vi.clearAllMocks();
   });
 
-  // ── Test 1: Rendering & localStorage Cache ────────────────────────────────
-  it('renders the header and shows the cached donation total', async () => {
-    localStorage.setItem('stellar_total_donations', '500.00');
-    render(<App />);
+  const renderApp = (initialEntries = ['/']) => {
+    return render(
+      <HelmetProvider context={{}}>
+        <MemoryRouter initialEntries={initialEntries}>
+          <App />
+        </MemoryRouter>
+      </HelmetProvider>
+    );
+  };
 
-    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(/Stellar Philanthropy/i);
-    // findByText waits for the isFetchingTotal spinner to resolve
-    expect(await screen.findByText(/500.00/i)).toBeInTheDocument();
+  it('renders the landing page initially', async () => {
+    renderApp();
+    expect(screen.getByRole('heading', { level: 1, name: /Stellar Philanthropy/i })).toBeInTheDocument();
+    expect(screen.getByText(/Campaign Admin/i)).toBeInTheDocument();
+    expect(screen.getByText(/Philanthropist/i)).toBeInTheDocument();
   });
 
-  // ── Test 2: Wallet Connection ─────────────────────────────────────────────
-  it('connects the wallet and displays the truncated address', async () => {
-    render(<App />);
-    fireEvent.click(screen.getAllByText(/Connect Wallet/i)[0]);
-
+  it('connects the wallet and displays the truncated address in Navbar', async () => {
+    renderApp();
+    const connectBtns = screen.getAllByText(/Connect Wallet/i);
+    fireEvent.click(connectBtns[0]);
     expect(await screen.findByText(/GBYQ\.\.\.L2F6/i)).toBeInTheDocument();
   });
 
-  // ── Test 3: Donation Form Visibility ─────────────────────────────────────
-  it('shows the donation form once a wallet is connected', async () => {
-    render(<App />);
-    fireEvent.click(screen.getAllByText(/Connect Wallet/i)[0]);
-
-    expect(await screen.findByText(/Donate to Pool/i)).toBeInTheDocument();
+  it('navigates to marketplace and shows campaigns placeholder', async () => {
+    renderApp();
+    const marketplaceBtn = screen.getByText(/View Marketplace/i);
+    fireEvent.click(marketplaceBtn);
+    expect(await screen.findByRole('heading', { name: /Campaign Marketplace/i })).toBeInTheDocument();
+    expect(screen.getByText(/The marketplace is quiet/i)).toBeInTheDocument();
   });
 
-  // ── Test 4: Pool Snapshot Card Exists ────────────────────────────────────
-  it('shows the Total Donations card with Pool Snapshot label', () => {
-    render(<App />);
-
-    expect(screen.getByText(/Total Donations/i)).toBeInTheDocument();
-    expect(screen.getByText(/Pool Snapshot/i)).toBeInTheDocument();
+  it('navigates to admin portal and shows empty state', async () => {
+    renderApp();
+    fireEvent.click(screen.getAllByText(/Connect Wallet/i)[0]);
+    await screen.findByText(/GBYQ\.\.\.L2F6/i);
+    const adminBtn = screen.getByText(/Enter Terminal/i);
+    fireEvent.click(adminBtn);
+    expect(await screen.findByRole('heading', { name: /Admin Terminal/i })).toBeInTheDocument();
+    expect(screen.getByText(/No campaigns managed yet/i)).toBeInTheDocument();
   });
 });
