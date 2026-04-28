@@ -10,17 +10,18 @@ import {
 
 const DUMMY_ACCOUNT = new Account("GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF", "0");
 
-const DonorLeaderboard = ({ contractId, networkPassphrase, connectedWallet }) => {
+const DonorLeaderboard = ({ contractId, networkPassphrase, connectedWallet, lastDonationAt }) => {
   const [donors, setDonors] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [totalDonated, setTotalDonated] = useState(0);
+  const [lastUpdated, setLastUpdated] = useState(Date.now());
+
 
   const fetchLeaderboard = useCallback(async () => {
     try {
       const rpcServer = new rpc.Server("https://soroban-testnet.stellar.org");
       
-      // 1. Build simulation transaction
       const builder = new TransactionBuilder(DUMMY_ACCOUNT, { 
         fee: "100", 
         networkPassphrase: networkPassphrase || Networks.TESTNET 
@@ -29,33 +30,68 @@ const DonorLeaderboard = ({ contractId, networkPassphrase, connectedWallet }) =>
       const tx = builder
         .addOperation(Operation.invokeContractFunction({ 
           contract: contractId, 
-          function: "get_top_donors" 
+          function: "get_top_donors",
+          args: []
         }))
         .setTimeout(30)
         .build();
 
       const res = await rpcServer.simulateTransaction(tx);
       
-      if (rpc.Api.isSimulationSuccess(res)) {
-        const rawData = scValToNative(res.result.retval);
-        // rawData is likely [[address, bigint], ...]
-        const formatted = rawData.map(([address, amount]) => ({
-          address,
-          amount: Number(amount),
-          rawAmount: Number(amount)
-        }));
+      if (!res) throw new Error("No response from RPC server");
 
-        // Calculate total for percentages
-        const total = formatted.reduce((sum, d) => sum + d.rawAmount, 0);
-        setTotalDonated(total);
-        setDonors(formatted);
-        setError(null);
+      if (rpc.Api.isSimulationSuccess(res) && res.result && res.result.retval) {
+        let rawData;
+        try {
+          // Robustly parse the ScVal
+          const retval = res.result.retval;
+          if (typeof retval.vec === 'function') {
+            const v = retval.vec();
+            rawData = v ? v.map(i => {
+                try { return scValToNative(i); } catch(e) { return null; }
+            }).filter(i => i !== null) : [];
+          } else {
+            rawData = scValToNative(retval);
+          }
+        } catch (e) {
+          throw new Error("Data conversion failed: " + e.message);
+        }
+        
+        if (Array.isArray(rawData)) {
+          const formatted = rawData.map((item) => {
+            let addr = "Unknown", amt = 0;
+            if (Array.isArray(item) && item.length >= 2) {
+              addr = item[0]?.toString() || "Unknown";
+              amt = item[1] ? Number(item[1]) : 0;
+            } else if (item && typeof item === 'object') {
+              addr = (item.address || item.donor || "Unknown").toString();
+              amt = item.amount ? Number(item.amount) : 0;
+            }
+            return { 
+              address: addr, 
+              amount: amt ? Number(BigInt(amt)) : 0, 
+              rawAmount: amt ? Number(BigInt(amt)) : 0 
+            };
+          });
+
+          setTotalDonated(formatted.reduce((sum, d) => sum + (d.rawAmount || 0), 0));
+          setDonors(formatted);
+          setLastUpdated(Date.now());
+          setError(null);
+
+        } else {
+          setDonors([]);
+          setError(null);
+        }
       } else {
-        throw new Error("Simulation failed");
+        const errDetail = res.error || "Simulation unsuccessful";
+        throw new Error(errDetail);
       }
     } catch (err) {
-      console.error("Leaderboard fetch error:", err);
-      setError("Failed to sync with blockchain");
+      console.error("Leaderboard error detail:", err);
+      // Include a bit of stack trace to help locate the error
+      const stackLine = err.stack ? err.stack.split('\n')[1] : "No stack";
+      setError(`Sync Error: ${err.message} (${stackLine.trim()})`);
     } finally {
       setLoading(false);
     }
@@ -66,6 +102,22 @@ const DonorLeaderboard = ({ contractId, networkPassphrase, connectedWallet }) =>
     const interval = setInterval(fetchLeaderboard, 30000);
     return () => clearInterval(interval);
   }, [fetchLeaderboard]);
+
+  useEffect(() => {
+    if (lastDonationAt) {
+      fetchLeaderboard();
+    }
+  }, [lastDonationAt, fetchLeaderboard]);
+
+  // Update "seconds ago" every second
+  const [secondsAgo, setSecondsAgo] = useState(0);
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setSecondsAgo(Math.floor((Date.now() - lastUpdated) / 1000));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [lastUpdated]);
+
 
   const truncateAddress = (addr) => {
     if (!addr) return "";
@@ -118,9 +170,13 @@ const DonorLeaderboard = ({ contractId, networkPassphrase, connectedWallet }) =>
           Top Philanthropists
         </h2>
         <span className="text-xs text-slate-500 font-mono flex items-center gap-2">
+          <span className="text-[10px] text-slate-600 uppercase font-bold tracking-tighter mr-2">
+            {secondsAgo === 0 ? 'Just now' : `${secondsAgo}s ago`}
+          </span>
           <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
           Live Sync
         </span>
+
       </div>
 
       <div className="bg-slate-900/40 backdrop-blur-xl border border-slate-800 rounded-2xl overflow-hidden shadow-2xl">

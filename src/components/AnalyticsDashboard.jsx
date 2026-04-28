@@ -47,20 +47,21 @@ const AnalyticsDashboard = ({ contractId, rpcUrl }) => {
       if (history) {
         const processedHistory = history.map(h => ({
           donor: h.donor,
-          amount: Number(h.amount),
+          amount: Number(BigInt(h.amount)),
           timestamp: Number(h.timestamp) * 1000 // Convert to ms
         }));
 
         const uniqueDonors = new Set(processedHistory.map(h => h.donor)).size;
         const totalCount = processedHistory.length;
+        const historyTotal = processedHistory.reduce((sum, h) => sum + h.amount, 0);
         const largest = Math.max(...processedHistory.map(h => h.amount), 0);
         const lastTime = totalCount > 0 ? new Date(processedHistory[processedHistory.length - 1].timestamp).toLocaleString() : "N/A";
         
         setStats({
-          totalXLM: total ? Number(total) : 0,
+          totalXLM: total !== null ? Number(BigInt(total)) : historyTotal,
           donorCount: uniqueDonors,
           donationCount: totalCount,
-          average: totalCount > 0 ? (Number(total) / totalCount).toFixed(2) : 0,
+          average: totalCount > 0 ? ((total !== null ? Number(BigInt(total)) : historyTotal) / totalCount).toFixed(2) : 0,
           largest,
           lastTime
         });
@@ -160,7 +161,7 @@ const AnalyticsDashboard = ({ contractId, rpcUrl }) => {
         />
         <Card 
           title="Largest Gift" 
-          value={`${stats?.largest} XLM`} 
+          value={`${stats?.largest?.toLocaleString()} XLM`} 
           sub="Single highest contribution"
           color="from-pink-500 to-rose-600"
           icon={<svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" /></svg>}

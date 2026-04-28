@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-const DonateXLMForm = ({ onSend, isSending, balance }) => {
+const DonateXLMForm = ({ onDonate, isSending, balance }) => {
   const [amount, setAmount] = useState('');
 
   const isOverBalance = parseFloat(amount) > parseFloat(balance);
@@ -8,8 +8,9 @@ const DonateXLMForm = ({ onSend, isSending, balance }) => {
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!amount || isOverBalance) return;
-    onSend(null, amount); // Send null for recipient as it's not used by contract
+    onDonate(null, amount); // Send null for recipient as it's not used by contract
   };
+
 
   const quickAmounts = ['10', '50', '100'];
 

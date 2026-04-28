@@ -1,81 +1,86 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { rpc, scValToNative, xdr, Horizon } from "@stellar/stellar-sdk";
+
 
 const LiveDonationFeed = ({ contractId }) => {
   const [events, setEvents] = useState([]);
   const [status, setStatus] = useState('Disconnected');
-  const [retryCount, setRetryCount] = useState(0);
-  const scrollRef = useRef(null);
+  const lastLedgerRef = useRef(null);
+  const rpcServer = new rpc.Server("https://soroban-testnet.stellar.org");
+
+  const [lastUpdated, setLastUpdated] = useState(Date.now());
+  const [backoff, setBackoff] = useState(1000);
+  const server = new Horizon.Server("https://horizon-testnet.stellar.org");
 
   useEffect(() => {
-    let eventSource = null;
+    let closeStream = null;
     let timeoutId = null;
 
-    const connect = () => {
-      setStatus('Connecting...');
-      // Horizon SSE URL for account operations
-      const url = `https://horizon-testnet.stellar.org/accounts/${contractId}/operations?cursor=now&limit=10`;
+    const connectStream = () => {
+      setStatus('🟡 Reconnecting');
       
-      eventSource = new EventSource(url);
-
-      eventSource.onopen = () => {
-        setStatus('Connected');
-        setRetryCount(0);
-      };
-
-      eventSource.onmessage = (e) => {
-        try {
-          const data = JSON.parse(e.data);
+      try {
+        closeStream = server.operations()
+          .forAccount(contractId)
+          .cursor('now')
+          .stream({
+            onmessage: (op) => {
+              setEvents(prev => {
+                const newEvent = {
+                  id: op.id,
+                  from: op.source_account,
+                  amount: op.type === 'invoke_contract' ? 'Contract Call' : (op.amount ? `${op.amount} XLM` : 'Activity'),
+                  time: new Date().toLocaleTimeString(),
+                  type: op.type.replace(/_/g, ' ')
+                };
+                // Keep last 50
+                return [newEvent, ...prev].slice(0, 50);
+              });
+              setLastUpdated(Date.now());
+              setStatus('🟢 Live');
+              setBackoff(1000); // Reset backoff on success
+            },
+            onerror: (err) => {
+              console.error("Stream error:", err);
+              setStatus('🔴 Disconnected');
+              if (closeStream) closeStream();
+              
+              // Exponential backoff
+              const nextBackoff = Math.min(backoff * 2, 30000);
+              setBackoff(nextBackoff);
+              timeoutId = setTimeout(connectStream, backoff);
+            }
+          });
           
-          // Process the operation
-          // We look for 'invoke_host_function' (Soroban) or 'payment' (Classic)
-          let amount = "---";
-          let from = "Unknown";
-          
-          if (data.type === 'invoke_host_function') {
-            // Parsing Soroban XDR is complex in a feed, so we show it's an invocation
-            amount = "Contract Call";
-            from = data.source_account;
-          } else if (data.type === 'payment') {
-            amount = `${data.amount} ${data.asset_code || 'XLM'}`;
-            from = data.from;
-          }
-
-          const newEvent = {
-            id: data.id,
-            from: from,
-            amount: amount,
-            time: new Date().toLocaleTimeString(),
-            timestamp: Date.now(),
-            type: data.type
-          };
-
-          setEvents(prev => [newEvent, ...prev].slice(0, 20));
-        } catch (err) {
-          console.error("Error parsing event data:", err);
-        }
-      };
-
-      eventSource.onerror = () => {
-        setStatus('Disconnected');
-        eventSource.close();
-        
-        // Exponential backoff for reconnection
-        const delay = Math.min(1000 * Math.pow(2, retryCount), 30000);
-        setRetryCount(prev => prev + 1);
-        setStatus(`Reconnecting in ${delay/1000}s...`);
-        timeoutId = setTimeout(connect, delay);
-      };
+        setStatus('🟢 Live');
+      } catch (e) {
+        setStatus('🔴 Disconnected');
+        timeoutId = setTimeout(connectStream, backoff);
+      }
     };
 
-    connect();
+    connectStream();
 
     return () => {
-      if (eventSource) eventSource.close();
+      if (closeStream) closeStream();
       if (timeoutId) clearTimeout(timeoutId);
     };
-  }, [contractId, retryCount]);
+  }, [contractId, backoff]);
 
-  const truncate = (str) => `${str.slice(0, 4)}...${str.slice(-4)}`;
+  // Update "seconds ago" every second
+  const [secondsAgo, setSecondsAgo] = useState(0);
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setSecondsAgo(Math.floor((Date.now() - lastUpdated) / 1000));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [lastUpdated]);
+
+
+  const truncate = (str) => {
+    if (!str || str.length < 10) return str;
+    return `${str.slice(0, 4)}...${str.slice(-4)}`;
+  };
 
   return (
     <div className="w-full bg-black border border-slate-800 rounded-xl overflow-hidden font-mono text-sm shadow-2xl">
@@ -87,25 +92,26 @@ const LiveDonationFeed = ({ contractId }) => {
             <span className="text-red-500 font-bold tracking-tighter text-xs">LIVE</span>
           </div>
           <span className="text-slate-500 text-[10px] uppercase font-bold tracking-widest border-l border-slate-700 pl-3">
-            Horizon Terminal V1.0
+            Soroban Event Stream
           </span>
         </div>
         <div className="flex items-center gap-4 text-[10px]">
-          <span className={`${status === 'Connected' ? 'text-green-500' : 'text-amber-500'} font-bold`}>
+          <span className="text-slate-600 uppercase font-bold tracking-tighter">
+            {secondsAgo === 0 ? 'Just now' : `${secondsAgo}s ago`}
+          </span>
+          <span className={`${status.includes('Live') ? 'text-green-500' : 'text-amber-500'} font-bold`}>
             {status}
           </span>
           <span className="text-slate-600">TESTNET</span>
         </div>
+
       </div>
 
       {/* Feed Area */}
-      <div 
-        ref={scrollRef}
-        className="h-[400px] overflow-y-auto bg-[#0a0a0a] p-2 space-y-1 scrollbar-hide"
-      >
+      <div className="h-[400px] overflow-y-auto bg-[#0a0a0a] p-2 space-y-1 scrollbar-hide">
         {events.length === 0 ? (
-          <div className="h-full flex items-center justify-center text-slate-700 italic">
-            Waiting for network operations...
+          <div className="h-full flex items-center justify-center text-slate-700 italic text-center px-8">
+            {status === 'Connected' ? 'No recent events detected for this contract.' : 'Scanning network history...'}
           </div>
         ) : (
           events.map((ev) => (
@@ -119,7 +125,7 @@ const LiveDonationFeed = ({ contractId }) => {
                   <span className="text-cyan-400 group-hover:text-cyan-300 transition-colors">
                     {truncate(ev.from)}
                   </span>
-                  <span className="text-[9px] text-slate-700 uppercase">{ev.type.replace(/_/g, ' ')}</span>
+                  <span className="text-[9px] text-slate-700 uppercase">{ev.type}</span>
                 </div>
               </div>
               
@@ -137,11 +143,11 @@ const LiveDonationFeed = ({ contractId }) => {
       {/* Footer Info */}
       <div className="bg-slate-900/50 px-4 py-1.5 flex items-center justify-between text-[9px] text-slate-600 border-t border-slate-800">
         <div className="flex gap-4">
-          <span>TX_STREAM: ACTIVE</span>
-          <span>BUFFER_SIZE: {events.length}/20</span>
+          <span>SOROBAN_RPC: ACTIVE</span>
+          <span>BUFFER: {events.length}/50</span>
         </div>
-        <div className="flex gap-2">
-          <span>CONTRACT: {truncate(contractId)}</span>
+        <div className="flex gap-2 text-indigo-400 font-bold">
+          {truncate(contractId)}
         </div>
       </div>
 

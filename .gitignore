@@ -26,3 +26,7 @@ dist-ssr
 # Contract artifacts
 **/target
 
+# Secrets and Local Scratch
+.env
+.env.*
+scratch/

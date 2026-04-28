@@ -32,9 +32,10 @@ const WalletCard = ({ address, balance, isFetching, lastUpdated }) => {
           </div>
           {address && !isFetching && (
             <div className="text-[10px] text-slate-500 font-bold uppercase tracking-widest text-right">
-              Last Sync: {lastUpdated}
+              Last Sync: {Math.floor((Date.now() - lastUpdated) / 1000) === 0 ? 'Just now' : `${Math.floor((Date.now() - lastUpdated) / 1000)}s ago`}
             </div>
           )}
+
         </div>
       </div>
     </div>

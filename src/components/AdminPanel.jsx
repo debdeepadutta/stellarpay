@@ -12,56 +12,89 @@ import {
 } from "@stellar/stellar-sdk";
 import toast from 'react-hot-toast';
 
-const ADMIN_ADDRESS = "GCYYHFAIGQJEDJVV4R3Z6SFTMVD23HCNPQ3IZTLRDRQ4VT25XLDFTTZH";
 const DUMMY_ACCOUNT = new Account("GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF", "0");
 
-const AdminPanel = ({ contractId, vaultContractId, connectedWallet, networkPassphrase, kit }) => {
+const AdminPanel = ({ contractId, vaultContractId, connectedWallet, networkPassphrase, kit, initialAdmin, onActionComplete }) => {
+  const [adminAddress, setAdminAddress] = useState(initialAdmin || "");
   const [vaultBalance, setVaultBalance] = useState(0);
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState(null); // 'cap' or 'withdraw'
+  const [lastUpdated, setLastUpdated] = useState(Date.now());
+
   
   const [newCap, setNewCap] = useState("");
   const [withdrawAmount, setWithdrawAmount] = useState("");
   const [withdrawDest, setWithdrawDest] = useState("");
 
-  const isAdmin = connectedWallet === ADMIN_ADDRESS;
+  const isAdmin = connectedWallet?.toString().trim().toUpperCase() === adminAddress?.toString().trim().toUpperCase();
 
   const fetchData = useCallback(async () => {
-    if (!isAdmin) return;
+    if (!contractId || contractId.length < 10) return;
     try {
       const rpcServer = new rpc.Server("https://soroban-testnet.stellar.org");
       
       const simulate = async (cid, fn, args = []) => {
-        const builder = new TransactionBuilder(DUMMY_ACCOUNT, { 
-          fee: "100", 
-          networkPassphrase: networkPassphrase || Networks.TESTNET 
-        });
-        const tx = builder
-          .addOperation(Operation.invokeContractFunction({ contract: cid, function: fn, args }))
-          .setTimeout(30)
-          .build();
-        const res = await rpcServer.simulateTransaction(tx);
-        return rpc.Api.isSimulationSuccess(res) ? scValToNative(res.result.retval) : null;
+        try {
+          const builder = new TransactionBuilder(DUMMY_ACCOUNT, { 
+            fee: "100", 
+            networkPassphrase: networkPassphrase || Networks.TESTNET 
+          });
+          const tx = builder
+            .addOperation(Operation.invokeContractFunction({ contract: cid, function: fn, args }))
+            .setTimeout(30)
+            .build();
+          const res = await rpcServer.simulateTransaction(tx);
+          return rpc.Api.isSimulationSuccess(res) ? scValToNative(res.result.retval) : null;
+        } catch (e) {
+          console.error(`Simulation failed for ${fn}:`, e);
+          return null;
+        }
       };
 
-      const [balance, logs] = await Promise.all([
-        simulate(vaultContractId, "get_balance"),
-        simulate(vaultContractId, "get_withdrawal_history")
-      ]);
+      // Always fetch admin first
+      const admin = await simulate(contractId, "get_admin");
+      if (admin) {
+        setAdminAddress(admin.toString());
+      } else {
+        console.warn(`Could not fetch admin for contract: ${contractId}`);
+      }
 
-      if (balance !== null) setVaultBalance(Number(balance));
-      if (logs !== null) setHistory(logs);
+      // Only fetch restricted data if connected wallet is admin
+      if (connectedWallet && admin && connectedWallet.toString().toUpperCase() === admin.toString().toUpperCase()) {
+        const [balance, logs] = await Promise.all([
+          simulate(vaultContractId, "get_balance"),
+          simulate(vaultContractId, "get_withdrawal_history")
+        ]);
+
+        if (balance !== null) setVaultBalance(Number(BigInt(balance)));
+        if (logs !== null) setHistory(logs.map(log => ({
+          ...log,
+          amount: Number(BigInt(log.amount))
+        })));
+        setLastUpdated(Date.now());
+      }
     } catch (err) {
       console.error("Admin fetch error:", err);
     }
-  }, [isAdmin, vaultContractId, networkPassphrase]);
+
+  }, [connectedWallet, contractId, vaultContractId, networkPassphrase]);
 
   useEffect(() => {
     fetchData();
     const interval = setInterval(fetchData, 30000);
     return () => clearInterval(interval);
   }, [fetchData]);
+
+  // Update "seconds ago" every second
+  const [secondsAgo, setSecondsAgo] = useState(0);
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setSecondsAgo(Math.floor((Date.now() - lastUpdated) / 1000));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [lastUpdated]);
+
 
   const handleAction = async (type, fn, cid, args) => {
     setActionLoading(type);
@@ -111,7 +144,9 @@ const AdminPanel = ({ contractId, vaultContractId, connectedWallet, networkPassp
           }
           if (res.status !== rpc.Api.GetTransactionStatus.SUCCESS) throw new Error("Transaction failed");
           fetchData();
+          if (onActionComplete) onActionComplete();
           return send.hash;
+
         })(),
         {
           loading: 'Processing transaction...',
@@ -133,6 +168,15 @@ const AdminPanel = ({ contractId, vaultContractId, connectedWallet, networkPassp
 
   if (!connectedWallet) return null;
 
+  if (adminAddress === "") {
+    return (
+      <div className="w-full bg-slate-950/20 border border-slate-800/50 rounded-2xl p-4 flex items-center justify-center gap-3">
+        <div className="w-4 h-4 border-2 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin"></div>
+        <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Verifying Authority...</span>
+      </div>
+    );
+  }
+
   if (!isAdmin) {
     return (
       <div className="w-full max-w-2xl mx-auto bg-slate-900 border border-slate-800 rounded-3xl p-12 text-center">
@@ -142,8 +186,29 @@ const AdminPanel = ({ contractId, vaultContractId, connectedWallet, networkPassp
           </svg>
         </div>
         <h2 className="text-2xl font-bold text-white mb-2">Access Denied</h2>
-        <p className="text-slate-500 mb-6">This terminal is restricted to administrative personnel only.</p>
-        <div className="text-xs font-mono text-slate-700">REQUIRED_AUTH: {ADMIN_ADDRESS}</div>
+        <p className="text-slate-500 mb-8 text-sm">This terminal is restricted to administrative personnel only.</p>
+        
+        <div className="space-y-4 max-w-md mx-auto">
+          <div className="text-left">
+            <div className="text-[10px] text-slate-600 uppercase font-black tracking-widest mb-1">Your Identity ({connectedWallet?.length})</div>
+            <div className="font-mono text-xs text-indigo-400 bg-indigo-500/5 py-3 px-4 rounded-xl border border-indigo-500/10 break-all leading-relaxed shadow-inner">
+              {connectedWallet}
+            </div>
+          </div>
+          
+          <div className="flex items-center justify-center py-2">
+            <div className="h-[1px] w-8 bg-slate-800"></div>
+            <div className="px-3 text-[10px] text-slate-700 font-bold">VS</div>
+            <div className="h-[1px] w-8 bg-slate-800"></div>
+          </div>
+
+          <div className="text-left">
+            <div className="text-[10px] text-slate-600 uppercase font-black tracking-widest mb-1">Required Authority ({adminAddress?.length || 0})</div>
+            <div className="font-mono text-xs text-rose-500/60 bg-rose-500/5 py-3 px-4 rounded-xl border border-rose-500/10 break-all leading-relaxed">
+              {adminAddress || "Fetching..."}
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
@@ -162,10 +227,16 @@ const AdminPanel = ({ contractId, vaultContractId, connectedWallet, networkPassp
         </h2>
         <div className="flex items-center gap-4">
           <div className="text-right">
-            <div className="text-[10px] text-slate-500 uppercase font-bold tracking-widest">Vault Reserve</div>
+            <div className="text-[10px] text-slate-500 uppercase font-bold tracking-widest flex items-center gap-2">
+              <span className="w-1 h-1 bg-green-500 rounded-full animate-pulse"></span>
+              {secondsAgo === 0 ? 'Just now' : `${secondsAgo}s ago`}
+              <span className="mx-1">|</span>
+              Vault Reserve
+            </div>
             <div className="text-xl font-black text-emerald-400">{vaultBalance.toLocaleString()} XLM</div>
           </div>
         </div>
+
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -261,7 +332,7 @@ const AdminPanel = ({ contractId, vaultContractId, connectedWallet, networkPassp
                   <td className="px-6 py-4 font-mono text-xs text-slate-300">
                     {log.to.slice(0, 8)}...{log.to.slice(-8)}
                   </td>
-                  <td className="px-6 py-4 text-emerald-400 font-bold">{log.amount.toString()} XLM</td>
+                  <td className="px-6 py-4 text-emerald-400 font-bold">{log.amount.toLocaleString()} XLM</td>
                   <td className="px-6 py-4 text-right text-slate-500 text-xs">
                     {new Date(Number(log.timestamp) * 1000).toLocaleString()}
                   </td>

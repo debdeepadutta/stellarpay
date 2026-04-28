@@ -9,7 +9,10 @@
 [![Soroban](https://img.shields.io/badge/Soroban-Smart%20Contracts-FF6B35?style=for-the-badge)](https://soroban.stellar.org)
 [![Vitest](https://img.shields.io/badge/Tested-Vitest-6E9F18?style=for-the-badge&logo=vitest&logoColor=white)](https://vitest.dev)
 [![Vercel](https://img.shields.io/badge/Deployed-Vercel-000000?style=for-the-badge&logo=vercel&logoColor=white)](https://stellarpay-lac.vercel.app/)
-[![CI/CD](https://github.com/debdeepadutta/stellarpay/actions/workflows/ci.yml/badge.svg)](https://github.com/debdeepadutta/stellarpay/actions/workflows/ci.yml)
+[![Contracts](https://img.shields.io/github/actions/workflow/status/debdeepadutta/stellarpay/ci.yml?job=contract-tests&label=Contracts&style=flat-square)](https://github.com/debdeepadutta/stellarpay/actions/workflows/ci.yml)
+[![Frontend](https://img.shields.io/github/actions/workflow/status/debdeepadutta/stellarpay/ci.yml?job=frontend-tests&label=Frontend&style=flat-square)](https://github.com/debdeepadutta/stellarpay/actions/workflows/ci.yml)
+[![Security](https://img.shields.io/github/actions/workflow/status/debdeepadutta/stellarpay/ci.yml?job=security-check&label=Security&style=flat-square)](https://github.com/debdeepadutta/stellarpay/actions/workflows/ci.yml)
+
 
 **A decentralized philanthropy platform built on the Stellar Testnet, enabling XLM donations via Soroban smart contracts with multi-wallet support, inter-contract architecture, CI/CD automation, and a fully responsive mobile UI.**
 

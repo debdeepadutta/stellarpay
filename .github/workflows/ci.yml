@@ -30,26 +30,18 @@ jobs:
             target/
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
-      - name: Install Stellar CLI
+      - name: Install Soroban CLI
         run: cargo install --locked stellar-cli || true
 
-      - name: Test & Build Donation Contract
+      - name: Test & Build Contracts
         run: |
-          cd contracts
-          cargo test --verbose
-          cargo build --target wasm32-unknown-unknown --release
-
-      - name: Test & Build Logger Contract
-        run: |
-          cd logger_contract
-          cargo test --verbose
-          cargo build --target wasm32-unknown-unknown --release
-
-      - name: Test & Build Vault Contract
-        run: |
-          cd vault_contract
-          cargo test --verbose
-          cargo build --target wasm32-unknown-unknown --release
+          for dir in contracts logger_contract vault_contract; do
+            echo "Processing $dir..."
+            cd $dir
+            cargo test --verbose
+            cargo build --target wasm32-unknown-unknown --release
+            cd ..
+          done
 
   frontend-tests:
     name: Frontend Verification
@@ -75,10 +67,31 @@ jobs:
       - name: Build Project
         run: npm run build
 
-  deploy-preview:
-    name: Deploy Preview
-    if: github.event_name == 'pull_request'
-    needs: [contract-tests, frontend-tests]
+  security-check:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: npm audit
+        run: npm audit --audit-level=high || true
+
+      - name: Check for exposed Firebase keys
+        run: |
+          # Check for common Firebase key patterns in source files
+          # apiKey should not be in plaintext in src/
+          if grep -rE "apiKey: \"AIza" src/ || grep -rE "projectId: \"clone-31d16" src/; then
+            echo "❌ CRITICAL SECURITY ERROR: Exposed Firebase keys found in source code!"
+            echo "Please move all secrets to environment variables."
+            exit 1
+          fi
+          echo "✅ Security scan passed. No exposed secrets found."
+
+  deploy:
+    name: Production Deployment
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [contract-tests, frontend-tests, security-check]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
@@ -89,38 +102,12 @@ jobs:
         with:
           node-version: 18
 
-      - name: Build
+      - name: Build Frontend
         run: |
           npm install
           npm run build
 
-      - name: Comment on PR
-        uses: actions/github-script@v7
-        with:
-          script: |
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: '🚀 Build Success! Contract and Frontend tests passed. Preview deployment is ready for review.'
-            })
-
-  deploy-production:
-    name: Deploy to Production
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs: [contract-tests, frontend-tests]
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 18
-
-      - name: Install Vercel CLI
-        run: npm install --global vercel
-
       - name: Deploy to Vercel
-        run: vercel deploy --prod --token=${{ secrets.VERCEL_TOKEN }} --yes
+        run: |
+          npm install --global vercel
+          vercel deploy --prod --token=${{ secrets.VERCEL_TOKEN }} --yes
