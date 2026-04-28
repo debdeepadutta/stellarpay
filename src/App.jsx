@@ -180,29 +180,27 @@ function AppContent() {
         return rpc.Api.isSimulationSuccess(res) ? scValToNative(res.result.retval) : null;
       };
 
-      // Only fetch on-chain stats if campaigns reference these contracts
-      // Starting fresh: don't pull stale data from old contracts
-      const activeCampaignContracts = allCampaigns.map(c => c.donationContractId || c.contractId).filter(Boolean);
-      const activeCampaignVaults = allCampaigns.map(c => c.vaultContractId).filter(Boolean);
+      // Only aggregate stats from campaigns currently in YOUR Firestore
+      const campaignTotals = allCampaigns.map(c => parseFloat(c.totalDonated || 0));
+      const totalSum = campaignTotals.reduce((a, b) => a + b, 0);
+      setTotalDonations(totalSum);
 
-      if (activeCampaignContracts.includes(CONTRACT_ID)) {
-        const total = await simulate(CONTRACT_ID, "get_total");
-        if (total !== null) setTotalDonations(fromI128(total));
-      } else {
-        setTotalDonations(0);
-      }
+      const simulate = async (cid, fn, args = []) => {
+        if (!cid || cid.length < 56) return null;
+        const builder = new TransactionBuilder(DUMMY_ACCOUNT, { fee: "100", networkPassphrase: Networks.TESTNET });
+        const tx = builder.addOperation(Operation.invokeContractFunction({ contract: cid, function: fn, args })).setTimeout(30).build();
+        const res = await rpcServer.simulateTransaction(tx);
+        return rpc.Api.isSimulationSuccess(res) ? scValToNative(res.result.retval) : null;
+      };
 
-      if (activeCampaignVaults.includes(VAULT_CONTRACT_ID)) {
-        const stats = await simulate(VAULT_CONTRACT_ID, "get_stats");
-        if (stats !== null) setVaultStats({
-          total_deposited: fromI128(stats.total_deposited).toLocaleString(),
-          total_withdrawn: fromI128(stats.total_withdrawn).toLocaleString(),
-          current_balance: fromI128(stats.current_balance).toLocaleString(),
-          deposit_count: Number(stats.deposit_count)
-        });
-      } else {
-        setVaultStats({ total_deposited: '0', total_withdrawn: '0', current_balance: '0', deposit_count: 0 });
-      }
+      // We still fetch the vault balance for the UI, but we don't let it override the global sum if it's stale
+      const stats = await simulate(VAULT_CONTRACT_ID, "get_stats", []);
+      if (stats !== null) setVaultStats({
+        total_deposited: fromI128(stats.total_deposited).toLocaleString(),
+        total_withdrawn: fromI128(stats.total_withdrawn).toLocaleString(),
+        current_balance: fromI128(stats.current_balance).toLocaleString(),
+        deposit_count: Number(stats.deposit_count)
+      });
       setLastUpdated(prev => ({ ...prev, wallet: Date.now(), vault: Date.now() }));
     } catch (e) {
       console.error("Fetch failed", e);
@@ -277,9 +275,14 @@ function AppContent() {
       await connectWallet();
       return;
     }
+    console.log("--- STARTING DONATION PROCESS ---");
+    console.log("Contract:", targetContractId);
+    console.log("Amount:", amount);
+    
     setIsSending(true);
     setTxStatus('sending');
     try {
+      console.log("Step 1: Building Transaction...");
       const builder = new TransactionBuilder(new Account(address, "0"), { fee: "1000", networkPassphrase: Networks.TESTNET });
       const tx = builder.addOperation(Operation.invokeContractFunction({
         contract: targetContractId,
@@ -287,23 +290,33 @@ function AppContent() {
         args: [Address.fromString(address).toScVal(), toI128(amount)]
       })).setTimeout(60).build();
 
+      console.log("Step 2: Simulating on Soroban...");
       const sim = await rpcServer.simulateTransaction(tx);
-      if (rpc.Api.isSimulationError(sim)) throw new Error("Simulation failed: Check if you hit the donation cap");
+      if (rpc.Api.isSimulationError(sim)) {
+        console.error("Simulation failed details:", sim.error);
+        throw new Error("Simulation failed: The contract rejected this donation (check if you reached the cap).");
+      }
       
+      console.log("Step 3: Signing with Wallet...");
       const prepared = rpc.assembleTransaction(tx, sim).build();
       const { signedTxXdr } = await kit.signTransaction(prepared.toXDR());
-      const send = await rpcServer.sendTransaction(new Transaction(signedTxXdr, Networks.TESTNET));
       
-      // Poll for transaction status with a timeout (30 seconds)
+      console.log("Step 4: Submitting to Network...");
+      const send = await rpcServer.sendTransaction(new Transaction(signedTxXdr, Networks.TESTNET));
+      console.log("Transaction Hash:", send.hash);
+      
+      console.log("Step 5: Waiting for confirmation (polling)...");
       let res = await rpcServer.getTransaction(send.hash);
       let attempts = 0;
-      while ((res.status === "NOT_FOUND" || res.status === "PENDING") && attempts < 15) {
+      while ((res.status === "NOT_FOUND" || res.status === "PENDING") && attempts < 20) {
         await new Promise(r => setTimeout(r, 2000));
         res = await rpcServer.getTransaction(send.hash);
         attempts++;
+        console.log(`Poll attempt ${attempts}: ${res.status}`);
       }
 
       if (res.status === rpc.Api.GetTransactionStatus.SUCCESS) {
+        console.log("Step 6: SUCCESS!");
         setTxStatus('success');
         setTxHash(send.hash);
         setLastDonationAt(Date.now());
@@ -313,10 +326,11 @@ function AppContent() {
         // Auto-reset status after 5 seconds so button returns to normal
         setTimeout(() => setTxStatus(null), 5000);
       } else {
-        throw new Error(attempts >= 15 ? "Transaction taking too long. Check explorer." : "Transaction failed");
+        console.error("Final status:", res.status);
+        throw new Error(attempts >= 20 ? "Transaction taking too long. Check explorer." : "Transaction failed");
       }
     } catch (e) {
-      console.error("Donation Error:", e);
+      console.error("!!! DONATION FAILED !!!", e);
       toast.error(parseStellarError(e));
       setTxStatus('failure');
       // Reset status after 3 seconds so button is clickable again
