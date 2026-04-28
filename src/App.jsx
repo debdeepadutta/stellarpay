@@ -230,43 +230,42 @@ function AppContent() {
             const nameToSet = typeof walletOption === 'string' ? walletOption : (walletOption.name || walletOption.id);
             
             kit.setWallet(idToSet);
-            const { address } = await kit.getAddress();
             
-            if (address) {
-              setAddress(address);
-              // Fallback to capitalizing the ID if no name is provided
+            let walletAddress;
+            try {
+              const result = await kit.getAddress();
+              walletAddress = result.address;
+            } catch (addrErr) {
+              // xBull and some wallets throw raw objects on rejection
+              const reason = typeof addrErr === 'string' ? addrErr 
+                : addrErr?.message 
+                ? addrErr.message 
+                : JSON.stringify(addrErr, null, 2);
+              console.error("getAddress failed:", reason);
+              toast.error("Wallet rejected: " + reason);
+              return;
+            }
+            
+            if (walletAddress) {
+              setAddress(walletAddress);
               const displayName = nameToSet.charAt(0).toUpperCase() + nameToSet.slice(1);
               setWalletName(displayName);
-              
               toast.success("Wallet Connected!");
               fetchData();
             }
           } catch (err) {
             console.error("Connection Error:", err);
-            
-            // Handle cases where the wallet throws an object without a message property (e.g., xBull)
-            let errorMsg = "Unknown error";
-            if (err?.message) {
-              errorMsg = err.message;
-            } else if (typeof err === 'string') {
-              errorMsg = err;
-            } else if (typeof err === 'object') {
-              try {
-                errorMsg = JSON.stringify(err);
-              } catch (e) {
-                errorMsg = "Unparseable error object";
-              }
-            }
-            
+            const errorMsg = typeof err === 'string' ? err 
+              : err?.message ? err.message 
+              : JSON.stringify(err, null, 2);
             toast.error("Failed to connect: " + errorMsg);
           }
         },
       });
-
-
-
     } catch (e) {
       console.error("Modal Error:", e);
+      const msg = typeof e === 'string' ? e : e?.message ? e.message : JSON.stringify(e, null, 2);
+      toast.error("Modal error: " + msg);
     }
   };
 
