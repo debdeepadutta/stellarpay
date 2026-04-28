@@ -7,8 +7,52 @@ on:
     branches: [ main ]
 
 jobs:
-  frontend-ci:
-    name: Frontend CI
+  contract-tests:
+    name: Contract Verification
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - name: Cache Cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Install Stellar CLI
+        run: cargo install --locked stellar-cli || true
+
+      - name: Test & Build Donation Contract
+        run: |
+          cd contracts
+          cargo test --verbose
+          cargo build --target wasm32-unknown-unknown --release
+
+      - name: Test & Build Logger Contract
+        run: |
+          cd logger_contract
+          cargo test --verbose
+          cargo build --target wasm32-unknown-unknown --release
+
+      - name: Test & Build Vault Contract
+        run: |
+          cd vault_contract
+          cargo test --verbose
+          cargo build --target wasm32-unknown-unknown --release
+
+  frontend-tests:
+    name: Frontend Verification
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
@@ -17,45 +61,66 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 18
           cache: 'npm'
 
-      - name: Install Build Tools
-        run: sudo apt-get update && sudo apt-get install -y python3 build-essential libudev-dev libsystemd-dev libusb-1.0-0-dev
-
       - name: Install Dependencies
-        run: npm ci
+        run: npm install
 
-      - name: Run Vitest
-        run: |
-          mv vite.config.js vite.config.js.bak
-          npm test -- --reporter=verbose
-          mv vite.config.js.bak vite.config.js
+      - name: Run Tests
+        run: npm run test
         env:
           CI: true
 
       - name: Build Project
         run: npm run build
 
-  contracts-ci:
-    name: Contracts CI
+  deploy-preview:
+    name: Deploy Preview
+    if: github.event_name == 'pull_request'
+    needs: [contract-tests, frontend-tests]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Install System Dependencies
-        run: sudo apt-get update && sudo apt-get install -y build-essential pkg-config libssl-dev
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
 
-      - name: Setup Rust
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Test Donation Contract
+      - name: Build
         run: |
-          cd contracts
-          cargo test --verbose
+          npm install
+          npm run build
 
-      - name: Test Logger Contract
-        run: |
-          cd logger_contract
-          cargo test --verbose
+      - name: Comment on PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '🚀 Build Success! Contract and Frontend tests passed. Preview deployment is ready for review.'
+            })
+
+  deploy-production:
+    name: Deploy to Production
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [contract-tests, frontend-tests]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Install Vercel CLI
+        run: npm install --global vercel
+
+      - name: Deploy to Vercel
+        run: vercel deploy --prod --token=${{ secrets.VERCEL_TOKEN }} --yes

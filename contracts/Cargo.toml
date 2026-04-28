@@ -4,13 +4,15 @@ version = "0.1.0"
 edition = "2021"
 
 [lib]
-crate-type = ["cdylib"]
+crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 soroban-sdk = "21.7.7"
 
 [dev-dependencies]
 soroban-sdk = { version = "21.7.7", features = ["testutils"] }
+logger_contract = { path = "../logger_contract" }
+vault_contract = { path = "../vault_contract" }
 
 [profile.release]
 opt-level = "z"
