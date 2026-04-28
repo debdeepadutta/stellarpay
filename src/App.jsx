@@ -108,14 +108,14 @@ function AppContent() {
   const [lastDonationAt, setLastDonationAt] = useState(null);
   const [lastUpdated, setLastUpdated] = useState({ wallet: Date.now(), vault: Date.now(), marketplace: Date.now() });
 
-  // Admin Form State
+  // Admin Form State - Default to empty for a fresh start
   const [newCampaign, setNewCampaign] = useState({ 
     name: '', 
     description: '', 
     goal: '', 
     cap: '', 
-    contractId: CONTRACT_ID, 
-    vaultContractId: VAULT_CONTRACT_ID 
+    contractId: '', 
+    vaultContractId: '' 
   });
 
   // Real-time listener for All Active Campaigns
@@ -288,16 +288,19 @@ function AppContent() {
       })).setTimeout(60).build();
 
       const sim = await rpcServer.simulateTransaction(tx);
-      if (rpc.Api.isSimulationError(sim)) throw new Error("Simulation failed");
+      if (rpc.Api.isSimulationError(sim)) throw new Error("Simulation failed: Check if you hit the donation cap");
       
       const prepared = rpc.assembleTransaction(tx, sim).build();
       const { signedTxXdr } = await kit.signTransaction(prepared.toXDR());
       const send = await rpcServer.sendTransaction(new Transaction(signedTxXdr, Networks.TESTNET));
       
+      // Poll for transaction status with a timeout (30 seconds)
       let res = await rpcServer.getTransaction(send.hash);
-      while (res.status === "NOT_FOUND" || res.status === "PENDING") {
+      let attempts = 0;
+      while ((res.status === "NOT_FOUND" || res.status === "PENDING") && attempts < 15) {
         await new Promise(r => setTimeout(r, 2000));
         res = await rpcServer.getTransaction(send.hash);
+        attempts++;
       }
 
       if (res.status === rpc.Api.GetTransactionStatus.SUCCESS) {
@@ -306,10 +309,18 @@ function AppContent() {
         setLastDonationAt(Date.now());
         toast.success("Donation successful!");
         fetchData();
-      } else throw new Error("Transaction failed");
+        
+        // Auto-reset status after 5 seconds so button returns to normal
+        setTimeout(() => setTxStatus(null), 5000);
+      } else {
+        throw new Error(attempts >= 15 ? "Transaction taking too long. Check explorer." : "Transaction failed");
+      }
     } catch (e) {
+      console.error("Donation Error:", e);
       toast.error(parseStellarError(e));
       setTxStatus('failure');
+      // Reset status after 3 seconds so button is clickable again
+      setTimeout(() => setTxStatus(null), 3000);
     } finally {
       setIsSending(false);
     }
@@ -334,7 +345,8 @@ function AppContent() {
       setNewCampaign({ name: '', description: '', goal: '', cap: '', contractId: CONTRACT_ID, vaultContractId: VAULT_CONTRACT_ID });
       navigate('/admin');
     } catch (e) {
-      toast.error("Failed to save campaign");
+      console.error("Firebase Create Error:", e);
+      toast.error("Failed to save campaign: " + e.message);
     } finally {
       setIsSending(false);
     }

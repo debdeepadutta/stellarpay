@@ -3,6 +3,14 @@ import { useParams, Link } from 'react-router-dom';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { Helmet } from 'react-helmet-async';
+import { 
+  Networks, 
+  TransactionBuilder, 
+  Operation, 
+  Account, 
+  rpc, 
+  scValToNative 
+} from "@stellar/stellar-sdk";
 import toast from 'react-hot-toast';
 
 import DonateXLMForm from '../components/SendXLMForm';
@@ -21,7 +29,29 @@ const CampaignDetails = ({ address, balance, isFetchingData, handleDonate, isSen
         const docRef = doc(db, "campaigns", id);
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
-          setCampaign({ id: docSnap.id, ...docSnap.data() });
+          const data = { id: docSnap.id, ...docSnap.data() };
+          const cid = data.donationContractId || data.contractId;
+          
+          let chainTotal = data.totalDonated || 0;
+          if (cid) {
+            try {
+              const rpcServer = new rpc.Server("https://soroban-testnet.stellar.org");
+              const builder = new TransactionBuilder(new Account("GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF", "0"), { 
+                fee: "100", 
+                networkPassphrase: Networks.TESTNET 
+              });
+              const tx = builder.addOperation(Operation.invokeContractFunction({ contract: cid, function: "get_total" })).setTimeout(30).build();
+              const res = await rpcServer.simulateTransaction(tx);
+              if (rpc.Api.isSimulationSuccess(res)) {
+                const val = scValToNative(res.result.retval);
+                chainTotal = Number(BigInt(val));
+              }
+            } catch (rpcErr) {
+              console.warn("Failed to fetch chain total for campaign", rpcErr);
+            }
+          }
+          
+          setCampaign({ ...data, totalDonated: chainTotal });
         } else {
           toast.error("Campaign not found");
         }
@@ -32,10 +62,12 @@ const CampaignDetails = ({ address, balance, isFetchingData, handleDonate, isSen
       }
     };
     fetchCampaign();
-  }, [id]);
+  }, [id, lastDonationAt]);
+
+  const progress = campaign.goal > 0 ? Math.min((parseFloat(campaign.totalDonated || 0) / campaign.goal) * 100, 100) : 0;
 
   const copyLink = () => {
-    const url = `${window.location.origin}/campaign/${id}`;
+    const url = window.location.href;
     navigator.clipboard.writeText(url);
     toast.success("Link copied! Share to get more donors", {
         icon: '🔗',
@@ -50,12 +82,12 @@ const CampaignDetails = ({ address, balance, isFetchingData, handleDonate, isSen
 
   const shareOnX = () => {
     const text = `I just supported ${campaign.name} on Stellar Philanthropy! Join me in making a difference:`;
-    const url = `https://stellarpay-lac.vercel.app/campaign/${id}`;
+    const url = window.location.href;
     window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`, '_blank');
   };
 
   const shareOnLinkedIn = () => {
-    const url = `https://stellarpay-lac.vercel.app/campaign/${id}`;
+    const url = window.location.href;
     window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}`, '_blank');
   };
 
@@ -82,7 +114,7 @@ const CampaignDetails = ({ address, balance, isFetchingData, handleDonate, isSen
         <title>{campaign.name} | Stellar Philanthropy</title>
         <meta property="og:title" content={campaign.name} />
         <meta property="og:description" content={campaign.description} />
-        <meta property="og:url" content={`https://stellarpay-lac.vercel.app/campaign/${id}`} />
+        <meta property="og:url" content={window.location.href} />
       </Helmet>
 
       <Link to="/donor" className="inline-flex items-center gap-2 text-slate-500 hover:text-indigo-400 transition-colors mb-8 group">
@@ -127,7 +159,7 @@ const CampaignDetails = ({ address, balance, isFetchingData, handleDonate, isSen
               </div>
             </div>
             <div className="w-full h-4 bg-slate-950 rounded-full overflow-hidden border border-white/5">
-              <div className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 w-[15%] transition-all duration-1000"></div>
+              <div className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 transition-all duration-1000" style={{ width: `${progress}%` }}></div>
             </div>
           </div>
 
