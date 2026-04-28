@@ -64,8 +64,6 @@ const CampaignDetails = ({ address, balance, isFetchingData, handleDonate, isSen
     fetchCampaign();
   }, [id, lastDonationAt]);
 
-  const progress = campaign.goal > 0 ? Math.min((parseFloat(campaign.totalDonated || 0) / campaign.goal) * 100, 100) : 0;
-
   const copyLink = () => {
     const url = window.location.href;
     navigator.clipboard.writeText(url);
@@ -107,6 +105,8 @@ const CampaignDetails = ({ address, balance, isFetchingData, handleDonate, isSen
       </div>
     );
   }
+
+  const progress = campaign.goal > 0 ? Math.min((parseFloat(campaign.totalDonated || 0) / campaign.goal) * 100, 100) : 0;
 
   return (
     <div className="max-w-7xl mx-auto px-6 py-12">
