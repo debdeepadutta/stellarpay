@@ -50,12 +50,16 @@ import {
 
 
 // Constants
-const toI128 = (n) => nativeToScVal(BigInt(Math.floor(parseFloat(n))), { type: "i128" });
+const toI128 = (n) => nativeToScVal(BigInt(Math.floor(parseFloat(n) * 10000000)), { type: "i128" });
 const fromI128 = (v) => {
   if (v === null || v === undefined) return 0;
-  if (typeof v === 'bigint') return Number(v);
-  if (typeof v === 'number') return v;
-  try { return Number(BigInt(v)); } catch(e) { return 0; }
+  let val;
+  if (typeof v === 'bigint') val = v;
+  else if (typeof v === 'number') val = BigInt(v);
+  else {
+    try { val = BigInt(v); } catch(e) { return 0; }
+  }
+  return Number(val) / 10000000;
 };
 
 const CONTRACT_ID = "CCYNUO7LFWI3IT2IZMFEFU4CQUYGI7JPOODXEHJ7UQEP5JKSBPY2SLCG";
