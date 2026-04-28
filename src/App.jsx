@@ -180,18 +180,29 @@ function AppContent() {
         return rpc.Api.isSimulationSuccess(res) ? scValToNative(res.result.retval) : null;
       };
 
-      const [total, stats] = await Promise.all([
-        simulate(CONTRACT_ID, "get_total"),
-        simulate(VAULT_CONTRACT_ID, "get_stats")
-      ]);
+      // Only fetch on-chain stats if campaigns reference these contracts
+      // Starting fresh: don't pull stale data from old contracts
+      const activeCampaignContracts = allCampaigns.map(c => c.donationContractId || c.contractId).filter(Boolean);
+      const activeCampaignVaults = allCampaigns.map(c => c.vaultContractId).filter(Boolean);
 
-      if (total !== null) setTotalDonations(fromI128(total));
-      if (stats !== null) setVaultStats({
-        total_deposited: fromI128(stats.total_deposited).toLocaleString(),
-        total_withdrawn: fromI128(stats.total_withdrawn).toLocaleString(),
-        current_balance: fromI128(stats.current_balance).toLocaleString(),
-        deposit_count: Number(stats.deposit_count)
-      });
+      if (activeCampaignContracts.includes(CONTRACT_ID)) {
+        const total = await simulate(CONTRACT_ID, "get_total");
+        if (total !== null) setTotalDonations(fromI128(total));
+      } else {
+        setTotalDonations(0);
+      }
+
+      if (activeCampaignVaults.includes(VAULT_CONTRACT_ID)) {
+        const stats = await simulate(VAULT_CONTRACT_ID, "get_stats");
+        if (stats !== null) setVaultStats({
+          total_deposited: fromI128(stats.total_deposited).toLocaleString(),
+          total_withdrawn: fromI128(stats.total_withdrawn).toLocaleString(),
+          current_balance: fromI128(stats.current_balance).toLocaleString(),
+          deposit_count: Number(stats.deposit_count)
+        });
+      } else {
+        setVaultStats({ total_deposited: '0', total_withdrawn: '0', current_balance: '0', deposit_count: 0 });
+      }
       setLastUpdated(prev => ({ ...prev, wallet: Date.now(), vault: Date.now() }));
     } catch (e) {
       console.error("Fetch failed", e);
