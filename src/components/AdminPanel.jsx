@@ -53,11 +53,15 @@ const AdminPanel = ({ contractId, vaultContractId, connectedWallet, networkPassp
       };
 
       // Always fetch admin first
-      const admin = await simulate(contractId, "get_admin");
+      let admin = await simulate(contractId, "get_admin");
+      
       if (admin) {
         setAdminAddress(admin.toString());
+      } else if (initialAdmin) {
+        console.warn(`Blockchain admin fetch failed for ${contractId}. Using database fallback: ${initialAdmin}`);
+        setAdminAddress(initialAdmin);
       } else {
-        console.warn(`Could not fetch admin for contract: ${contractId}`);
+        console.error(`Could not fetch admin from blockchain or database for contract: ${contractId}`);
       }
 
       // Only fetch restricted data if connected wallet is admin
