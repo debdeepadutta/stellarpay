@@ -33,21 +33,22 @@ const CampaignDetails = ({ address, balance, isFetchingData, handleDonate, isSen
           const cid = data.donationContractId || data.contractId;
           
           let chainTotal = data.totalDonated || 0;
-          if (cid) {
+          // Only query the chain if we have a valid Soroban contract ID (56 chars, starts with C)
+          if (cid && cid.length === 56 && cid.startsWith('C')) {
             try {
               const rpcServer = new rpc.Server("https://soroban-testnet.stellar.org");
               const builder = new TransactionBuilder(new Account("GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF", "0"), { 
                 fee: "100", 
                 networkPassphrase: Networks.TESTNET 
               });
-              const tx = builder.addOperation(Operation.invokeContractFunction({ contract: cid, function: "get_total" })).setTimeout(30).build();
+              const tx = builder.addOperation(Operation.invokeContractFunction({ contract: cid, function: "get_total", args: [] })).setTimeout(30).build();
               const res = await rpcServer.simulateTransaction(tx);
               if (rpc.Api.isSimulationSuccess(res)) {
                 const val = scValToNative(res.result.retval);
                 chainTotal = Number(BigInt(val));
               }
             } catch (rpcErr) {
-              console.warn("Failed to fetch chain total for campaign", rpcErr);
+              // Silently ignore — contract may not exist on testnet anymore
             }
           }
           
