@@ -13,59 +13,75 @@ const LiveDonationFeed = ({ contractId }) => {
   const server = new Horizon.Server("https://horizon-testnet.stellar.org");
 
   useEffect(() => {
-    let closeStream = null;
+    let isMounted = true;
     let timeoutId = null;
 
-    const connectStream = () => {
-      setStatus('🟡 Reconnecting');
+    const pollEvents = async () => {
+      if (!contractId || contractId.length < 10) return;
       
       try {
-        closeStream = server.operations()
-          .forAccount(contractId)
-          .cursor('now')
-          .stream({
-            onmessage: (op) => {
-              setEvents(prev => {
-                const newEvent = {
-                  id: op.id,
-                  from: op.source_account,
-                  amount: op.type === 'invoke_contract' ? 'Contract Call' : (op.amount ? `${op.amount} XLM` : 'Activity'),
-                  time: new Date().toLocaleTimeString(),
-                  type: op.type.replace(/_/g, ' ')
-                };
-                // Keep last 50
-                return [newEvent, ...prev].slice(0, 50);
-              });
-              setLastUpdated(Date.now());
-              setStatus('🟢 Live');
-              setBackoff(1000); // Reset backoff on success
+        const ledger = await rpcServer.getLatestLedger();
+        const startLedger = lastLedgerRef.current || (ledger.sequence - 100);
+        
+        const response = await rpcServer.getEvents({
+          startLedger: startLedger,
+          filters: [
+            {
+              type: "contract",
+              contractIds: [contractId],
             },
-            onerror: (err) => {
-              console.error("Stream error:", err);
-              setStatus('🔴 Disconnected');
-              if (closeStream) closeStream();
-              
-              // Exponential backoff
-              const nextBackoff = Math.min(backoff * 2, 30000);
-              setBackoff(nextBackoff);
-              timeoutId = setTimeout(connectStream, backoff);
+          ],
+          limit: 10,
+        });
+
+        if (isMounted && response.events && response.events.length > 0) {
+          const newEntries = response.events.map(event => {
+            let data = {};
+            try {
+              data = scValToNative(xdr.ScVal.fromXDR(event.value, "base64"));
+            } catch (e) {
+              data = "Contract Data";
             }
+
+            return {
+              id: event.id,
+              from: "Soroban",
+              amount: typeof data === 'object' ? JSON.stringify(data) : data.toString(),
+              time: new Date().toLocaleTimeString(),
+              type: "Contract Event",
+              ledger: event.ledger
+            };
+          });
+
+          setEvents(prev => {
+            const existingIds = new Set(prev.map(e => e.id));
+            const uniqueNew = newEntries.filter(e => !existingIds.has(e.id));
+            return [...uniqueNew, ...prev].slice(0, 50);
           });
           
-        setStatus('🟢 Live');
-      } catch (e) {
-        setStatus('🔴 Disconnected');
-        timeoutId = setTimeout(connectStream, backoff);
+          lastLedgerRef.current = response.latestLedger;
+          setLastUpdated(Date.now());
+          setStatus('🟢 Live');
+        } else if (isMounted) {
+          setStatus('🟢 Live');
+        }
+      } catch (err) {
+        console.error("RPC Event Error:", err);
+        setStatus('🔴 RPC Sync Error');
+      }
+
+      if (isMounted) {
+        timeoutId = setTimeout(pollEvents, 5000); // Poll every 5 seconds
       }
     };
 
-    connectStream();
+    pollEvents();
 
     return () => {
-      if (closeStream) closeStream();
+      isMounted = false;
       if (timeoutId) clearTimeout(timeoutId);
     };
-  }, [contractId, backoff]);
+  }, [contractId]);
 
   // Update "seconds ago" every second
   const [secondsAgo, setSecondsAgo] = useState(0);
