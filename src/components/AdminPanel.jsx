@@ -260,7 +260,7 @@ const AdminPanel = ({ contractId, vaultContractId, connectedWallet, networkPassp
               />
             </div>
             <button 
-              onClick={() => handleAction('cap', 'set_donation_cap', contractId, [Address.fromString(connectedWallet).toScVal(), nativeToScVal(parseInt(newCap), { type: 'i128' })])}
+              onClick={() => handleAction('cap', 'set_donation_cap', contractId, [Address.fromString(connectedWallet).toScVal(), nativeToScVal(BigInt(Math.floor(parseFloat(newCap) * 10000000)), { type: 'i128' })])}
               disabled={actionLoading === 'cap' || !newCap}
               className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-3 rounded-xl transition-all shadow-lg shadow-indigo-600/20"
             >
@@ -301,7 +301,7 @@ const AdminPanel = ({ contractId, vaultContractId, connectedWallet, networkPassp
               </div>
             </div>
             <button 
-              onClick={() => handleAction('withdraw', 'withdraw', vaultContractId, [Address.fromString(connectedWallet).toScVal(), nativeToScVal(parseInt(withdrawAmount), { type: 'i128' }), Address.fromString(withdrawDest).toScVal()])}
+              onClick={() => handleAction('withdraw', 'withdraw', vaultContractId, [Address.fromString(connectedWallet).toScVal(), nativeToScVal(BigInt(Math.floor(parseFloat(withdrawAmount) * 10000000)), { type: 'i128' }), Address.fromString(withdrawDest).toScVal()])}
               disabled={actionLoading === 'withdraw' || !withdrawAmount || !withdrawDest}
               className="w-full bg-red-600 hover:bg-red-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-3 rounded-xl transition-all shadow-lg shadow-red-600/20"
             >
