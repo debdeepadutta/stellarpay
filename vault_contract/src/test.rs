@@ -23,8 +23,9 @@ fn test_vault_full_flow() {
     client.initialize(&admin, &donation_contract, &token_id);
 
     // 1. Deposit
-    // Mint tokens to donation contract
+    // Mint tokens to donation contract, then transfer to vault (simulating real flow)
     token_admin_client.mint(&donation_contract, &1000);
+    token_client.transfer(&donation_contract, &contract_id, &600);
     client.deposit(&donation_contract, &600);
 
     assert_eq!(client.get_balance(), 600);
