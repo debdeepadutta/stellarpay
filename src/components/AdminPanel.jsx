@@ -128,7 +128,11 @@ const AdminPanel = ({ contractId, vaultContractId, connectedWallet, networkPassp
         .build();
 
       const sim = await rpcServer.simulateTransaction(tx);
-      if (rpc.Api.isSimulationError(sim)) throw new Error("Simulation failed: Check authorization");
+      if (rpc.Api.isSimulationError(sim)) {
+        console.error("Full Simulation Error:", sim);
+        const errorDetail = sim.error || "Unknown simulation error";
+        throw new Error(`Simulation failed: ${errorDetail}`);
+      }
 
       const prepared = rpc.assembleTransaction(tx, sim).build();
       const { signedTxXdr } = await kit.signTransaction(prepared.toXDR(), { networkPassphrase: networkPassphrase || Networks.TESTNET });
