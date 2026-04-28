@@ -172,14 +172,6 @@ function AppContent() {
       const native = account.balances.find(b => b.asset_type === 'native');
       setBalance(native ? parseFloat(native.balance).toFixed(2) : '0.00');
 
-      const simulate = async (cid, fn, args = []) => {
-        if (!cid) return null;
-        const builder = new TransactionBuilder(DUMMY_ACCOUNT, { fee: "100", networkPassphrase: Networks.TESTNET });
-        const tx = builder.addOperation(Operation.invokeContractFunction({ contract: cid, function: fn, args })).setTimeout(30).build();
-        const res = await rpcServer.simulateTransaction(tx);
-        return rpc.Api.isSimulationSuccess(res) ? scValToNative(res.result.retval) : null;
-      };
-
       // Only aggregate stats from campaigns currently in YOUR Firestore
       const campaignTotals = allCampaigns.map(c => parseFloat(c.totalDonated || 0));
       const totalSum = campaignTotals.reduce((a, b) => a + b, 0);
