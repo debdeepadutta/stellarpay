@@ -107,7 +107,12 @@ const CampaignDetails = ({ address, balance, isFetchingData, handleDonate, isSen
     );
   }
 
-  const progress = campaign.goal > 0 ? Math.min((parseFloat(campaign.totalDonated || 0) / campaign.goal) * 100, 100) : 0;
+  const chainTotal = parseFloat(campaign.totalDonated || 0);
+  const isUsingOldContract = (campaign.donationContractId || campaign.contractId) === "CCYNUO7LFWI3IT2IZMFEFU4CQUYGI7JPOODXEHJ7UQEP5JKSBPY2SLCG";
+  
+  // UI-side fix: If they are using the old contract, the history makes the bar look full.
+  // We show the real progress but warn the user.
+  const progress = campaign.goal > 0 ? Math.min((chainTotal / campaign.goal) * 100, 100) : 0;
 
   return (
     <div className="max-w-7xl mx-auto px-6 py-12">
@@ -149,6 +154,15 @@ const CampaignDetails = ({ address, balance, isFetchingData, handleDonate, isSen
           </div>
 
           <div className="bg-slate-900/50 border border-slate-800 p-8 rounded-[40px] space-y-6">
+            {isUsingOldContract && (
+              <div className="bg-amber-500/10 border border-amber-500/20 p-4 rounded-2xl flex gap-3 items-start">
+                <span className="text-xl">⚠️</span>
+                <div>
+                  <h4 className="text-amber-400 font-bold text-sm">Shared Test Contract Detected</h4>
+                  <p className="text-amber-400/60 text-xs mt-1">This campaign is using a public test contract. The progress bar and leaderboard show history from all previous tests, not just yours.</p>
+                </div>
+              </div>
+            )}
             <div className="flex justify-between items-end">
               <div className="space-y-1">
                 <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">Target Progress</span>

@@ -305,6 +305,9 @@ function AppContent() {
         res = await rpcServer.getTransaction(send.hash);
         attempts++;
         console.log(`Poll attempt ${attempts}: ${res.status}`);
+        if (attempts === 5) {
+          console.log(`STILL WAITING? Check here: https://stellar.expert/explorer/testnet/tx/${send.hash}`);
+        }
       }
 
       if (res.status === rpc.Api.GetTransactionStatus.SUCCESS) {
