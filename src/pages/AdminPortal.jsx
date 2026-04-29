@@ -81,7 +81,6 @@ const AdminPortal = ({
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label className="text-xs font-black text-slate-500 uppercase tracking-widest">Target Goal (XLM)</label>
                   <input 
@@ -89,17 +88,36 @@ const AdminPortal = ({
                     value={newCampaign.goal}
                     onChange={e => setNewCampaign({...newCampaign, goal: e.target.value})}
                     className="w-full bg-slate-950 border border-slate-800 p-4 rounded-xl text-white focus:border-amber-500 outline-none transition-all"
+                    placeholder="e.g. 5000"
                   />
                 </div>
+              </div>
+
+              <div className="space-y-4 pt-4 border-t border-slate-800">
                 <div className="space-y-2">
-                  <label className="text-xs font-black text-slate-500 uppercase tracking-widest">Donation Cap (XLM)</label>
+                  <div className="flex justify-between items-center">
+                    <label className="text-xs font-black text-slate-500 uppercase tracking-widest">Donation Contract ID</label>
+                    <span className="text-[10px] text-slate-600 font-mono">Instance ID</span>
+                  </div>
                   <input 
-                    type="number"
-                    value={newCampaign.cap}
-                    onChange={e => setNewCampaign({...newCampaign, cap: e.target.value})}
-                    className="w-full bg-slate-950 border border-slate-800 p-4 rounded-xl text-white focus:border-amber-500 outline-none transition-all"
+                    value={newCampaign.contractId}
+                    onChange={e => setNewCampaign({...newCampaign, contractId: e.target.value})}
+                    className="w-full bg-slate-950 border border-slate-800 p-3 rounded-xl text-xs font-mono text-indigo-400 focus:border-indigo-500 outline-none transition-all"
                   />
                 </div>
+
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center">
+                    <label className="text-xs font-black text-slate-500 uppercase tracking-widest">Vault Contract ID</label>
+                    <span className="text-[10px] text-slate-600 font-mono">Reserve ID</span>
+                  </div>
+                  <input 
+                    value={newCampaign.vaultContractId}
+                    onChange={e => setNewCampaign({...newCampaign, vaultContractId: e.target.value})}
+                    className="w-full bg-slate-950 border border-slate-800 p-3 rounded-xl text-xs font-mono text-emerald-400 focus:border-emerald-500 outline-none transition-all"
+                  />
+                </div>
+                <p className="text-[10px] text-slate-600 italic">Pre-filled with default test contracts. Change only if using a new deployment.</p>
               </div>
 
               <div className="space-y-2">
@@ -108,6 +126,7 @@ const AdminPortal = ({
                   value={newCampaign.description}
                   onChange={e => setNewCampaign({...newCampaign, description: e.target.value})}
                   className="w-full bg-slate-950 border border-slate-800 p-4 rounded-xl text-white h-24 focus:border-amber-500 outline-none transition-all"
+                  placeholder="Tell donors why this cause matters..."
                 />
               </div>
 

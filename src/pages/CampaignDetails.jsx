@@ -155,11 +155,11 @@ const CampaignDetails = ({ address, balance, isFetchingData, handleDonate, isSen
 
           <div className="bg-slate-900/50 border border-slate-800 p-8 rounded-[40px] space-y-6">
             {isUsingOldContract && (
-              <div className="bg-amber-500/10 border border-amber-500/20 p-4 rounded-2xl flex gap-3 items-start">
-                <span className="text-xl">⚠️</span>
+              <div className="bg-indigo-500/10 border border-indigo-500/20 p-4 rounded-2xl flex gap-3 items-start">
+                <span className="text-xl">ℹ️</span>
                 <div>
-                  <h4 className="text-amber-400 font-bold text-sm">Shared Test Contract Detected</h4>
-                  <p className="text-amber-400/60 text-xs mt-1">This campaign is using a public test contract. The progress bar and leaderboard show history from all previous tests, not just yours.</p>
+                  <h4 className="text-indigo-400 font-bold text-sm">Shared Testing Mode</h4>
+                  <p className="text-indigo-400/60 text-xs mt-1">This campaign is using the platform's default test contract. Progress shown reflects the collective history of all test campaigns.</p>
                 </div>
               </div>
             )}
@@ -167,10 +167,6 @@ const CampaignDetails = ({ address, balance, isFetchingData, handleDonate, isSen
               <div className="space-y-1">
                 <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">Target Progress</span>
                 <div className="text-3xl font-black text-white">{campaign.goal} <span className="text-sm font-normal text-slate-500">XLM GOAL</span></div>
-              </div>
-              <div className="text-right">
-                <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">Donation Cap</span>
-                <div className="text-lg font-bold text-indigo-400">{campaign.cap} <span className="text-[10px]">XLM / WALLET</span></div>
               </div>
             </div>
             <div className="w-full h-4 bg-slate-950 rounded-full overflow-hidden border border-white/5">

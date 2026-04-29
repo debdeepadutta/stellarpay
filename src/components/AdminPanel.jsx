@@ -21,9 +21,6 @@ const AdminPanel = ({ contractId, vaultContractId, connectedWallet, networkPassp
   const [loading, setLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState(null); // 'cap' or 'withdraw'
   const [lastUpdated, setLastUpdated] = useState(Date.now());
-
-  
-  const [newCap, setNewCap] = useState("");
   const [withdrawAmount, setWithdrawAmount] = useState("");
   const [withdrawDest, setWithdrawDest] = useState("");
 
@@ -217,36 +214,7 @@ const AdminPanel = ({ contractId, vaultContractId, connectedWallet, networkPassp
 
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        {/* Donation Cap Management */}
-        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-8 space-y-6">
-          <h3 className="text-lg font-bold text-white flex items-center gap-2">
-            <span className="w-2 h-2 bg-indigo-500 rounded-full"></span>
-            Policy Configuration
-          </h3>
-          <p className="text-sm text-slate-500">Set the maximum allowed donation per wallet address.</p>
-          
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <label className="text-xs font-bold text-slate-400 uppercase tracking-tighter">New Donation Cap (XLM)</label>
-              <input 
-                type="number"
-                value={newCap}
-                onChange={(e) => setNewCap(e.target.value)}
-                placeholder="e.g. 5000"
-                className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-indigo-500 transition-colors"
-              />
-            </div>
-            <button 
-              onClick={() => handleAction('cap', 'set_donation_cap', contractId, [Address.fromString(connectedWallet).toScVal(), nativeToScVal(BigInt(Math.floor(parseFloat(newCap) * 10000000)), { type: 'i128' })])}
-              disabled={actionLoading === 'cap' || !newCap}
-              className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-3 rounded-xl transition-all shadow-lg shadow-indigo-600/20"
-            >
-              {actionLoading === 'cap' ? 'Updating...' : 'Apply New Cap'}
-            </button>
-          </div>
-        </div>
-
+      <div className="grid grid-cols-1 gap-8">
         {/* Withdrawal - Danger Zone */}
         <div className="bg-slate-900 border-2 border-red-900/20 rounded-3xl p-8 space-y-6">
           <h3 className="text-lg font-bold text-red-500 flex items-center gap-2">

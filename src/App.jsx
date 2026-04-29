@@ -112,14 +112,12 @@ function AppContent() {
   const [lastDonationAt, setLastDonationAt] = useState(null);
   const [lastUpdated, setLastUpdated] = useState({ wallet: Date.now(), vault: Date.now(), marketplace: Date.now() });
 
-  // Admin Form State - Default to empty for a fresh start
   const [newCampaign, setNewCampaign] = useState({ 
     name: '', 
     description: '', 
     goal: '', 
-    cap: '', 
-    contractId: '', 
-    vaultContractId: '' 
+    contractId: CONTRACT_ID, 
+    vaultContractId: VAULT_CONTRACT_ID 
   });
 
   // Real-time listener for All Active Campaigns
@@ -290,7 +288,7 @@ function AppContent() {
       const sim = await rpcServer.simulateTransaction(tx);
       if (rpc.Api.isSimulationError(sim)) {
         console.error("Simulation failed details:", sim.error);
-        throw new Error("Simulation failed: The contract rejected this donation (check if you reached the cap).");
+        throw new Error("Simulation failed: The contract rejected this donation (check your balance or contract status).");
       }
       
       console.log("Step 3: Signing with Wallet...");
@@ -348,14 +346,13 @@ function AppContent() {
         ...newCampaign,
         adminWallet: address,
         goal: parseFloat(newCampaign.goal),
-        cap: parseFloat(newCampaign.cap),
         isActive: true,
         createdAt: serverTimestamp(),
-        donationContractId: newCampaign.contractId,
-        vaultContractId: newCampaign.vaultContractId
+        donationContractId: newCampaign.contractId || CONTRACT_ID,
+        vaultContractId: newCampaign.vaultContractId || VAULT_CONTRACT_ID
       });
       toast.success("Campaign launched!");
-      setNewCampaign({ name: '', description: '', goal: '', cap: '', contractId: CONTRACT_ID, vaultContractId: VAULT_CONTRACT_ID });
+      setNewCampaign({ name: '', description: '', goal: '', contractId: CONTRACT_ID, vaultContractId: VAULT_CONTRACT_ID });
       navigate('/admin');
     } catch (e) {
       console.error("Firebase Create Error:", e);
