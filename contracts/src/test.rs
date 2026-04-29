@@ -26,7 +26,7 @@ impl MockVault {
     }
 }
 
-fn setup_test(env: &Env) -> (Address, Address, Address, Address, token::Client, token::StellarAssetClient, DonationContractClient) {
+fn setup_test(env: &Env) -> (Address, Address, Address, Address, token::Client<'_>, token::StellarAssetClient<'_>, DonationContractClient<'_>) {
     let admin = Address::generate(env);
     let vault = env.register_contract(None, MockVault);
     let logger = env.register_contract(None, MockLogger);
