@@ -21,14 +21,8 @@ pub struct MockVault;
 
 #[contractimpl]
 impl MockVault {
-    pub fn deposit(env: Env, from: Address, amount: i128) {
-        // Find token from storage (mocking the Vault's behavior)
-        // Actually, in the test setup, we know the token.
-        // For simplicity, we'll just use the token::Client if we can.
-        // But we don't have the token address here easily unless we store it.
-        
-        // Alternatively, since this is a mock, we can just skip the balance check 
-        // in the test, but the user might want to see the tokens moving.
+    pub fn deposit(env: Env, _from: Address, _amount: i128) {
+        // Mock deposit logic
     }
 }
 
@@ -58,7 +52,7 @@ fn test_donation_flow() {
     let (admin, token_id, logger, vault, token_client, token_admin_client, client) = setup_test(&env);
 
     // Initialize
-    client.initialize(&admin, &token_id, &logger, &vault, &1000);
+    client.initialize(&admin, &token_id, &logger, &vault);
 
     let donor = Address::generate(&env);
     token_admin_client.mint(&donor, &2000);
@@ -76,21 +70,6 @@ fn test_donation_flow() {
     assert_eq!(client.get_donor_total(&donor), 800);
 }
 
-#[test]
-#[should_panic(expected = "Donation exceeds per-wallet cap")]
-fn test_cap_enforcement() {
-    let env = Env::default();
-    env.mock_all_auths();
-
-    let (admin, token_id, logger, vault, _, token_admin_client, client) = setup_test(&env);
-    client.initialize(&admin, &token_id, &logger, &vault, &100);
-
-    let donor = Address::generate(&env);
-    token_admin_client.mint(&donor, &1000);
-    
-    client.donate(&donor, &50);
-    client.donate(&donor, &60); // Total 110 > 100
-}
 
 #[test]
 fn test_top_donors() {
@@ -98,7 +77,7 @@ fn test_top_donors() {
     env.mock_all_auths();
 
     let (admin, token_id, logger, vault, _, token_admin_client, client) = setup_test(&env);
-    client.initialize(&admin, &token_id, &logger, &vault, &2000);
+    client.initialize(&admin, &token_id, &logger, &vault);
 
     let d1 = Address::generate(&env);
     let d2 = Address::generate(&env);
@@ -125,33 +104,3 @@ fn test_top_donors() {
     assert_eq!(top.get(4).unwrap().1, 100);
 }
 
-#[test]
-fn test_set_donation_cap() {
-    let env = Env::default();
-    env.mock_all_auths();
-
-    let (admin, token_id, logger, vault, _, token_admin_client, client) = setup_test(&env);
-    client.initialize(&admin, &token_id, &logger, &vault, &1000);
-
-    // Change cap
-    client.set_donation_cap(&admin, &2000);
-    
-    let donor = Address::generate(&env);
-    token_admin_client.mint(&donor, &1500);
-    client.donate(&donor, &1500);
-    
-    assert_eq!(client.get_donor_total(&donor), 1500);
-}
-
-#[test]
-#[should_panic(expected = "Only admin can change cap")]
-fn test_set_cap_unauthorized() {
-    let env = Env::default();
-    env.mock_all_auths();
-
-    let (admin, token_id, logger, vault, _, _, client) = setup_test(&env);
-    client.initialize(&admin, &token_id, &logger, &vault, &1000);
-
-    let attacker = Address::generate(&env);
-    client.set_donation_cap(&attacker, &5000);
-}
