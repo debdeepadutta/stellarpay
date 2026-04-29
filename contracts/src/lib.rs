@@ -28,7 +28,6 @@ pub enum DataKey {
     Logger,
     Vault,
     Total,
-    Cap,
     DonorTotal(Address),
     TopDonors,
 }
@@ -45,7 +44,6 @@ impl DonationContract {
         token: Address,
         logger: Address,
         vault: Address,
-        cap: i128,
     ) {
         if env.storage().instance().has(&DataKey::Admin) {
             panic!("Already initialized");
@@ -54,22 +52,12 @@ impl DonationContract {
         env.storage().instance().set(&DataKey::Token, &token);
         env.storage().instance().set(&DataKey::Logger, &logger);
         env.storage().instance().set(&DataKey::Vault, &vault);
-        env.storage().instance().set(&DataKey::Cap, &cap);
         env.storage().instance().set(&DataKey::Total, &0i128);
         
         let empty_top: Vec<(Address, i128)> = Vec::new(&env);
         env.storage().instance().set(&DataKey::TopDonors, &empty_top);
     }
 
-    /// Update the per-wallet donation cap. Only admin can call this.
-    pub fn set_donation_cap(env: Env, admin: Address, cap: i128) {
-        let stored_admin: Address = env.storage().instance().get(&DataKey::Admin).expect("Not initialized");
-        if admin != stored_admin {
-            panic!("Only admin can change cap");
-        }
-        admin.require_auth();
-        env.storage().instance().set(&DataKey::Cap, &cap);
-    }
 
     /// Donate tokens. Enforces cap, updates storage, emits events, and calls external contracts.
     pub fn donate(env: Env, donor: Address, amount: i128) {
@@ -79,12 +67,7 @@ impl DonationContract {
             panic!("Amount must be positive");
         }
 
-        let cap: i128 = env.storage().instance().get(&DataKey::Cap).unwrap_or(1000);
         let mut donor_total: i128 = env.storage().persistent().get(&DataKey::DonorTotal(donor.clone())).unwrap_or(0);
-
-        if donor_total + amount > cap {
-            panic!("Donation exceeds per-wallet cap");
-        }
 
         // 1. Update Donor Total (Persistent Storage)
         donor_total += amount;

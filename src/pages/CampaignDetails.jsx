@@ -163,14 +163,18 @@ const CampaignDetails = ({ address, balance, isFetchingData, handleDonate, isSen
                 </div>
               </div>
             )}
-            <div className="flex justify-between items-end">
+            <div className="flex justify-between items-center bg-slate-950/50 p-6 rounded-3xl border border-white/5">
               <div className="space-y-1">
-                <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">Target Progress</span>
-                <div className="text-3xl font-black text-white">{campaign.goal} <span className="text-sm font-normal text-slate-500">XLM GOAL</span></div>
+                <span className="text-xs font-bold text-slate-500 uppercase tracking-widest text-indigo-400">Target Goal</span>
+                <div className="text-2xl font-black text-white">{campaign.goal.toLocaleString()} XLM</div>
               </div>
-            </div>
-            <div className="w-full h-4 bg-slate-950 rounded-full overflow-hidden border border-white/5">
-              <div className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 transition-all duration-1000" style={{ width: `${progress}%` }}></div>
+              <div className="h-12 w-px bg-slate-800 hidden md:block"></div>
+              <div className="space-y-1 text-right">
+                <span className="text-xs font-bold text-slate-500 uppercase tracking-widest text-emerald-400">Remaining</span>
+                <div className="text-2xl font-black text-emerald-400">
+                  {Math.max(campaign.goal - chainTotal, 0).toLocaleString()} XLM
+                </div>
+              </div>
             </div>
           </div>
 
