@@ -91,7 +91,6 @@ const AdminPortal = ({
                     placeholder="e.g. 5000"
                   />
                 </div>
-              </div>
 
               <div className="space-y-4 pt-4 border-t border-slate-800">
                 <div className="space-y-2">
