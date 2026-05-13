@@ -24,5 +24,9 @@ dist-ssr
 *.sw?
 
 # Contract artifacts
-contracts/target
-
+**/target/
+target/
+contracts/target/
+donation_contract/target/
+logger_contract/target/
+vault_contract/target/
