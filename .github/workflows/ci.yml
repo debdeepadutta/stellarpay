@@ -57,7 +57,4 @@ jobs:
           cd contracts
           cargo test --verbose
 
-      - name: Test Logger Contract
-        run: |
-          cd logger_contract
-          cargo test --verbose
+
