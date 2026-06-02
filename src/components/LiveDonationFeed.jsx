@@ -36,19 +36,36 @@ const LiveDonationFeed = ({ contractId }) => {
 
         if (isMounted && response.events && response.events.length > 0) {
           const newEntries = response.events.map(event => {
-            let data = {};
+            let donor = "Donor";
+            let amountStr = "0.00 XLM";
             try {
-              data = scValToNative(xdr.ScVal.fromXDR(event.value, "base64"));
+              // Parse topics to extract the donor's address
+              if (event.topic && event.topic.length >= 2) {
+                const topics = event.topic.map(t => scValToNative(xdr.ScVal.fromXDR(t, "base64")));
+                if (topics && topics.length >= 2) {
+                  donor = topics[1]?.toString() || "Donor";
+                }
+              }
+              
+              // Parse event value (tuple of [amount, timestamp])
+              const data = scValToNative(xdr.ScVal.fromXDR(event.value, "base64"));
+              if (Array.isArray(data) && data.length >= 1) {
+                const rawAmt = Number(BigInt(data[0]));
+                amountStr = `${(rawAmt / 10000000).toFixed(2)} XLM`;
+              } else if (data !== null && data !== undefined) {
+                const rawAmt = Number(BigInt(data));
+                amountStr = `${(rawAmt / 10000000).toFixed(2)} XLM`;
+              }
             } catch (e) {
-              data = "Contract Data";
+              console.error("Failed to parse event data:", e);
             }
 
             return {
               id: event.id,
-              from: "Soroban",
-              amount: typeof data === 'object' ? JSON.stringify(data) : data.toString(),
+              from: donor,
+              amount: amountStr,
               time: new Date().toLocaleTimeString(),
-              type: "Contract Event",
+              type: "Donation Received",
               ledger: event.ledger
             };
           });

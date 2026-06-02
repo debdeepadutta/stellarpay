@@ -184,14 +184,8 @@ const AdminPanel = ({ contractId, vaultContractId, connectedWallet, networkPassp
 
   return (
     <div className="w-full max-w-4xl mx-auto space-y-8">
-      {!isAdmin && (
-        <div className="bg-amber-500/10 border border-amber-500/20 p-4 rounded-2xl flex gap-3 items-center mb-4">
-          <span className="text-xl">🛡️</span>
-          <p className="text-amber-400 text-xs font-bold uppercase tracking-widest">Running in Manual Override Mode - Signing will verify authority</p>
-        </div>
-      )}
       <div className="flex items-center justify-between">
-        <h2 className="text-3xl font-black text-white flex items-center gap-3 italic tracking-tighter">
+        <h2 className="text-3xl font-black text-white flex items-center gap-3 italic tracking-tighter uppercase">
           <span className="p-2 bg-red-500 rounded-lg shadow-lg shadow-red-500/20">
             <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
@@ -215,46 +209,58 @@ const AdminPanel = ({ contractId, vaultContractId, connectedWallet, networkPassp
       </div>
 
       <div className="grid grid-cols-1 gap-8">
-        {/* Withdrawal - Danger Zone */}
-        <div className="bg-slate-900 border-2 border-red-900/20 rounded-3xl p-8 space-y-6">
-          <h3 className="text-lg font-bold text-red-500 flex items-center gap-2">
-            <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
-            Vault Withdrawal
-          </h3>
-          <p className="text-sm text-slate-500">Transfer funds from the secure vault to an external destination.</p>
-          
-          <div className="space-y-4">
-            <div className="grid grid-cols-1 gap-4">
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-400 uppercase tracking-tighter">Amount (XLM)</label>
-                <input 
-                  type="number"
-                  value={withdrawAmount}
-                  onChange={(e) => setWithdrawAmount(e.target.value)}
-                  placeholder="0.00"
-                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-red-500 transition-colors"
-                />
+        {isAdmin ? (
+          <div className="bg-slate-900 border-2 border-red-900/20 rounded-3xl p-8 space-y-6">
+            <h3 className="text-lg font-bold text-red-500 flex items-center gap-2">
+              <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
+              Vault Withdrawal
+            </h3>
+            <p className="text-sm text-slate-500">Transfer funds from the secure vault to an external destination.</p>
+            
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 gap-4">
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-slate-400 uppercase tracking-tighter">Amount (XLM)</label>
+                  <input 
+                    type="number"
+                    value={withdrawAmount}
+                    onChange={(e) => setWithdrawAmount(e.target.value)}
+                    placeholder="0.00"
+                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-red-500 transition-colors"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-slate-400 uppercase tracking-tighter">Destination Address</label>
+                  <input 
+                    type="text"
+                    value={withdrawDest}
+                    onChange={(e) => setWithdrawDest(e.target.value)}
+                    placeholder="G..."
+                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-red-500 transition-colors"
+                  />
+                </div>
               </div>
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-400 uppercase tracking-tighter">Destination Address</label>
-                <input 
-                  type="text"
-                  value={withdrawDest}
-                  onChange={(e) => setWithdrawDest(e.target.value)}
-                  placeholder="G..."
-                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-red-500 transition-colors"
-                />
-              </div>
+              <button 
+                onClick={() => handleAction('withdraw', 'withdraw', vaultContractId, [Address.fromString(connectedWallet).toScVal(), nativeToScVal(BigInt(Math.floor(parseFloat(withdrawAmount) * 10000000)), { type: 'i128' }), Address.fromString(withdrawDest).toScVal()])}
+                disabled={actionLoading === 'withdraw' || !withdrawAmount || !withdrawDest}
+                className="w-full bg-red-600 hover:bg-red-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-3 rounded-xl transition-all shadow-lg shadow-red-600/20"
+              >
+                {actionLoading === 'withdraw' ? 'Processing...' : 'Authorize Withdrawal'}
+              </button>
             </div>
-            <button 
-              onClick={() => handleAction('withdraw', 'withdraw', vaultContractId, [Address.fromString(connectedWallet).toScVal(), nativeToScVal(BigInt(Math.floor(parseFloat(withdrawAmount) * 10000000)), { type: 'i128' }), Address.fromString(withdrawDest).toScVal()])}
-              disabled={actionLoading === 'withdraw' || !withdrawAmount || !withdrawDest}
-              className="w-full bg-red-600 hover:bg-red-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-3 rounded-xl transition-all shadow-lg shadow-red-600/20"
-            >
-              {actionLoading === 'withdraw' ? 'Processing...' : 'Authorize Withdrawal'}
-            </button>
           </div>
-        </div>
+        ) : (
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-8 text-center space-y-4">
+            <span className="text-4xl">🛡️</span>
+            <h3 className="text-lg font-bold text-slate-400">Withdrawal Panel Restricted</h3>
+            <p className="text-sm text-slate-500 max-w-md mx-auto">
+              Only the campaign creator (Admin) holds the authority to withdraw funds from the vault.
+            </p>
+            <div className="text-xs text-slate-600 font-mono select-all">
+              Authorized Admin: {adminAddress}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Withdrawal History */}

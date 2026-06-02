@@ -44,6 +44,7 @@ import {
   onSnapshot, 
   updateDoc, 
   doc, 
+  getDoc,
   serverTimestamp,
   orderBy
 } from 'firebase/firestore';
@@ -264,12 +265,13 @@ function AppContent() {
 
 
 
-  const handleDonate = async (targetContractId, amount) => {
+  const handleDonate = async (campaignId, targetContractId, amount) => {
     if (!address) {
       await connectWallet();
       return;
     }
     console.log("--- STARTING DONATION PROCESS ---");
+    console.log("Campaign ID:", campaignId);
     console.log("Contract:", targetContractId);
     console.log("Amount:", amount);
     
@@ -318,6 +320,23 @@ function AppContent() {
         setTxHash(send.hash);
         setLastDonationAt(Date.now());
         toast.success("Donation successful!");
+
+        // Update database totalDonated in Firestore in background
+        try {
+          if (campaignId) {
+            const campaignRef = doc(db, "campaigns", campaignId);
+            const campaignSnap = await getDoc(campaignRef);
+            if (campaignSnap.exists()) {
+              const currentDonated = parseFloat(campaignSnap.data().totalDonated || 0);
+              await updateDoc(campaignRef, {
+                totalDonated: currentDonated + parseFloat(amount)
+              });
+            }
+          }
+        } catch (dbErr) {
+          console.error("Failed to update database totalDonated:", dbErr);
+        }
+
         fetchData();
         
         // Auto-reset status after 5 seconds so button returns to normal
@@ -342,22 +361,28 @@ function AppContent() {
     if (!address) return toast.error("Connect wallet first");
     setIsSending(true);
     try {
-      await addDoc(collection(db, "campaigns"), {
+      // Create campaign in Firestore. We do not await addDoc to prevent
+      // UI hang on "Initializing..." if Firestore is offline or syncing.
+      addDoc(collection(db, "campaigns"), {
         ...newCampaign,
         adminWallet: address,
         goal: parseFloat(newCampaign.goal),
+        totalDonated: 0, // Initialize to 0
         isActive: true,
         createdAt: serverTimestamp(),
         donationContractId: newCampaign.contractId || CONTRACT_ID,
         vaultContractId: newCampaign.vaultContractId || VAULT_CONTRACT_ID
+      }).catch((err) => {
+        console.error("Firestore background sync error:", err);
       });
+
       toast.success("Campaign launched!");
       setNewCampaign({ name: '', description: '', goal: '', contractId: CONTRACT_ID, vaultContractId: VAULT_CONTRACT_ID });
+      setIsSending(false);
       navigate('/admin');
     } catch (e) {
       console.error("Firebase Create Error:", e);
       toast.error("Failed to save campaign: " + e.message);
-    } finally {
       setIsSending(false);
     }
   };

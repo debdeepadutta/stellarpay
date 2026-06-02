@@ -163,15 +163,32 @@ const CampaignDetails = ({ address, balance, isFetchingData, handleDonate, isSen
                 </div>
               </div>
             )}
-            <div className="flex justify-between items-center bg-slate-950/50 p-6 rounded-3xl border border-white/5">
-              <div className="space-y-1">
-                <span className="text-xs font-bold text-slate-500 uppercase tracking-widest text-indigo-400">Target Goal</span>
-                <div className="text-2xl font-black text-white">{campaign.goal.toLocaleString()} XLM</div>
+            
+            <div className="space-y-2">
+              <div className="flex justify-between text-xs font-bold text-slate-500 uppercase tracking-widest">
+                <span>Progress</span>
+                <span className="text-indigo-400">{progress.toFixed(1)}%</span>
               </div>
-              <div className="h-12 w-px bg-slate-800 hidden md:block"></div>
+              <div className="w-full h-3 bg-slate-950 rounded-full overflow-hidden border border-white/5">
+                <div 
+                  className="h-full bg-gradient-to-r from-indigo-500 to-emerald-400 transition-all duration-1000" 
+                  style={{ width: `${progress}%` }}
+                ></div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-3 items-center bg-slate-950/50 p-6 rounded-3xl border border-white/5 gap-4">
+              <div className="space-y-1 text-left">
+                <span className="text-[10px] md:text-xs font-bold text-slate-500 uppercase tracking-widest text-indigo-400">Target Goal</span>
+                <div className="text-lg md:text-2xl font-black text-white">{campaign.goal.toLocaleString()} XLM</div>
+              </div>
+              <div className="space-y-1 text-center border-x border-slate-800 px-2">
+                <span className="text-[10px] md:text-xs font-bold text-slate-500 uppercase tracking-widest text-indigo-400">Total Raised</span>
+                <div className="text-lg md:text-2xl font-black text-white">{chainTotal.toLocaleString()} XLM</div>
+              </div>
               <div className="space-y-1 text-right">
-                <span className="text-xs font-bold text-slate-500 uppercase tracking-widest text-emerald-400">Remaining</span>
-                <div className="text-2xl font-black text-emerald-400">
+                <span className="text-[10px] md:text-xs font-bold text-slate-500 uppercase tracking-widest text-emerald-400">Remaining</span>
+                <div className="text-lg md:text-2xl font-black text-emerald-400">
                   {Math.max(campaign.goal - chainTotal, 0).toLocaleString()} XLM
                 </div>
               </div>
@@ -185,7 +202,7 @@ const CampaignDetails = ({ address, balance, isFetchingData, handleDonate, isSen
         <div className="lg:col-span-5 space-y-8">
            <DonateXLMForm 
             address={address} 
-            onDonate={(r, a) => handleDonate(campaign.donationContractId || campaign.contractId, a)} 
+            onDonate={(r, a) => handleDonate(campaign.id, campaign.donationContractId || campaign.contractId, a)} 
             isSending={isSending} 
             txStatus={txStatus} 
             txHash={txHash} 

@@ -67,10 +67,12 @@ const DonorLeaderboard = ({ contractId, networkPassphrase, connectedWallet, last
               addr = (item.address || item.donor || "Unknown").toString();
               amt = item.amount ? Number(item.amount) : 0;
             }
+            // Convert Stroops to XLM by dividing by 10^7
+            const scaledAmt = amt ? Number(BigInt(amt)) / 10000000 : 0;
             return { 
               address: addr, 
-              amount: amt ? Number(BigInt(amt)) : 0, 
-              rawAmount: amt ? Number(BigInt(amt)) : 0 
+              amount: scaledAmt, 
+              rawAmount: scaledAmt 
             };
           });
 

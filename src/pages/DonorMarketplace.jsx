@@ -28,43 +28,52 @@ const DonorMarketplace = ({ campaigns }) => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-        {campaigns.map(c => (
-          <div 
-            key={c.id} 
-            onClick={() => navigate(`/campaign/${c.id}`)}
-            className="group bg-slate-900 border border-slate-800 p-8 rounded-[40px] hover:border-indigo-500/50 transition-all cursor-pointer shadow-xl transform hover:-translate-y-2 animate-marketplace-card relative overflow-hidden"
-          >
-            <div className="flex justify-between items-start mb-6">
-              <div className="w-12 h-12 bg-indigo-500/10 rounded-2xl flex items-center justify-center text-2xl">💙</div>
-              <button 
-                onClick={(e) => copyLink(e, c.id)}
-                className="p-2 bg-white/5 rounded-xl text-slate-500 hover:text-indigo-400 transition-colors"
-                title="Copy Share Link"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
-                </svg>
-              </button>
+        {campaigns.map(c => {
+          const totalDonated = parseFloat(c.totalDonated || 0);
+          const progress = c.goal > 0 ? Math.min((totalDonated / c.goal) * 100, 100) : 0;
+          const remaining = Math.max(c.goal - totalDonated, 0);
+
+          return (
+            <div 
+              key={c.id} 
+              onClick={() => navigate(`/campaign/${c.id}`)}
+              className="group bg-slate-900 border border-slate-800 p-8 rounded-[40px] hover:border-indigo-500/50 transition-all cursor-pointer shadow-xl transform hover:-translate-y-2 animate-marketplace-card relative overflow-hidden"
+            >
+              <div className="flex justify-between items-start mb-6">
+                <div className="w-12 h-12 bg-indigo-500/10 rounded-2xl flex items-center justify-center text-2xl">💙</div>
+                <button 
+                  onClick={(e) => copyLink(e, c.id)}
+                  className="p-2 bg-white/5 rounded-xl text-slate-500 hover:text-indigo-400 transition-colors"
+                  title="Copy Share Link"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+                  </svg>
+                </button>
+              </div>
+              
+              <h3 className="text-2xl font-bold text-white mb-3 group-hover:text-indigo-400 transition-colors">{c.name}</h3>
+              <p className="text-slate-500 text-sm mb-8 line-clamp-3 leading-relaxed">{c.description}</p>
+              
+              <div className="space-y-4">
+                <div className="flex justify-between items-end text-xs font-bold text-slate-600 uppercase tracking-widest">
+                  <span>Goal: {c.goal} XLM</span>
+                  <span className="text-slate-500">Remaining: {remaining.toFixed(2)} XLM</span>
+                </div>
+                <div className="w-full h-1.5 bg-slate-950 rounded-full overflow-hidden">
+                  <div 
+                    className="h-full bg-indigo-500 transition-all duration-1000"
+                    style={{ width: `${progress}%` }}
+                  ></div>
+                </div>
+                <div className="flex justify-between items-center text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                  <span>{totalDonated.toFixed(2)} XLM Donated ({progress.toFixed(1)}%)</span>
+                  <span className="text-indigo-500">View Details →</span>
+                </div>
+              </div>
             </div>
-            
-            <h3 className="text-2xl font-bold text-white mb-3 group-hover:text-indigo-400 transition-colors">{c.name}</h3>
-            <p className="text-slate-500 text-sm mb-8 line-clamp-3 leading-relaxed">{c.description}</p>
-            
-            <div className="space-y-4">
-              <div className="flex justify-between items-end">
-                <div className="text-xs font-bold text-slate-600 uppercase tracking-widest">Goal</div>
-                <div className="text-lg font-bold text-white">{c.goal} <span className="text-[10px] text-slate-500">XLM</span></div>
-              </div>
-              <div className="w-full h-1.5 bg-slate-950 rounded-full overflow-hidden">
-                <div className="h-full bg-indigo-500 w-[15%] transition-all duration-1000"></div>
-              </div>
-              <div className="flex justify-between items-center text-[10px] font-bold text-slate-500 uppercase tracking-widest">
-                <span>0.00 Donated</span>
-                <span className="text-indigo-500">View Details →</span>
-              </div>
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {campaigns.length === 0 && (
