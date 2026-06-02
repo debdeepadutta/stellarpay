@@ -1,22 +1,22 @@
 <div align="center">
 
-# 🚀 Stellar Philanthropy
+<img src="public/logo.png" alt="Stellar Philanthropy Logo" width="80"/>
 
-### A Production-Ready Multi-Wallet Donation dApp on Stellar + Soroban
+# Stellar Philanthropy
+
+### A Decentralized Philanthropy Marketplace on Stellar + Soroban
 
 [![Stellar](https://img.shields.io/badge/Stellar-Testnet-7C3AED?style=for-the-badge&logo=stellar&logoColor=white)](https://stellar.org)
 [![React](https://img.shields.io/badge/React-Vite-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://vitejs.dev)
 [![Soroban](https://img.shields.io/badge/Soroban-Smart%20Contracts-FF6B35?style=for-the-badge)](https://soroban.stellar.org)
+[![Firebase](https://img.shields.io/badge/Firebase-Firestore-FFCA28?style=for-the-badge&logo=firebase&logoColor=black)](https://firebase.google.com)
 [![Vitest](https://img.shields.io/badge/Tested-Vitest-6E9F18?style=for-the-badge&logo=vitest&logoColor=white)](https://vitest.dev)
 [![Vercel](https://img.shields.io/badge/Deployed-Vercel-000000?style=for-the-badge&logo=vercel&logoColor=white)](https://stellarpay-lac.vercel.app/)
-[![Contracts](https://img.shields.io/github/actions/workflow/status/debdeepadutta/stellarpay/ci.yml?job=contract-tests&label=Contracts&style=flat-square)](https://github.com/debdeepadutta/stellarpay/actions/workflows/ci.yml)
-[![Frontend](https://img.shields.io/github/actions/workflow/status/debdeepadutta/stellarpay/ci.yml?job=frontend-tests&label=Frontend&style=flat-square)](https://github.com/debdeepadutta/stellarpay/actions/workflows/ci.yml)
-[![Security](https://img.shields.io/github/actions/workflow/status/debdeepadutta/stellarpay/ci.yml?job=security-check&label=Security&style=flat-square)](https://github.com/debdeepadutta/stellarpay/actions/workflows/ci.yml)
+[![CI/CD](https://github.com/debdeepadutta/stellarpay/actions/workflows/ci.yml/badge.svg)](https://github.com/debdeepadutta/stellarpay/actions/workflows/ci.yml)
 
+**A production-ready decentralized philanthropy marketplace built on the Stellar blockchain using Soroban smart contracts. Admins launch fundraising campaigns on-chain. Donors browse a global marketplace, contribute XLM, and track impact in real time — all powered by a three-contract ecosystem with no central authority.**
 
-**A decentralized philanthropy platform built on the Stellar Testnet, enabling XLM donations via Soroban smart contracts with multi-wallet support, inter-contract architecture, CI/CD automation, and a fully responsive mobile UI.**
-
-[🌐 Live Demo](https://stellarpay-lac.vercel.app/) &nbsp;·&nbsp; [🎬 Demo Video](https://drive.google.com/file/d/1sBxUY_Wt0idMdf0WuAeqn7IarSZYihaf/view?usp=sharing) &nbsp;·&nbsp; [📜 Donation Contract](https://stellar.expert/explorer/testnet/contract/CA2UK75IFINHQYCMBYT7TXRMMHEP4FHYCFZOEHKGZOFTJBMI2AUT27LY) &nbsp;·&nbsp; [🔗 Inter-Contract Tx](https://stellar.expert/explorer/testnet/tx/52946283fa21abf0088129ed1ae1202d7cee05cc4383c4d0ba5a2628df1bf611)
+[🌐 Live Demo](https://stellarpay-lac.vercel.app/) &nbsp;·&nbsp; [🎬 Demo Video](https://drive.google.com/file/d/1sBxUY_Wt0idMdf0WuAeqn7IarSZYihaf/view?usp=sharing) &nbsp;·&nbsp; [📜 Donation Contract](https://stellar.expert/explorer/testnet/contract/CBGFHRSQ275OQRZGOZXLO7JABDVTI5UIZLD7ETSAGJVI5WMIWGBC2TK4) &nbsp;·&nbsp; [🔗 Inter-Contract Tx](https://stellar.expert/explorer/testnet/tx/65c2af62d4160528de7342f7dc9df35a122999c06aba78f12a944b090ad493d3)
 
 </div>
 
@@ -24,6 +24,7 @@
 
 ## 📋 Table of Contents
 
+- [Architecture](#-architecture)
 - [Features by Level](#-features-by-level)
 - [Smart Contract Details](#-smart-contract-details)
 - [Screenshots](#-screenshots)
@@ -32,6 +33,61 @@
 - [Setup Instructions](#-setup-instructions)
 - [Project Structure](#-project-structure)
 - [Author](#-author)
+
+---
+
+## 🏛️ Architecture
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                        FRONTEND (React)                      │
+│                                                              │
+│   Landing → Admin Portal          Landing → Donor Portal     │
+│   ├── Create Campaign             ├── Campaign Marketplace   │
+│   ├── Manage Vault                ├── Campaign Details       │
+│   ├── View Analytics              ├── Donate XLM            │
+│   └── Delete Campaigns            ├── Leaderboard           │
+│                                   └── Live Feed             │
+└────────────────────────┬────────────────────────────────────┘
+                         │
+          ┌──────────────▼──────────────┐
+          │     Firebase Firestore       │  ← Campaign metadata
+          │   (name, description, goal)  │     global persistence
+          └──────────────┬──────────────┘
+                         │
+          ┌──────────────▼──────────────┐
+          │      Horizon SSE Stream      │  ← Real-time events
+          └──────────────┬──────────────┘
+                         │
+          ┌──────────────▼──────────────┐
+          │       DONATION CONTRACT      │
+          │  donate() │ get_total()      │
+          │  create_campaign()           │
+          │  get_campaign_info()         │
+          │  get_campaign_admin()        │
+          └──────┬───────────┬──────────┘
+                 │           │
+     inter-contract calls    │
+                 │           │
+     ┌───────────▼──┐  ┌─────▼──────────┐
+     │   LOGGER     │  │     VAULT       │
+     │  CONTRACT    │  │    CONTRACT     │
+     │              │  │                 │
+     │ log_donation()│  │ deposit()      │
+     │ get_history() │  │ withdraw()     │
+     │ get_recent()  │  │ get_stats()    │
+     └──────────────┘  └────────────────┘
+```
+
+### What Lives Where
+
+| Data | Storage | Reason |
+|---|---|---|
+| Campaign admin, goal, total raised | On-chain (Soroban) | Security-critical, tamper-proof |
+| Vault balances per campaign | On-chain (Soroban) | Financial state |
+| Donation history + events | On-chain (Logger) | Audit trail |
+| Campaign name, description | Firebase Firestore | Rich metadata, cheaper off-chain |
+| Real-time updates | Horizon SSE | Native Stellar streaming |
 
 ---
 
@@ -46,7 +102,7 @@
 | 🔐 Connect Freighter wallet | ✅ |
 | 💰 View live XLM balance | ✅ |
 | 💸 Send XLM transactions | ✅ |
-| ✅ Transaction success confirmation screen | ✅ |
+| ✅ Transaction success confirmation | ✅ |
 
 ---
 
@@ -57,10 +113,10 @@
 | Feature | Status |
 |--------|--------|
 | 🧠 Soroban smart contract deployed on Stellar Testnet | ✅ |
-| 💸 Donate XLM via `donate(amount)` contract function | ✅ |
+| 💸 Donate XLM via `donate()` contract function | ✅ |
 | 📊 Fetch cumulative total via `get_total()` | ✅ |
 | 🔄 Real-time UI updates after each donation | ✅ |
-| 🔐 Multi-wallet support — Freighter, xBull, Albedo | ✅ |
+| 🔐 Multi-wallet — Freighter, xBull, Albedo | ✅ |
 | 📡 Transaction status indicators (Pending / Success / Failed) | ✅ |
 | ⚠️ Error handling — wallet not found, rejected tx, low balance | ✅ |
 
@@ -75,22 +131,30 @@
 | ⏳ Loading states and progress indicators | ✅ |
 | ⚡ Donation total caching with `localStorage` | ✅ |
 | 🧪 4 unit tests — all passing | ✅ |
-| 📊 Improved UI feedback on all user interactions | ✅ |
+| 📊 Improved UI feedback on all interactions | ✅ |
 | 🎬 Demo video walkthrough | ✅ |
 
 ---
 
 ### 🔹 Level 4 — Production Ready 🚀
 
-> Inter-contract architecture, CI/CD automation, mobile responsiveness, and real-time sync.
+> Three-contract ecosystem, dual-portal marketplace, Firebase + blockchain hybrid, CI/CD pipeline.
 
 | Feature | Status |
 |--------|--------|
-| 🔁 Inter-contract calls — Donation contract calls Logger contract | ✅ |
-| ⚙️ CI/CD pipeline via GitHub Actions (install → test → build) | ✅ |
+| 🏛️ Dual-portal architecture — Admin + Donor | ✅ |
+| 🔁 Three-contract inter-contract ecosystem | ✅ |
+| 🏪 Global campaign marketplace via Firebase Firestore | ✅ |
+| 🔐 On-chain admin verification per campaign | ✅ |
+| 💰 Per-campaign isolated vault balances | ✅ |
+| 📋 Logger contract — full queryable donation history | ✅ |
+| 🔗 Deep linking — shareable campaign URLs | ✅ |
+| 📣 OG meta tags for social sharing (X, LinkedIn) | ✅ |
+| ⚡ Horizon SSE real-time streaming | ✅ |
+| 🧪 6 Rust contract-level integration tests | ✅ |
+| ⚙️ CI/CD — contract compile + test + deploy pipeline | ✅ |
+| 🛡️ Security scan — no hardcoded secrets in CI | ✅ |
 | 📱 Fully responsive mobile UI | ✅ |
-| ⚡ Real-time polling with sync status indicator | ✅ |
-| 🛡 Offline fallback using cached data | ✅ |
 | 🔴 Error recovery for failed transactions | ✅ |
 
 ---
@@ -99,19 +163,42 @@
 
 | | Contract | Address |
 |---|---|---|
-| 💠 | **Donation Contract** | `CA2UK75IFINHQYCMBYT7TXRMMHEP4FHYCFZOEHKGZOFTJBMI2AUT27LY` |
-| 📋 | **Logger Contract** | `CCQ5UK7SGAEBHOI4MHE2HC7TTGHKXRIIEBLUUD4CXIU5CPR4T2QUDVKW` |
+| 💠 | **Donation Contract** | `CBGFHRSQ275OQRZGOZXLO7JABDVTI5UIZLD7ETSAGJVI5WMIWGBC2TK4` |
+| 📋 | **Logger Contract** | `CDIK5KV222V3SJPN45PIYZEZ3EFI6QLNA5DAGFDAIZUMG5K3M53IX6LS` |
+| 🏦 | **Vault Contract** | `CB7O4AJFIBTGQODDCOPQICCSHRA35WFTIA2ZZ5O6OUMKWV4ROZIE3BZD` |
 
 - **Network:** Stellar Testnet
 - **Language:** Rust → compiled to WASM via Soroban SDK
-- **Functions:** `donate(amount)`, `get_total()`
-- **Architecture:** The Donation contract internally invokes the Logger contract on every donation, demonstrating modular inter-contract design.
+- **Deploy Date:** 2026-06-02
+
+### Contract Functions
+
+| Contract | Functions |
+|---|---|
+| **Donation** | `create_campaign()`, `donate()`, `get_total()`, `get_campaign_info()`, `get_campaign_admin()`, `get_campaign_total()` |
+| **Logger** | `log_donation()`, `get_all_donations()`, `get_donor_history()`, `get_recent_donations()`, `get_donation_count()` |
+| **Vault** | `deposit()`, `withdraw()`, `get_balance()`, `get_campaign_stats()`, `get_withdrawal_history()` |
+
+### How One Donation Works — Atomic Transaction
+
+```
+Donor clicks "Send Donation"
+         ↓
+Donation Contract: donate(campaign_id, donor, amount)
+         ↓                    ↓
+Logger Contract          Vault Contract
+log_donation()           deposit(campaign_id, amount)
+         ↓                    ↓
+On-chain audit trail     Funds held securely
+         ↓
+Single atomic transaction — all or nothing
+```
 
 **Inter-Contract Transaction Hash:**
 ```
-52946283fa21abf0088129ed1ae1202d7cee05cc4383c4d0ba5a2628df1bf611
+65c2af62d4160528de7342f7dc9df35a122999c06aba78f12a944b090ad493d3
 ```
-🔗 [View on Stellar Expert](https://stellar.expert/explorer/testnet/tx/52946283fa21abf0088129ed1ae1202d7cee05cc4383c4d0ba5a2628df1bf611)
+🔗 [View on Stellar Expert](https://stellar.expert/explorer/testnet/tx/65c2af62d4160528de7342f7dc9df35a122999c06aba78f12a944b090ad493d3)
 
 ---
 
@@ -145,7 +232,7 @@
   </tr>
 </table>
 
-> ✅ **Level 1 Proof:** Freighter wallet connected, live XLM balance visible, transaction sent and confirmed on Stellar Testnet, verified on Stellar Expert explorer.
+> ✅ **Level 1 Proof:** Freighter wallet connected, live XLM balance visible, transaction confirmed on Stellar Testnet, verified on Stellar Expert.
 
 ---
 
@@ -158,7 +245,7 @@
       <img src="level_2_screenshots/wallet_options.png" alt="Wallet Options" width="280"/>
     </td>
     <td align="center">
-      <strong>Donation Success & Total Updated</strong><br/>
+      <strong>Donation Success</strong><br/>
       <img src="level_2_screenshots/donation_success.png" alt="Donation Success" width="280"/>
     </td>
     <td align="center">
@@ -168,7 +255,7 @@
   </tr>
 </table>
 
-> ✅ **Level 2 Proof:** Multi-wallet selector active (Freighter / xBull / Albedo), XLM donated via Soroban contract, on-chain total updated in real time, contract verified on Stellar Expert.
+> ✅ **Level 2 Proof:** Multi-wallet selector active (Freighter / xBull / Albedo), XLM donated via Soroban contract, on-chain total updated in real time.
 
 ---
 
@@ -183,42 +270,82 @@
   </tr>
 </table>
 
-> ✅ **Level 3 Proof:** 4 unit tests pass covering header render, wallet connection, donation form, and total donations card. Loading states, caching, and UI feedback fully implemented.
+> ✅ **Level 3 Proof:** 4 Vitest unit tests passing covering landing page, wallet connection, marketplace navigation, and admin portal.
 
 ---
 
 ### 🔹 Level 4 — Production Features
+
+**🏛️ Landing Page — Portal Selection**
+
+<table>
+  <tr>
+    <td align="center">
+      <img src="level_4_screenshots/landing_page.png" alt="Landing Page" width="860"/>
+    </td>
+  </tr>
+</table>
+
+**👑 Admin Portal — Campaign Management**
+
+<table>
+  <tr>
+    <td align="center">
+      <img src="level_4_screenshots/admin_portal.png" alt="Admin Portal" width="860"/>
+    </td>
+  </tr>
+</table>
+
+**💙 Donor Marketplace — Browse Campaigns**
+
+<table>
+  <tr>
+    <td align="center">
+      <img src="level_4_screenshots/donor_marketplace.png" alt="Donor Marketplace" width="860"/>
+    </td>
+  </tr>
+</table>
+
+**📄 Campaign Detail — Donate + Leaderboard + Live Feed**
+
+<table>
+  <tr>
+    <td align="center">
+      <img src="level_4_screenshots/campaign_details.png" alt="Campaign Details" width="860"/>
+    </td>
+  </tr>
+</table>
 
 **📱 Mobile Responsive Views**
 
 <table>
   <tr>
     <td align="center">
-      <strong>Mobile — Wallet Connect</strong><br/>
+      <strong>Mobile — Landing</strong><br/>
       <img src="level_4_screenshots/mobile_view_1.png" alt="Mobile View 1" width="220"/>
     </td>
     <td align="center">
-      <strong>Mobile — Donation Flow</strong><br/>
+      <strong>Mobile — Marketplace</strong><br/>
       <img src="level_4_screenshots/mobile_view_2.png" alt="Mobile View 2" width="220"/>
     </td>
     <td align="center">
-      <strong>Mobile — Transaction Result</strong><br/>
+      <strong>Mobile — Campaign</strong><br/>
       <img src="level_4_screenshots/mobile_view_3.png" alt="Mobile View 3" width="220"/>
     </td>
   </tr>
 </table>
 
-**⚙️ CI/CD Pipeline**
+**⚙️ CI/CD Pipeline — All Jobs Passing**
 
 <table>
   <tr>
     <td align="center">
-      <img src="level_4_screenshots/ci_cd.png" alt="CI/CD Pipeline" width="860"/>
+      <img src="level_4_screenshots/ci_cd_pipeline.png" alt="CI/CD Pipeline" width="860"/>
     </td>
   </tr>
 </table>
 
-**🔁 Inter-Contract Execution**
+**🔁 Inter-Contract Atomic Transaction**
 
 <table>
   <tr>
@@ -228,30 +355,87 @@
   </tr>
 </table>
 
-> ✅ **Level 4 Proof:** Fully responsive on mobile, GitHub Actions pipeline runs on every push (install → test → build), Donation contract calls Logger contract internally as shown on Stellar Expert.
+**🧪 Rust Contract Tests — 6 Passing**
+
+<table>
+  <tr>
+    <td align="center">
+      <img src="level_4_screenshots/rust_tests.png" alt="Rust Tests" width="860"/>
+    </td>
+  </tr>
+</table>
+
+> ✅ **Level 4 Proof:** Dual-portal architecture, global Firebase marketplace, 3-contract ecosystem, atomic inter-contract transactions, deep linking, Horizon SSE streaming, 6 Rust tests, full CI/CD pipeline.
 
 ---
 
 ## 🧪 Test Results
 
-Tests written with **Vitest**, covering all core UI components:
+### Rust Contract Tests (6 passing)
+
+```
+running 6 tests
+test test_edge_case_unauthorized_vault_withdrawal - should panic ... ok
+test test_edge_case_zero_donation - should panic                 ... ok
+test test_edge_case_unauthorized_logger_call - should panic      ... ok
+test test_edge_case_exceed_cap - should panic                    ... ok
+test test_admin_functions                                        ... ok
+test test_full_donation_flow_end_to_end                          ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; finished in 0.27s
+```
+
+### Vitest Frontend Tests (4 passing)
 
 ```
 ✓ Stellar Philanthropy DApp (4)
-  ✓ renders the header and shows the cached donation total    132ms
-  ✓ connects the wallet and displays the truncated address     53ms
-  ✓ shows the donation form once a wallet is connected         53ms
-  ✓ shows the Total Donations card with Pool Snapshot label    21ms
+  ✓ renders the landing page initially                              
+  ✓ connects the wallet and displays the truncated address in Navbar
+  ✓ navigates to marketplace and shows campaigns placeholder        
+  ✓ navigates to admin portal and shows empty state                 
 
-Test Files   1 passed (1)
-Tests        4 passed (4)
-Duration     2.71s
+Test Files  1 passed (1)
+     Tests  4 passed (4)
+  Duration  3.60s
 ```
 
 Run tests locally:
 
 ```bash
+# Frontend tests
 npm run test
+
+# Contract tests
+cd contracts && cargo test
+cd logger_contract && cargo test
+cd vault_contract && cargo test
+```
+
+---
+
+## ⚙️ CI/CD Pipeline
+
+Every push to `main` or `level-4-upgrade` triggers 4 automated jobs:
+
+```
+┌─────────────────────┐  ┌─────────────────────┐  ┌─────────────────────┐
+│  Contract           │  │  Frontend           │  │  Security           │
+│  Verification       │  │  Verification       │  │  Scan               │
+│                     │  │                     │  │                     │
+│  • Rust setup       │  │  • Node.js 20       │  │  • npm audit        │
+│  • wasm32 target    │  │  • npm install      │  │  • No hardcoded     │
+│  • cargo test (x3)  │  │  • vitest (4 tests) │  │    Firebase keys    │
+│  • cargo build      │  │  • npm build        │  │                     │
+└──────────┬──────────┘  └──────────┬──────────┘  └──────────┬──────────┘
+           │                        │                         │
+           └────────────────────────┴─────────────────────────┘
+                                    │ all pass
+                                    ▼
+                        ┌─────────────────────┐
+                        │  Production Deploy  │
+                        │  (main only)        │
+                        │  • Vercel deploy    │
+                        └─────────────────────┘
 ```
 
 ---
@@ -260,14 +444,16 @@ npm run test
 
 | Layer | Technology |
 |-------|-----------|
-| **Frontend** | React (Vite) |
+| **Frontend** | React 19 (Vite) |
+| **Routing** | React Router DOM v7 |
 | **Styling** | Tailwind CSS |
 | **Blockchain SDK** | Stellar SDK |
 | **Smart Contracts** | Soroban — Rust compiled to WASM |
 | **Wallet Integration** | StellarWalletsKit (Freighter, xBull, Albedo) |
-| **Testing** | Vitest |
+| **Database** | Firebase Firestore |
+| **Real-time** | Horizon SSE EventSource |
+| **Testing** | Vitest (frontend) + Rust cargo test (contracts) |
 | **CI/CD** | GitHub Actions |
-| **Caching** | localStorage |
 | **Deployment** | Vercel |
 
 ---
@@ -287,24 +473,35 @@ cd stellarpay
 npm install
 ```
 
-### 3. Run Locally
+### 3. Configure Environment Variables
+
+Create a `.env` file in the root:
+
+```env
+VITE_FIREBASE_API_KEY=your_api_key
+VITE_FIREBASE_AUTH_DOMAIN=your_auth_domain
+VITE_FIREBASE_PROJECT_ID=your_project_id
+VITE_FIREBASE_STORAGE_BUCKET=your_storage_bucket
+VITE_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
+VITE_FIREBASE_APP_ID=your_app_id
+```
+
+### 4. Run Locally
 
 ```bash
 npm run dev
 ```
 
-### 4. Run Tests
+### 5. Run Tests
 
 ```bash
 npm run test
 ```
 
-### 5. Prerequisites
+### 6. Prerequisites
 
-Before using the dApp, ensure:
-
-- ✅ [Freighter](https://freighter.app/), [xBull](https://xbull.app/), or [Albedo](https://albedo.link/) wallet extension installed
-- ✅ Wallet network set to **Stellar Testnet**
+- ✅ [Freighter](https://freighter.app/), [xBull](https://xbull.app/), or [Albedo](https://albedo.link/) wallet installed
+- ✅ Wallet set to **Stellar Testnet**
 - ✅ Wallet funded via [Stellar Friendbot](https://friendbot.stellar.org/)
 
 ---
@@ -313,33 +510,40 @@ Before using the dApp, ensure:
 
 ```
 stellarpay/
-├── contracts/                    # Soroban smart contracts (Rust)
-│   ├── donation_contract/
-│   │   └── src/lib.rs            # donate() and get_total() logic
-│   └── logger_contract/          # Logger contract (called by donation contract)
-├── src/                          # React frontend
-│   └── App.jsx                   # Wallet connection, donation UI, contract calls
-├── level_1_screenshots/          # Level 1 proof screenshots
-│   ├── wallet_connected.png
-│   ├── transaction_confirm.png
-│   ├── transaction_success.png
-│   └── stellar_expert.png
-├── level_2_screenshots/          # Level 2 proof screenshots
-│   ├── wallet_options.png
-│   ├── donation_success.png
-│   └── contract_proof.png
-├── level_3_screenshots/          # Level 3 proof screenshots
-│   └── test_cases.png
-├── level_4_screenshots/          # Level 4 proof screenshots
-│   ├── ci_cd.png
-│   ├── inter_contract.png
-│   ├── mobile_view_1.png
-│   ├── mobile_view_2.png
-│   └── mobile_view_3.png
-├── .github/workflows/ci.yml      # GitHub Actions CI/CD pipeline
-├── index.html
-├── vite.config.js
-├── package.json
+├── contracts/                         # Donation Contract (Rust/Soroban)
+│   └── src/
+│       ├── lib.rs                     # create_campaign, donate, get_campaign_info
+│       └── test.rs                    # Rust unit + integration tests (6 passing)
+├── logger_contract/                   # Logger Contract (Rust/Soroban)
+│   └── src/lib.rs                     # log_donation, get_history, get_recent
+├── vault_contract/                    # Vault Contract (Rust/Soroban)
+│   └── src/lib.rs                     # deposit, withdraw, get_campaign_stats
+├── src/
+│   ├── pages/
+│   │   ├── Landing.jsx                # Portal selection (Admin / Donor)
+│   │   ├── AdminPortal.jsx            # Campaign creation & management
+│   │   ├── DonorMarketplace.jsx       # Browse all campaigns
+│   │   └── CampaignDetails.jsx        # Campaign page with donate + leaderboard
+│   ├── components/
+│   │   ├── AdminPanel.jsx             # Vault controls per campaign
+│   │   ├── AnalyticsDashboard.jsx     # Charts & donation stats
+│   │   ├── DonorLeaderboard.jsx       # Top donors ranking
+│   │   ├── LiveDonationFeed.jsx       # Horizon SSE real-time feed
+│   │   ├── Navbar.jsx                 # Navigation + wallet status
+│   │   ├── RecentLogs.jsx             # Logger contract events
+│   │   ├── SendXLMForm.jsx            # Donation input form
+│   │   ├── TopDonors.jsx              # Top donors widget
+│   │   ├── TransactionStatus.jsx      # Tx status indicator
+│   │   ├── VaultStats.jsx             # Vault balance display
+│   │   └── WalletCard.jsx             # Connected wallet info
+│   ├── firebase.js                    # Firebase Firestore config
+│   └── App.jsx                        # Router + contract constants
+├── .github/workflows/ci.yml           # GitHub Actions pipeline
+├── level_1_screenshots/               # Level 1 proof
+├── level_2_screenshots/               # Level 2 proof
+├── level_3_screenshots/               # Level 3 proof
+├── level_4_screenshots/               # Level 4 proof
+├── contract_deployment_summary.txt    # Deployed contract addresses
 └── README.md
 ```
 
@@ -351,8 +555,8 @@ stellarpay/
 |-------|-------|----------------|
 | **Level 1** | Foundation | Freighter wallet + XLM send/receive on Testnet |
 | **Level 2** | Smart Contracts | Soroban donation contract + multi-wallet support |
-| **Level 3** | Quality & Polish | Unit tests, `localStorage` caching, UX improvements |
-| **Level 4** | Production Ready | Inter-contract calls, CI/CD, mobile UI, real-time sync |
+| **Level 3** | Quality & Polish | 4 unit tests, localStorage caching, UX improvements |
+| **Level 4** | Production Protocol | 3-contract ecosystem, dual portals, Firebase marketplace, CI/CD |
 
 ---
 
