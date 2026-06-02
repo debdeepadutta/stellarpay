@@ -33,8 +33,8 @@ const CampaignDetails = ({ address, balance, isFetchingData, handleDonate, isSen
           const cid = data.donationContractId || data.contractId;
           
           let chainTotal = data.totalDonated || 0;
-          // Only query the chain if we have a valid Soroban contract ID (56 chars, starts with C)
-          if (cid && cid.length === 56 && cid.startsWith('C')) {
+          // Only query the chain if we have a valid Soroban contract ID and it's not the shared default contract
+          if (cid && cid.length === 56 && cid.startsWith('C') && cid !== "CCYNUO7LFWI3IT2IZMFEFU4CQUYGI7JPOODXEHJ7UQEP5JKSBPY2SLCG") {
             try {
               const rpcServer = new rpc.Server("https://soroban-testnet.stellar.org");
               const builder = new TransactionBuilder(new Account("GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF", "0"), { 
