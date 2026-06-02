@@ -316,7 +316,7 @@ function AppContent() {
       
       console.log("Step 3: Signing with Wallet...");
       const prepared = rpc.assembleTransaction(tx, sim).build();
-      const { signedTxXdr } = await kit.signTransaction(prepared.toXDR());
+      const { signedTxXdr } = await kit.signTransaction(prepared.toXDR(), { networkPassphrase: Networks.TESTNET });
       
       console.log("Step 4: Submitting to Network...");
       const send = await rpcServer.sendTransaction(new Transaction(signedTxXdr, Networks.TESTNET));
