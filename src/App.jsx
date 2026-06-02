@@ -45,6 +45,7 @@ import {
   updateDoc, 
   doc, 
   getDoc,
+  deleteDoc,
   serverTimestamp,
   orderBy
 } from 'firebase/firestore';
@@ -376,9 +377,10 @@ function AppContent() {
     e.preventDefault();
     if (!address) return toast.error("Connect wallet first");
     setIsCreatingCampaign(true);
+    let docRef = null;
     try {
       // 1. Save to Firestore first to get the document ID
-      const docRef = await addDoc(collection(db, "campaigns"), {
+      docRef = await addDoc(collection(db, "campaigns"), {
         ...newCampaign,
         adminWallet: address,
         goal: parseFloat(newCampaign.goal),
@@ -390,9 +392,89 @@ function AppContent() {
       });
 
       // 2. Register campaign on-chain using the Firestore document ID
-      const targetContractId = newCampaign.contractId || CONTRACT_ID;
-      const campaignSymbol = nativeToScVal(docRef.id.substring(0, 32), { type: "symbol" });
-      const goalInStroops = toI128(newCampaign.goal);
+      try {
+        const targetContractId = newCampaign.contractId || CONTRACT_ID;
+        const campaignSymbol = nativeToScVal(docRef.id.substring(0, 32), { type: "symbol" });
+        const goalInStroops = toI128(newCampaign.goal);
+
+        let account;
+        try {
+          account = await server.loadAccount(address);
+        } catch (err) {
+          if (err?.response?.status === 404) {
+            throw new Error("Your account does not exist on Testnet. Please fund it using Friendbot first.");
+          }
+          account = new Account(address, "0");
+        }
+
+        const builder = new TransactionBuilder(account, { fee: "10000", networkPassphrase: Networks.TESTNET });
+        const tx = builder.addOperation(Operation.invokeContractFunction({
+          contract: targetContractId,
+          function: "create_campaign",
+          args: [campaignSymbol, Address.fromString(address).toScVal(), goalInStroops]
+        })).setTimeout(60).build();
+
+        const sim = await rpcServer.simulateTransaction(tx);
+        if (rpc.Api.isSimulationError(sim)) {
+          console.error("create_campaign simulation failed:", sim.error);
+          throw new Error("Failed to register campaign on-chain: " + (sim.error || "Unknown error"));
+        }
+
+        const prepared = rpc.assembleTransaction(tx, sim).build();
+        const { signedTxXdr } = await kit.signTransaction(prepared.toXDR(), { networkPassphrase: Networks.TESTNET });
+        const send = await rpcServer.sendTransaction(new Transaction(signedTxXdr, Networks.TESTNET));
+        
+        if (send.status === "ERROR") {
+          throw new Error(`On-chain campaign creation rejected: ${send.errorResultXdr || send.errorResult || "Unknown"}`);
+        }
+
+        // Poll for confirmation
+        let res = await rpcServer.getTransaction(send.hash);
+        let attempts = 0;
+        while ((res.status === "NOT_FOUND" || res.status === "PENDING") && attempts < 25) {
+          await new Promise(r => setTimeout(r, 2000));
+          res = await rpcServer.getTransaction(send.hash);
+          attempts++;
+        }
+
+        if (res.status === rpc.Api.GetTransactionStatus.SUCCESS) {
+          toast.success("Campaign launched on-chain!");
+        } else {
+          console.warn("On-chain registration status:", res.status, "- campaign saved to DB but may not be on-chain yet");
+          toast.success("Campaign saved! On-chain registration is processing...");
+        }
+      } catch (onChainErr) {
+        // Cleanup Firestore document if blockchain registration fails
+        console.warn("On-chain registration failed. Cleaning up Firestore document...", onChainErr);
+        if (docRef) {
+          try {
+            await deleteDoc(docRef);
+          } catch (cleanupErr) {
+            console.error("Failed to delete Firestore document during cleanup:", cleanupErr);
+          }
+        }
+        throw onChainErr;
+      }
+
+      setNewCampaign({ name: '', description: '', goal: '', contractId: CONTRACT_ID, vaultContractId: VAULT_CONTRACT_ID });
+      setIsCreatingCampaign(false);
+      navigate('/admin');
+    } catch (e) {
+      console.error("Campaign Create Error:", e);
+      toast.error("Failed to create campaign: " + parseStellarError(e));
+      setIsCreatingCampaign(false);
+    }
+  };
+
+  const handleRegisterOnChain = async (campaignId, targetContractId, goal) => {
+    if (!address) {
+      await connectWallet();
+      return false;
+    }
+    console.log("--- STARTING ON-CHAIN REGISTRATION ---");
+    try {
+      const campaignSymbol = nativeToScVal(campaignId.substring(0, 32), { type: "symbol" });
+      const goalInStroops = toI128(goal);
 
       let account;
       try {
@@ -425,7 +507,6 @@ function AppContent() {
         throw new Error(`On-chain campaign creation rejected: ${send.errorResultXdr || send.errorResult || "Unknown"}`);
       }
 
-      // Poll for confirmation
       let res = await rpcServer.getTransaction(send.hash);
       let attempts = 0;
       while ((res.status === "NOT_FOUND" || res.status === "PENDING") && attempts < 25) {
@@ -436,18 +517,15 @@ function AppContent() {
 
       if (res.status === rpc.Api.GetTransactionStatus.SUCCESS) {
         toast.success("Campaign launched on-chain!");
+        fetchData();
+        return true;
       } else {
-        console.warn("On-chain registration status:", res.status, "- campaign saved to DB but may not be on-chain yet");
-        toast.success("Campaign saved! On-chain registration is processing...");
+        throw new Error("Transaction failed on-chain");
       }
-
-      setNewCampaign({ name: '', description: '', goal: '', contractId: CONTRACT_ID, vaultContractId: VAULT_CONTRACT_ID });
-      setIsCreatingCampaign(false);
-      navigate('/admin');
     } catch (e) {
-      console.error("Campaign Create Error:", e);
-      toast.error("Failed to create campaign: " + parseStellarError(e));
-      setIsCreatingCampaign(false);
+      console.error("On-chain registration failed:", e);
+      toast.error("Failed to register campaign: " + parseStellarError(e));
+      return false;
     }
   };
 
@@ -508,6 +586,7 @@ function AppContent() {
               balance={balance}
               isFetchingData={isFetchingData}
               handleDonate={handleDonate}
+              handleRegisterOnChain={handleRegisterOnChain}
               isSending={isSending}
               txStatus={txStatus}
               txHash={txHash}

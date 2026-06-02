@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
 
-const DonateXLMForm = ({ onDonate, isSending, balance }) => {
+const DonateXLMForm = ({ onDonate, isSending, balance, disabled }) => {
   const [amount, setAmount] = useState('');
 
   const isOverBalance = parseFloat(amount) > parseFloat(balance);
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!amount || isOverBalance) return;
+    if (!amount || isOverBalance || disabled) return;
     onDonate(null, amount); // Send null for recipient as it's not used by contract
   };
 
@@ -41,7 +41,8 @@ const DonateXLMForm = ({ onDonate, isSending, balance }) => {
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
               placeholder="0.00" 
-              className={`w-full bg-slate-900/50 border rounded-2xl px-5 sm:px-6 py-4 sm:py-5 text-xl sm:text-2xl font-bold text-white focus:outline-none transition-all placeholder:text-slate-700 ${isOverBalance ? 'border-rose-500/50 focus:ring-rose-500/50' : 'border-white/5 focus:ring-2 focus:ring-stellar-blue/50'}`}
+              disabled={disabled}
+              className={`w-full bg-slate-900/50 border rounded-2xl px-5 sm:px-6 py-4 sm:py-5 text-xl sm:text-2xl font-bold text-white focus:outline-none transition-all placeholder:text-slate-700 ${isOverBalance ? 'border-rose-500/50 focus:ring-rose-500/50' : 'border-white/5 focus:ring-2 focus:ring-stellar-blue/50'} ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
             />
             <span className={`absolute right-5 sm:right-6 top-1/2 -translate-y-1/2 font-black text-xs sm:text-sm tracking-tighter ${isOverBalance ? 'text-rose-500' : 'text-stellar-blue'}`}>XLM</span>
           </div>
@@ -52,13 +53,20 @@ const DonateXLMForm = ({ onDonate, isSending, balance }) => {
             </p>
           )}
 
+          {disabled && (
+            <p className="text-[10px] text-amber-400 font-bold uppercase tracking-widest animate-pulse ml-1">
+              ⚠️ Registration Pending on Blockchain
+            </p>
+          )}
+
           <div className="flex gap-2">
             {quickAmounts.map(val => (
               <button
                 key={val}
                 type="button"
+                disabled={disabled}
                 onClick={() => setAmount(val)}
-                className="flex-1 py-2 rounded-xl bg-white/5 border border-white/5 text-slate-400 text-xs font-bold hover:bg-stellar-blue/10 hover:text-stellar-blue hover:border-stellar-blue/20 transition-all active:scale-95"
+                className="flex-1 py-2 rounded-xl bg-white/5 border border-white/5 text-slate-400 text-xs font-bold hover:bg-stellar-blue/10 hover:text-stellar-blue hover:border-stellar-blue/20 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {val} XLM
               </button>
@@ -68,8 +76,8 @@ const DonateXLMForm = ({ onDonate, isSending, balance }) => {
 
         <button 
           type="submit"
-          disabled={isSending || !amount}
-          className={`w-full py-5 bg-stellar-blue hover:bg-stellar-blue/90 text-white rounded-2xl font-bold transition-all shadow-xl shadow-stellar-blue/20 active:scale-95 flex items-center justify-center gap-3 overflow-hidden relative ${isSending ? 'opacity-50 cursor-not-allowed' : ''}`}
+          disabled={isSending || !amount || disabled}
+          className={`w-full py-5 bg-stellar-blue hover:bg-stellar-blue/90 text-white rounded-2xl font-bold transition-all shadow-xl shadow-stellar-blue/20 active:scale-95 flex items-center justify-center gap-3 overflow-hidden relative ${(isSending || disabled) ? 'opacity-50 cursor-not-allowed' : ''}`}
         >
           {isSending ? (
             <div className="flex items-center gap-3 animate-pulse">

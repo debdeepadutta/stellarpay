@@ -19,10 +19,11 @@ import DonorLeaderboard from '../components/DonorLeaderboard';
 import LiveDonationFeed from '../components/LiveDonationFeed';
 import WalletCard from '../components/WalletCard';
 
-const CampaignDetails = ({ address, balance, isFetchingData, handleDonate, isSending, txStatus, txHash, lastDonationAt, lastUpdated }) => {
+const CampaignDetails = ({ address, balance, isFetchingData, handleDonate, handleRegisterOnChain, isSending, txStatus, txHash, lastDonationAt, lastUpdated }) => {
   const { id } = useParams();
   const [campaign, setCampaign] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [isRegistering, setIsRegistering] = useState(false);
 
   useEffect(() => {
     const docRef = doc(db, "campaigns", id);
@@ -33,7 +34,8 @@ const CampaignDetails = ({ address, balance, isFetchingData, handleDonate, isSen
           const cid = data.donationContractId || data.contractId;
           
           let chainTotal = data.totalDonated || 0;
-          // Query on-chain campaign total if we have a valid contract ID
+          let isOnChain = false;
+          // Query on-chain campaign status if we have a valid contract ID
           if (cid && cid.length === 56 && cid.startsWith('C')) {
             try {
               const rpcServer = new rpc.Server("https://soroban-testnet.stellar.org");
@@ -42,25 +44,42 @@ const CampaignDetails = ({ address, balance, isFetchingData, handleDonate, isSen
                 fee: "100", 
                 networkPassphrase: Networks.TESTNET 
               });
-              const tx = builder.addOperation(Operation.invokeContractFunction({ 
+              
+              // Query get_campaign_info to verify on-chain existence
+              const txInfo = builder.addOperation(Operation.invokeContractFunction({ 
                 contract: cid, 
-                function: "get_campaign_total", 
+                function: "get_campaign_info", 
                 args: [campaignSymbol] 
               })).setTimeout(30).build();
-              const res = await rpcServer.simulateTransaction(tx);
-              if (rpc.Api.isSimulationSuccess(res)) {
-                const val = scValToNative(res.result.retval);
-                const onChainTotal = Number(BigInt(val)) / 10000000; // Convert stroops to XLM
-                if (onChainTotal > 0) {
-                  chainTotal = onChainTotal;
+              
+              const resInfo = await rpcServer.simulateTransaction(txInfo);
+              if (rpc.Api.isSimulationSuccess(resInfo)) {
+                const infoVal = scValToNative(resInfo.result.retval);
+                if (infoVal !== null && infoVal !== undefined) {
+                  isOnChain = true;
+                  
+                  // Now get the total
+                  const txTotal = builder.addOperation(Operation.invokeContractFunction({ 
+                    contract: cid, 
+                    function: "get_campaign_total", 
+                    args: [campaignSymbol] 
+                  })).setTimeout(30).build();
+                  const resTotal = await rpcServer.simulateTransaction(txTotal);
+                  if (rpc.Api.isSimulationSuccess(resTotal)) {
+                    const val = scValToNative(resTotal.result.retval);
+                    const onChainTotal = Number(BigInt(val)) / 10000000; // Convert stroops to XLM
+                    if (onChainTotal >= 0) {
+                      chainTotal = onChainTotal;
+                    }
+                  }
                 }
               }
             } catch (rpcErr) {
-              // Silently ignore — campaign may not exist on-chain yet
+              console.warn("RPC check failed:", rpcErr);
             }
           }
           
-          setCampaign({ ...data, totalDonated: chainTotal });
+          setCampaign({ ...data, totalDonated: chainTotal, isOnChain });
         } else {
           toast.error("Campaign not found");
         }
@@ -76,6 +95,19 @@ const CampaignDetails = ({ address, balance, isFetchingData, handleDonate, isSen
 
     return () => unsubscribe();
   }, [id, lastDonationAt]);
+
+  const handleRegister = async () => {
+    setIsRegistering(true);
+    const success = await handleRegisterOnChain(
+      campaign.id,
+      campaign.donationContractId || campaign.contractId,
+      campaign.goal
+    );
+    if (success) {
+      setCampaign(prev => ({ ...prev, isOnChain: true }));
+    }
+    setIsRegistering(false);
+  };
 
   const copyLink = () => {
     const url = window.location.href;
@@ -137,6 +169,44 @@ const CampaignDetails = ({ address, balance, isFetchingData, handleDonate, isSen
         </svg>
         Back to Marketplace
       </Link>
+
+      {/* On-Chain Registration Status Banner */}
+      {!campaign.isOnChain && (
+        <div className="bg-amber-500/10 border border-amber-500/20 rounded-[30px] p-6 sm:p-8 flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8 text-amber-200 animate-fadeIn">
+          <div className="flex gap-4">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-amber-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+            <div>
+              <h4 className="font-bold text-white text-lg">Campaign Not Registered On-Chain</h4>
+              <p className="text-slate-400 text-sm mt-1 leading-relaxed">
+                This campaign exists in the database but has not been successfully registered on the Stellar blockchain. Donations are disabled.
+              </p>
+            </div>
+          </div>
+          {address && address.toLowerCase() === campaign.adminWallet?.toLowerCase() && (
+            <button 
+              onClick={handleRegister}
+              disabled={isRegistering}
+              className="px-6 py-3 bg-amber-600 hover:bg-amber-500 disabled:bg-slate-800 text-white font-bold rounded-xl transition-all shadow-lg shrink-0 flex items-center gap-2 active:scale-95 disabled:pointer-events-none self-start md:self-auto"
+            >
+              {isRegistering ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
+                  Registering...
+                </>
+              ) : (
+                <>
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                  </svg>
+                  Register On-Chain
+                </>
+              )}
+            </button>
+          )}
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
         {/* Left Column: Details & Feed */}
@@ -205,6 +275,7 @@ const CampaignDetails = ({ address, balance, isFetchingData, handleDonate, isSen
             isSending={isSending} 
             txStatus={txStatus} 
             txHash={txHash} 
+            disabled={!campaign.isOnChain}
           />
           <DonorLeaderboard 
             contractId={campaign.donationContractId || campaign.contractId} 
