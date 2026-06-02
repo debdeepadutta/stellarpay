@@ -24,9 +24,9 @@ dist-ssr
 *.sw?
 
 # Contract artifacts
-**/target/
-target/
-contracts/target/
-donation_contract/target/
-logger_contract/target/
-vault_contract/target/
+**/target
+
+# Secrets and Local Scratch
+.env
+.env.*
+scratch/

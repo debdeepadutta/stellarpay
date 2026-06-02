@@ -7,8 +7,47 @@ on:
     branches: [ main ]
 
 jobs:
-  frontend-ci:
-    name: Frontend CI
+  contract-tests:
+    name: Contract Verification
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - name: Cache Cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Install System Dependencies
+        run: sudo apt-get update && sudo apt-get install -y libdbus-1-dev pkg-config libudev-dev
+
+      - name: Install Soroban CLI
+        run: cargo install --locked stellar-cli || true
+
+      - name: Test & Build Contracts
+        run: |
+          for dir in contracts logger_contract vault_contract; do
+            echo "Processing $dir..."
+            cd $dir
+            cargo test --verbose
+            cargo build --target wasm32-unknown-unknown --release
+            cd ..
+          done
+
+  frontend-tests:
+    name: Frontend Verification
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
@@ -17,44 +56,61 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 20
           cache: 'npm'
 
-      - name: Install Build Tools
-        run: sudo apt-get update && sudo apt-get install -y python3 build-essential libudev-dev libsystemd-dev libusb-1.0-0-dev
-
       - name: Install Dependencies
-        run: npm ci
-        env:
-          npm_config_build_from_source: true
+        run: npm install
 
-      - name: Run Vitest
-        run: |
-          mv vite.config.js vite.config.js.bak
-          npm test -- --reporter=verbose
-          mv vite.config.js.bak vite.config.js
+      - name: Run Tests
+        run: npm run test
         env:
           CI: true
 
       - name: Build Project
         run: npm run build
 
-  contracts-ci:
-    name: Contracts CI
+  security-check:
+    name: Security Scan
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Install System Dependencies
-        run: sudo apt-get update && sudo apt-get install -y build-essential pkg-config libssl-dev
+      - name: npm audit
+        run: npm audit --audit-level=high || true
 
-      - name: Setup Rust
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Test Donation Contract
+      - name: Check for exposed Firebase keys
         run: |
-          cd contracts
-          cargo test --verbose
+          # Check for common Firebase key patterns in source files
+          # apiKey should not be in plaintext in src/
+          if grep -rE "apiKey: \"AIza" src/ || grep -rE "projectId: \"clone-31d16" src/; then
+            echo "❌ CRITICAL SECURITY ERROR: Exposed Firebase keys found in source code!"
+            echo "Please move all secrets to environment variables."
+            exit 1
+          fi
+          echo "✅ Security scan passed. No exposed secrets found."
 
+  deploy:
+    name: Production Deployment
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [contract-tests, frontend-tests, security-check]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Build Frontend
+        run: |
+          npm install
+          npm run build
+
+      - name: Deploy to Vercel
+        run: |
+          npm install --global vercel
+          vercel deploy --prod --token=${{ secrets.VERCEL_TOKEN }} --yes

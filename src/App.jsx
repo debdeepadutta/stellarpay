@@ -1,19 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import toast, { Toaster } from 'react-hot-toast';
+import { BrowserRouter, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
+import { HelmetProvider } from 'react-helmet-async';
 import { 
   Networks, 
-  StrKey,
-  Transaction,
-  Account,
-  rpc,
-  xdr,
-  nativeToScVal,
-  scValToNative,
-  Horizon,
-  Asset,
-  Address
+  Transaction, 
+  Account, 
+  rpc, 
+  nativeToScVal, 
+  scValToNative, 
+  Horizon, 
+  Address,
+  TransactionBuilder, 
+  Operation 
 } from "@stellar/stellar-sdk";
-import { TransactionBuilder, Operation } from "@stellar/stellar-sdk";
 import { 
   StellarWalletsKit, 
   WalletNetwork, 
@@ -25,14 +25,48 @@ import {
   RabetModule
 } from "@creit.tech/stellar-wallets-kit";
 
+// Components
 import Navbar from './components/Navbar';
-import WalletCard from './components/WalletCard';
-import DonateXLMForm from './components/SendXLMForm';
-import TransactionStatus from './components/TransactionStatus';
 
+// Pages
+import Landing from './pages/Landing';
+import AdminPortal from './pages/AdminPortal';
+import DonorMarketplace from './pages/DonorMarketplace';
+import CampaignDetails from './pages/CampaignDetails';
+
+// Firebase
+import { db } from './firebase';
+import { 
+  collection, 
+  addDoc, 
+  query, 
+  where, 
+  onSnapshot, 
+  updateDoc, 
+  doc, 
+  serverTimestamp,
+  orderBy
+} from 'firebase/firestore';
+
+
+// Constants
+const toI128 = (n) => nativeToScVal(BigInt(Math.floor(parseFloat(n) * 10000000)), { type: "i128" });
+const fromI128 = (v) => {
+  if (v === null || v === undefined) return 0;
+  let val;
+  if (typeof v === 'bigint') val = v;
+  else if (typeof v === 'number') val = BigInt(v);
+  else {
+    try { val = BigInt(v); } catch(e) { return 0; }
+  }
+  return Number(val) / 10000000;
+};
+
+const CONTRACT_ID = "CCYNUO7LFWI3IT2IZMFEFU4CQUYGI7JPOODXEHJ7UQEP5JKSBPY2SLCG";
+const VAULT_CONTRACT_ID = "CCQL3IUGJXIWY34SKKRO4ZZO44R6VVY3WWO33VSF2K5LDSQUGV6VC2FD";
+const DUMMY_ACCOUNT = new Account("GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF", "0");
 const server = new Horizon.Server("https://horizon-testnet.stellar.org");
 const rpcServer = new rpc.Server("https://soroban-testnet.stellar.org");
-const CONTRACT_ID = "CASAA3IFQURK5RPCVJILEKMW6GICAO6Q5OKGHUMQ4EMZIAYWW6YLT3VZ"; // Deployed contract ID
 
 const kit = new StellarWalletsKit({
   network: WalletNetwork.TESTNET,
@@ -46,374 +80,377 @@ const kit = new StellarWalletsKit({
   ],
 });
 
-// Helper to force i128 ScVal for Soroban
-const toI128 = (value) => {
-  const b = BigInt(value);
-  return xdr.ScVal.scvI128(
-    new xdr.Int128Parts({
-      lo: xdr.Uint64.fromString((b & 0xFFFFFFFFFFFFFFFFn).toString()),
-      hi: xdr.Int64.fromString((b >> 64n).toString()),
-    })
-  );
+const parseStellarError = (err) => {
+  const msg = err.message || "Unknown error";
+  const str = msg.toLowerCase();
+  if (str.includes("insufficient balance")) return "Insufficient balance!";
+  if (str.includes("user rejected")) return "Transaction was cancelled.";
+  return msg;
 };
 
-// Dummy account for read-only simulations (doesn't need to be funded)
-const DUMMY_ACCOUNT = new Account("GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF", "0");
+function AppContent() {
+  const navigate = useNavigate();
+  const location = useLocation();
 
-function App() {
-  // UI and Wallet States
+  // Wallet State
   const [address, setAddress] = useState('');
   const [walletName, setWalletName] = useState('');
   const [balance, setBalance] = useState('0.00');
-  const [totalDonations, setTotalDonations] = useState(localStorage.getItem('stellar_total_donations') || '0.00'); 
-  const [isFetchingBalance, setIsFetchingBalance] = useState(false);
-  const [isFetchingTotal, setIsFetchingTotal] = useState(false);
-  const [error, setError] = useState(null);
-  const [isConnecting, setIsConnecting] = useState(false);
+
+  // Campaign Data State
+  const [campaigns, setCampaigns] = useState([]);
+  const [allCampaigns, setAllCampaigns] = useState([]); 
+
+  // On-Chain Data
+  const [totalDonations, setTotalDonations] = useState(0); 
+  const [vaultStats, setVaultStats] = useState({ total_deposited: '0', total_withdrawn: '0', current_balance: '0', deposit_count: 0 });
+  
+  const [isFetchingData, setIsFetchingData] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [txStatus, setTxStatus] = useState(null);
   const [txHash, setTxHash] = useState('');
-  const [txCount, setTxCount] = useState(0);
-  
-  const connected = !!address;
+  const [lastDonationAt, setLastDonationAt] = useState(null);
+  const [lastUpdated, setLastUpdated] = useState({ wallet: Date.now(), vault: Date.now(), marketplace: Date.now() });
 
-  // Unified Fetch Logic (Balance + Contract State)
-  const fetchData = async (pubKey) => {
-    const activeAddress = pubKey || address;
-    if (!activeAddress) return;
+  const [newCampaign, setNewCampaign] = useState({ 
+    name: '', 
+    description: '', 
+    goal: '', 
+    contractId: CONTRACT_ID, 
+    vaultContractId: VAULT_CONTRACT_ID 
+  });
 
-    setIsFetchingBalance(true);
-    try {
-      // 1. Fetch XLM Balance
-      const account = await server.loadAccount(activeAddress);
-      const native = account.balances.find(b => b.asset_type === 'native');
-      setBalance(native ? parseFloat(native.balance).toFixed(4) : '0.00');
-
-      // 2. Fetch Total Donations from Soroban
-      await fetchTotalDonations();
-    } catch (e) {
-      if (e.response?.status === 404) {
-        setBalance('0.00');
-        setError('Account not funded.');
-      }
-    } finally {
-      setIsFetchingBalance(false);
-    }
-  };
-
-  const fetchTotalDonations = async () => {
-    setIsFetchingTotal(true);
-    try {
-      const simTx = new TransactionBuilder(DUMMY_ACCOUNT, {
-        fee: "100",
-        networkPassphrase: Networks.TESTNET,
-      })
-        .addOperation(Operation.invokeContractFunction({
-          contract: CONTRACT_ID,
-          function: "get_total",
-          args: []
-        }))
-        .setTimeout(30)
-        .build();
-
-      const result = await rpcServer.simulateTransaction(simTx);
-      if (rpc.Api.isSimulationSuccess(result)) {
-        const total = scValToNative(result.result.retval).toString();
-        setTotalDonations(total);
-        localStorage.setItem('stellar_total_donations', total);
-      }
-    } catch (sorobanErr) {
-      console.warn("Soroban sync skipped (contract not deployed/reachable)");
-    } finally {
-      setIsFetchingTotal(false);
-    }
-  };
-
+  // Real-time listener for All Active Campaigns
   useEffect(() => {
-    fetchTotalDonations();
+    const q = query(
+      collection(db, "campaigns"), 
+      where("isActive", "==", true)
+    );
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      let data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      // Sort locally to avoid Firebase composite index requirement
+      data.sort((a, b) => {
+        const timeA = a.createdAt?.toMillis() || 0;
+        const timeB = b.createdAt?.toMillis() || 0;
+        return timeB - timeA; // desc
+      });
+      setAllCampaigns(data);
+      setLastUpdated(prev => ({ ...prev, marketplace: Date.now() }));
+    }, (error) => {
+      console.error("Firestore Error (Marketplace):", error);
+    });
+    return () => unsubscribe();
   }, []);
+
+  // Real-time listener for Admin's Campaigns
+  useEffect(() => {
+    if (address) {
+      const q = query(
+        collection(db, "campaigns"), 
+        where("adminWallet", "==", address)
+      );
+      const unsubscribe = onSnapshot(q, (snapshot) => {
+        let data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        // Sort locally
+        data.sort((a, b) => {
+          const timeA = a.createdAt?.toMillis() || 0;
+          const timeB = b.createdAt?.toMillis() || 0;
+          return timeB - timeA; // desc
+        });
+        setCampaigns(data);
+      }, (error) => {
+         console.error("Firestore Error (Admin):", error);
+      });
+      return () => unsubscribe();
+    }
+  }, [address]);
+
+
+  const fetchData = async () => {
+    if (!address) return;
+    setIsFetchingData(true);
+    try {
+      const account = await server.loadAccount(address);
+      const native = account.balances.find(b => b.asset_type === 'native');
+      setBalance(native ? parseFloat(native.balance).toFixed(2) : '0.00');
+
+      // Only aggregate stats from campaigns currently in YOUR Firestore
+      const campaignTotals = allCampaigns.map(c => parseFloat(c.totalDonated || 0));
+      const totalSum = campaignTotals.reduce((a, b) => a + b, 0);
+      setTotalDonations(totalSum);
+
+      const simulate = async (cid, fn, args = []) => {
+        if (!cid || cid.length < 56) return null;
+        const builder = new TransactionBuilder(DUMMY_ACCOUNT, { fee: "100", networkPassphrase: Networks.TESTNET });
+        const tx = builder.addOperation(Operation.invokeContractFunction({ contract: cid, function: fn, args })).setTimeout(30).build();
+        const res = await rpcServer.simulateTransaction(tx);
+        return rpc.Api.isSimulationSuccess(res) ? scValToNative(res.result.retval) : null;
+      };
+
+      // We still fetch the vault balance for the UI, but we don't let it override the global sum if it's stale
+      const stats = await simulate(VAULT_CONTRACT_ID, "get_stats", []);
+      if (stats !== null) setVaultStats({
+        total_deposited: fromI128(stats.total_deposited).toLocaleString(),
+        total_withdrawn: fromI128(stats.total_withdrawn).toLocaleString(),
+        current_balance: fromI128(stats.current_balance).toLocaleString(),
+        deposit_count: Number(stats.deposit_count)
+      });
+      setLastUpdated(prev => ({ ...prev, wallet: Date.now(), vault: Date.now() }));
+    } catch (e) {
+      console.error("Fetch failed", e);
+    } finally {
+      setIsFetchingData(false);
+    }
+  };
 
   useEffect(() => {
     if (address) {
-      fetchData(address);
-
-      // Real-time background sync every 15 seconds
-      const pollInterval = setInterval(() => {
-        fetchData(address);
-      }, 15000);
-
-      return () => clearInterval(pollInterval);
+      fetchData();
+      const timer = setInterval(fetchData, 15000);
+      return () => clearInterval(timer);
     }
-  }, [address, txCount]);
+  }, [address]);
 
-  // Handlers
-  const handleConnect = async () => {
-    setError(null);
-    setIsConnecting(true);
-    
+  const connectWallet = async () => {
+    console.log("Connect Wallet triggered");
     try {
       await kit.openModal({
-        onClosed: () => setIsConnecting(false),
-        onWalletSelected: async (option) => {
+        onWalletSelected: async (walletOption) => {
+          console.log("Wallet selected:", walletOption);
           try {
-            kit.setWallet(option.id);
-            const { address } = await kit.getAddress();
-            setAddress(address);
-            setWalletName(option.name);
-            toast.success(`${option.name} connected!`);
-          } catch (e) {
-            console.error("Connection failed:", e);
-            let msg = 'Failed to connect.';
-            const errStr = e.message?.toLowerCase() || '';
-            if (errStr.includes('not installed') || errStr.includes('not found') || errStr.includes('install')) {
-              msg = `${option.name} wallet is not installed or not found.`;
-            } else if (errStr.includes('reject') || errStr.includes('cancel')) {
-              msg = 'Connection request was rejected by the user.';
-            } else {
-              msg = e.message || msg;
+            const idToSet = typeof walletOption === 'string' ? walletOption : walletOption.id;
+            const nameToSet = typeof walletOption === 'string' ? walletOption : (walletOption.name || walletOption.id);
+            
+            kit.setWallet(idToSet);
+            
+            let walletAddress;
+            try {
+              const result = await kit.getAddress();
+              walletAddress = result.address;
+            } catch (addrErr) {
+              // xBull and some wallets throw raw objects on rejection
+              const reason = typeof addrErr === 'string' ? addrErr 
+                : addrErr?.message 
+                ? addrErr.message 
+                : JSON.stringify(addrErr, null, 2);
+              console.error("getAddress failed:", reason);
+              toast.error("Wallet rejected: " + reason);
+              return;
             }
-            toast.error(msg);
-            setError(msg);
-          } finally {
-            setIsConnecting(false);
+            
+            if (walletAddress) {
+              setAddress(walletAddress);
+              const displayName = nameToSet.charAt(0).toUpperCase() + nameToSet.slice(1);
+              setWalletName(displayName);
+              toast.success("Wallet Connected!");
+              fetchData();
+            }
+          } catch (err) {
+            console.error("Connection Error:", err);
+            const errorMsg = typeof err === 'string' ? err 
+              : err?.message ? err.message 
+              : JSON.stringify(err, null, 2);
+            toast.error("Failed to connect: " + errorMsg);
           }
-        }
+        },
       });
     } catch (e) {
-      setIsConnecting(false);
-      toast.error("Failed to open wallet selector.");
+      console.error("Modal Error:", e);
+      const msg = typeof e === 'string' ? e : e?.message ? e.message : JSON.stringify(e, null, 2);
+      toast.error("Modal error: " + msg);
     }
   };
 
-  const handleDisconnect = async () => {
-    await kit.disconnect();
-    setAddress('');
-    setWalletName('');
-    setBalance('0.00');
-    setError(null);
-    setTxStatus(null);
-    toast.success('Wallet disconnected');
-  };
 
-  const handleDonate = async (recipient, amount) => {
+
+
+  const handleDonate = async (targetContractId, amount) => {
+    if (!address) {
+      await connectWallet();
+      return;
+    }
+    console.log("--- STARTING DONATION PROCESS ---");
+    console.log("Contract:", targetContractId);
+    console.log("Amount:", amount);
+    
     setIsSending(true);
-    setError(null);
-    setTxStatus('pending');
-    setTxHash('');
-
-    const txToast = toast.loading('Initiating donation...');
-
+    setTxStatus('sending');
     try {
-      // 1. Insufficient Balance Check
-      // We also account for a small buffer for the transaction fee
-      if (parseFloat(amount) + 0.01 > parseFloat(balance)) {
-        throw new Error("Insufficient balance! You need more XLM to cover the donation and network fees.");
-      }
+      console.log("Step 1: Building Transaction...");
+      const builder = new TransactionBuilder(new Account(address, "0"), { fee: "10000", networkPassphrase: Networks.TESTNET });
+      const tx = builder.addOperation(Operation.invokeContractFunction({
+        contract: targetContractId,
+        function: "donate",
+        args: [Address.fromString(address).toScVal(), toI128(amount)]
+      })).setTimeout(60).build();
 
-      // 2. Build Invocation
-      toast.loading('Simulating Contract Call...', { id: txToast });
-      const account = await server.loadAccount(address);
+      console.log("Step 2: Simulating on Soroban...");
+      const sim = await rpcServer.simulateTransaction(tx);
+      if (rpc.Api.isSimulationError(sim)) {
+        console.error("Simulation failed details:", sim.error);
+        throw new Error("Simulation failed: The contract rejected this donation (check your balance or contract status).");
+      }
       
-      const tx = new TransactionBuilder(account, {
-        fee: "1000",
-        networkPassphrase: Networks.TESTNET,
-      })
-        .addOperation(Operation.invokeContractFunction({
-          contract: CONTRACT_ID,
-          function: "donate",
-          args: [
-            Address.fromString(address).toScVal(),
-            Address.fromString("CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC").toScVal(),
-            toI128(Math.floor(parseFloat(amount)))
-          ]
-        }))
-        .setTimeout(60)
-        .build();
-
-      // 3. Simulation
-      let simulated;
-      try {
-        simulated = await rpcServer.simulateTransaction(tx);
-      } catch (e) {
-        throw new Error("Network error during simulation. Please try again.");
-      }
-
-      if (rpc.Api.isSimulationError(simulated)) {
-        console.error("Simulation Error Details:", simulated.error);
-        throw new Error(`Contract simulation failed: ${simulated.error || "The pool might be temporarily locked."}`);
-      }
-
-      const preparedTx = rpc.assembleTransaction(tx, simulated).build();
-
-      // 4. Sign (Handle Rejection)
-      toast.loading(`Awaiting ${walletName} signature...`, { id: txToast });
-      let signedXdr;
-      try {
-        const result = await kit.signTransaction(preparedTx.toXDR(), {
-          networkPassphrase: Networks.TESTNET,
-        });
-        signedXdr = result.signedTxXdr;
-      } catch (e) {
-        if (e.message?.toLowerCase().includes('reject') || e.message?.toLowerCase().includes('cancel')) {
-          throw new Error("Transaction was rejected by the user.");
-        }
-        throw e;
-      }
-
-      if (!signedXdr) throw new Error("Wallet failed to return signed transaction.");
-
-      // 5. Submit and Poll
-      toast.loading('Confirming on Ledger...', { id: txToast });
-      const sendResponse = await rpcServer.sendTransaction(new Transaction(signedXdr, Networks.TESTNET));
+      console.log("Step 3: Signing with Wallet...");
+      const prepared = rpc.assembleTransaction(tx, sim).build();
+      const { signedTxXdr } = await kit.signTransaction(prepared.toXDR());
       
-      if (sendResponse.status !== "PENDING") {
-        throw new Error(`RPC Error: ${sendResponse.status}`);
-      }
-
-      let getResult = await rpcServer.getTransaction(sendResponse.hash);
-      while (getResult.status === "NOT_FOUND" || getResult.status === "PENDING") {
+      console.log("Step 4: Submitting to Network...");
+      const send = await rpcServer.sendTransaction(new Transaction(signedTxXdr, Networks.TESTNET));
+      console.log("Transaction Hash:", send.hash);
+      
+      console.log("Step 5: Waiting for confirmation (polling)...");
+      let res = await rpcServer.getTransaction(send.hash);
+      let attempts = 0;
+      while ((res.status === "NOT_FOUND" || res.status === "PENDING") && attempts < 20) {
         await new Promise(r => setTimeout(r, 2000));
-        getResult = await rpcServer.getTransaction(sendResponse.hash);
+        res = await rpcServer.getTransaction(send.hash);
+        attempts++;
+        console.log(`Poll attempt ${attempts}: ${res.status}`);
+        if (attempts === 5) {
+          console.log(`STILL WAITING? Check here: https://stellar.expert/explorer/testnet/tx/${send.hash}`);
+        }
       }
 
-      if (getResult.status === rpc.Api.GetTransactionStatus.SUCCESS) {
+      if (res.status === rpc.Api.GetTransactionStatus.SUCCESS) {
+        console.log("Step 6: SUCCESS!");
         setTxStatus('success');
-        setTxHash(sendResponse.hash);
-        setTxCount(prev => prev + 1);
-        toast.success('Donation successful!', { id: txToast });
+        setTxHash(send.hash);
+        setLastDonationAt(Date.now());
+        toast.success("Donation successful!");
+        fetchData();
+        
+        // Auto-reset status after 5 seconds so button returns to normal
+        setTimeout(() => setTxStatus(null), 5000);
       } else {
-        throw new Error("Transaction execution failed on-chain.");
+        console.error("Final status:", res.status);
+        throw new Error(attempts >= 20 ? "Transaction taking too long. Check explorer." : "Transaction failed");
       }
-      
-      setTimeout(() => fetchData(address), 2000);
     } catch (e) {
-      console.error("Donation Error:", e);
-      const msg = e.message || "An unexpected error occurred.";
-      toast.error(msg, { id: txToast, duration: 6000 });
-      setError(msg);
+      console.error("!!! DONATION FAILED !!!", e);
+      toast.error(parseStellarError(e));
       setTxStatus('failure');
+      // Reset status after 3 seconds so button is clickable again
+      setTimeout(() => setTxStatus(null), 3000);
     } finally {
       setIsSending(false);
     }
   };
 
+  const handleCreateCampaign = async (e) => {
+    e.preventDefault();
+    if (!address) return toast.error("Connect wallet first");
+    setIsSending(true);
+    try {
+      await addDoc(collection(db, "campaigns"), {
+        ...newCampaign,
+        adminWallet: address,
+        goal: parseFloat(newCampaign.goal),
+        isActive: true,
+        createdAt: serverTimestamp(),
+        donationContractId: newCampaign.contractId || CONTRACT_ID,
+        vaultContractId: newCampaign.vaultContractId || VAULT_CONTRACT_ID
+      });
+      toast.success("Campaign launched!");
+      setNewCampaign({ name: '', description: '', goal: '', contractId: CONTRACT_ID, vaultContractId: VAULT_CONTRACT_ID });
+      navigate('/admin');
+    } catch (e) {
+      console.error("Firebase Create Error:", e);
+      toast.error("Failed to save campaign: " + e.message);
+    } finally {
+      setIsSending(false);
+    }
+  };
+
+  const deleteCampaign = async (id) => {
+    try {
+      await updateDoc(doc(db, "campaigns", id), { isActive: false });
+      toast.success("Campaign deactivated");
+    } catch (e) {
+      toast.error("Failed to deactivate");
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-200 selection:bg-stellar-blue/30 overflow-x-hidden">
-      <Toaster 
-        position="bottom-right"
-        toastOptions={{
-          style: {
-            background: '#1e293b',
-            color: '#f8fafc',
-            border: '1px solid rgba(255,255,255,0.1)',
-            borderRadius: '16px',
-            padding: '12px 20px',
-          },
-        }}
-      />
+    <div className="min-h-screen bg-slate-950 text-slate-200 selection:bg-indigo-500/30 font-sans">
+      <style>{`
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(10px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-marketplace-card {
+          animation: fadeIn 0.5s ease-out forwards;
+        }
+      `}</style>
+      <Toaster position="bottom-right" />
       
       <Navbar 
-        isConnected={connected} 
         address={address} 
+        isConnected={!!address} 
+        onDisconnect={() => setAddress('')} 
         walletName={walletName}
-        onConnect={handleConnect} 
-        onDisconnect={handleDisconnect} 
+        onConnect={connectWallet}
       />
+      
+      <div className="pt-24 pb-12">
+        <Routes>
+          <Route path="/" element={<Landing />} />
+          <Route path="/admin" element={
+            <AdminPortal 
+              address={address}
+              campaigns={campaigns}
+              isSending={isSending}
+              newCampaign={newCampaign}
+              setNewCampaign={setNewCampaign}
+              handleCreateCampaign={handleCreateCampaign}
+              deleteCampaign={deleteCampaign}
+              totalDonations={totalDonations}
+              vaultStats={vaultStats}
+              lastUpdated={lastUpdated}
+              fetchData={fetchData}
+              CONTRACT_ID={CONTRACT_ID}
+              VAULT_CONTRACT_ID={VAULT_CONTRACT_ID}
+            />
+          } />
+          <Route path="/donor" element={<DonorMarketplace campaigns={allCampaigns} />} />
+          <Route path="/campaign/:id" element={
+            <CampaignDetails 
+              address={address}
+              balance={balance}
+              isFetchingData={isFetchingData}
+              handleDonate={handleDonate}
+              isSending={isSending}
+              txStatus={txStatus}
+              txHash={txHash}
+              lastDonationAt={lastDonationAt}
+              lastUpdated={lastUpdated}
+            />
+          } />
+        </Routes>
+      </div>
 
-      <main className="max-w-4xl mx-auto px-6 pt-32 pb-12">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-          
-          {/* Left Column */}
-          <div className="lg:col-span-7 space-y-8 animate-in fade-in slide-in-from-left duration-700">
-            <div className="space-y-2">
-              <h1 className="text-4xl md:text-5xl font-extrabold text-white tracking-tight">
-                Stellar <span className="text-stellar-blue">Philanthropy</span>
-              </h1>
-              <p className="text-slate-400 text-lg md:text-xl">Support the ecosystem through Soroban smart contracts.</p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <WalletCard address={address} balance={balance} isFetching={isFetchingBalance} />
-              
-              <div className="p-6 rounded-3xl glass border border-white/10 card-gradient flex flex-col justify-between">
-                <div className="flex items-center justify-between">
-                  <span className="text-slate-400 text-sm font-medium">Total Donations</span>
-                  <div className="p-2 bg-stellar-blue/10 rounded-xl text-stellar-blue">
-                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                      <path d="M2 10.5a1.5 1.5 0 113 0v6a1.5 1.5 0 01-3 0v-6zM6 10.333v5.43a2 2 0 001.106 1.79l.05.025A4 4 0 008.943 18h5.416a2 2 0 001.962-1.608l1.2-6A2 2 0 0015.56 8H12V4a2 2 0 00-2-2 1 1 0 00-1 1v.667a4 4 0 01-.8 2.4L6.8 7.933a4 4 0 00-.8 2.4z" />
-                    </svg>
-                  </div>
-                </div>
-                <div>
-                  {isFetchingTotal ? (
-                    <div className="flex items-center gap-2 mt-4 animate-pulse">
-                      <div className="w-8 h-8 rounded-lg bg-white/5 border border-white/5 flex items-center justify-center">
-                        <svg className="w-4 h-4 animate-spin text-stellar-blue" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"></circle>
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
-                        </svg>
-                      </div>
-                      <span className="text-slate-500 text-xs font-bold uppercase tracking-widest">Syncing</span>
-                    </div>
-                  ) : (
-                    <h3 className="text-3xl font-bold text-white mt-4">{totalDonations} <span className="text-sm font-normal text-slate-500">XLM</span></h3>
-                  )}
-                  <p className="text-xs text-stellar-blue font-medium mt-1 uppercase tracking-wider">Pool Snapshot</p>
-                </div>
-              </div>
-            </div>
-            
-            {(error || txStatus) && (
-              <TransactionStatus 
-                status={error ? 'failure' : txStatus} 
-                hash={txHash}
-                message={error} 
-              />
-            )}
-          </div>
-
-          {/* Right Column */}
-          <div className="lg:col-span-5 animate-in fade-in slide-in-from-right duration-700 delay-200">
-            {connected ? (
-              <DonateXLMForm key={txCount} onSend={handleDonate} isSending={isSending} />
-            ) : (
-              <div className="p-8 rounded-3xl glass border border-dashed border-white/10 flex flex-col items-center justify-center text-center space-y-6 py-20 group hover:border-stellar-blue/30 transition-colors">
-                <div className="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center text-slate-500 group-hover:scale-110 transition-transform duration-500">
-                  <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                  </svg>
-                </div>
-                <div className="space-y-2">
-                  <h3 className="text-white font-bold text-xl">Join the Cause</h3>
-                  <p className="text-slate-400 text-sm max-w-[200px] mx-auto">Connect your wallet to start making an impact.</p>
-                </div>
-                <button 
-                  onClick={handleConnect}
-                  disabled={isConnecting}
-                  className={`px-10 py-4 bg-white/10 hover:bg-white/20 text-white rounded-2xl font-bold transition-all flex items-center gap-3 active:scale-95 shadow-xl ${isConnecting ? 'opacity-50 cursor-not-allowed' : ''}`}
-                >
-                  {isConnecting ? (
-                    <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
-                    </svg>
-                  ) : <span className="text-lg">Connect Wallet</span>}
-                </button>
-              </div>
-            )}
-          </div>
-
+      {!address && location.pathname !== '/' && (
+        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50">
+          <button 
+            onClick={connectWallet}
+            className="px-8 py-4 bg-indigo-600 hover:bg-indigo-500 text-white font-black rounded-2xl transition-all shadow-2xl shadow-indigo-600/40 flex items-center gap-3 active:scale-95"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+            Connect Wallet to Interact
+          </button>
         </div>
-      </main>
-
-      {/* Footer */}
-      <footer className="max-w-4xl mx-auto px-6 py-8 border-t border-white/5 text-center">
-        <p className="text-slate-500 text-sm">
-          Built for Stellar Testnet • Powered by Freighter Wallet
-        </p>
-      </footer>
+      )}
     </div>
   );
 }
+
+function App() {
+  return (
+    <AppContent />
+  );
+}
+
 
 export default App;

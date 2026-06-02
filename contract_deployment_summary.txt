@@ -1,0 +1,25 @@
+--- STELLAR PHILANTHROPY ECOSYSTEM SUMMARY ---
+
+CONTRACT ADDRESSES:
+------------------
+Donation Contract: CCYNUO7LFWI3IT2IZMFEFU4CQUYGI7JPOODXEHJ7UQEP5JKSBPY2SLCG
+Logger Contract:   CBIRBDNOW6RTO24CPYALIMHOMD2M6SPTBK7CAGZSEJAFMFIJ7CHVUAPY
+Vault Contract:    CCQL3IUGJXIWY34SKKRO4ZZO44R6VVY3WWO33VSF2K5LDSQUGV6VC2FD
+
+TRANSACTION PROOF (Stellar Expert Testnet):
+-----------------------------------------
+The following transaction hash represents a single, atomic operation that:
+1. Triggers the donation logic.
+2. Transfers funds from the donor to the Vault.
+3. Records the log entry in the Logger contract.
+4. Updates the global leaderboard.
+
+Transaction Hash: 65c2af62d4160528de7342f7dc9df35a122999c06aba78f12a944b090ad493d3
+
+Explorer Link: https://stellar.expert/explorer/testnet/tx/65c2af62d4160528de7342f7dc9df35a122999c06aba78f12a944b090ad493d3
+
+INITIALIZATION PROOF:
+--------------------
+Logger Init:   3328f86b5971bca7eae65c4547756bd846727b1542e9d404449a4bede0e93761
+Vault Init:    d6b044199c4a517f46e04b74f3bbbd65110cc0f29e83ede904f99c0d2faeb5d1
+Donation Init: 3d8e51c5f8bdbe74e0d1f187c9b9db9a4a73d2cd2d4011a50675a0875afa8cdf
