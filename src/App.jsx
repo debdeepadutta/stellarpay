@@ -84,8 +84,18 @@ const kit = new StellarWalletsKit({
 const parseStellarError = (err) => {
   const msg = err.message || "Unknown error";
   const str = msg.toLowerCase();
-  if (str.includes("insufficient balance")) return "Insufficient balance!";
-  if (str.includes("user rejected")) return "Transaction was cancelled.";
+  if (str.includes("insufficient balance") || str.includes("op_underfunded") || str.includes("underfunded")) {
+    return "Insufficient balance! Please fund your Testnet wallet or verify your balance.";
+  }
+  if (str.includes("user rejected") || str.includes("declined") || str.includes("cancelled")) {
+    return "Transaction was cancelled.";
+  }
+  if (str.includes("tx_bad_seq")) {
+    return "Sequence number mismatch. Please try again.";
+  }
+  if (str.includes("not exist") || str.includes("404")) {
+    return "Your account does not exist on Testnet. Please fund it using Friendbot first.";
+  }
   return msg;
 };
 
@@ -279,7 +289,18 @@ function AppContent() {
     setTxStatus('sending');
     try {
       console.log("Step 1: Building Transaction...");
-      const builder = new TransactionBuilder(new Account(address, "0"), { fee: "10000", networkPassphrase: Networks.TESTNET });
+      let account;
+      try {
+        account = await server.loadAccount(address);
+      } catch (err) {
+        if (err?.response?.status === 404) {
+          throw new Error("Your account does not exist on Testnet. Please fund it using Friendbot first.");
+        }
+        console.warn("Could not load account from Horizon, using fallback:", err);
+        account = new Account(address, "0");
+      }
+
+      const builder = new TransactionBuilder(account, { fee: "10000", networkPassphrase: Networks.TESTNET });
       const tx = builder.addOperation(Operation.invokeContractFunction({
         contract: targetContractId,
         function: "donate",
@@ -299,12 +320,18 @@ function AppContent() {
       
       console.log("Step 4: Submitting to Network...");
       const send = await rpcServer.sendTransaction(new Transaction(signedTxXdr, Networks.TESTNET));
-      console.log("Transaction Hash:", send.hash);
+      console.log("Transaction Hash:", send.hash, "Status:", send.status);
+      
+      if (send.status === "ERROR") {
+        console.error("sendTransaction error details:", send.errorResultXdr || send.errorResult);
+        const errVal = send.errorResultXdr || send.errorResult || "Unknown transaction rejection";
+        throw new Error(`Transaction rejected by network: ${errVal}`);
+      }
       
       console.log("Step 5: Waiting for confirmation (polling)...");
       let res = await rpcServer.getTransaction(send.hash);
       let attempts = 0;
-      while ((res.status === "NOT_FOUND" || res.status === "PENDING") && attempts < 20) {
+      while ((res.status === "NOT_FOUND" || res.status === "PENDING") && attempts < 25) {
         await new Promise(r => setTimeout(r, 2000));
         res = await rpcServer.getTransaction(send.hash);
         attempts++;

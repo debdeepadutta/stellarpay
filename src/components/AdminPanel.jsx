@@ -8,7 +8,8 @@ import {
   scValToNative,
   nativeToScVal,
   Address,
-  Transaction
+  Transaction,
+  Horizon
 } from "@stellar/stellar-sdk";
 import toast from 'react-hot-toast';
 
@@ -101,21 +102,22 @@ const AdminPanel = ({ contractId, vaultContractId, connectedWallet, networkPassp
     setActionLoading(type);
     try {
       const rpcServer = new rpc.Server("https://soroban-testnet.stellar.org");
-      const horizonServer = new rpc.Server("https://soroban-testnet.stellar.org"); // Use RPC for Soroban
-      
-      const account = await rpcServer.getLatestLedger(); // Simple check
-      // For real submission, we need the actual account sequence
-      // In this setup, we'll assume the App's handleDonate logic style
-      
-      // Since we don't have the full 'server' (Horizon) here, we'll use a simplified version
-      // or assume the user will provide 'kit' and 'rpcServer' as props if needed.
-      // For now, I'll use the pattern from App.jsx but localized.
-      
-      const fullServer = new rpc.Server("https://soroban-testnet.stellar.org");
       
       // Construct transaction
-      const builder = new TransactionBuilder(new Account(connectedWallet, "0"), { 
-        fee: "1000", 
+      let account;
+      try {
+        const horizonServer = new Horizon.Server("https://horizon-testnet.stellar.org");
+        account = await horizonServer.loadAccount(connectedWallet);
+      } catch (err) {
+        if (err?.response?.status === 404) {
+          throw new Error("Your account does not exist on Testnet. Please fund it using Friendbot first.");
+        }
+        console.warn("Could not load account from Horizon, using fallback:", err);
+        account = new Account(connectedWallet, "0");
+      }
+
+      const builder = new TransactionBuilder(account, { 
+        fee: "10000", 
         networkPassphrase: networkPassphrase || Networks.TESTNET 
       });
 
@@ -139,15 +141,26 @@ const AdminPanel = ({ contractId, vaultContractId, connectedWallet, networkPassp
       const { signedTxXdr } = await kit.signTransaction(prepared.toXDR(), { networkPassphrase: networkPassphrase || Networks.TESTNET });
       
       const send = await rpcServer.sendTransaction(new Transaction(signedTxXdr, networkPassphrase || Networks.TESTNET));
+      console.log("Transaction Hash:", send.hash, "Status:", send.status);
+      
+      if (send.status === "ERROR") {
+        console.error("sendTransaction error details:", send.errorResultXdr || send.errorResult);
+        const errVal = send.errorResultXdr || send.errorResult || "Unknown transaction rejection";
+        throw new Error(`Transaction rejected by network: ${errVal}`);
+      }
       
       toast.promise(
         (async () => {
           let res = await rpcServer.getTransaction(send.hash);
-          while (res.status === "NOT_FOUND" || res.status === "PENDING") {
+          let attempts = 0;
+          while ((res.status === "NOT_FOUND" || res.status === "PENDING") && attempts < 25) {
             await new Promise(r => setTimeout(r, 2000));
             res = await rpcServer.getTransaction(send.hash);
+            attempts++;
           }
-          if (res.status !== rpc.Api.GetTransactionStatus.SUCCESS) throw new Error("Transaction failed");
+          if (res.status !== rpc.Api.GetTransactionStatus.SUCCESS) {
+            throw new Error("Transaction failed on-chain or timed out.");
+          }
           fetchData();
           if (onActionComplete) onActionComplete();
           return send.hash;
