@@ -321,20 +321,19 @@ function AppContent() {
         setLastDonationAt(Date.now());
         toast.success("Donation successful!");
 
-        // Update database totalDonated in Firestore in background
-        try {
-          if (campaignId) {
-            const campaignRef = doc(db, "campaigns", campaignId);
-            const campaignSnap = await getDoc(campaignRef);
+        // Update database totalDonated in Firestore in background without blocking
+        if (campaignId) {
+          const campaignRef = doc(db, "campaigns", campaignId);
+          getDoc(campaignRef).then((campaignSnap) => {
             if (campaignSnap.exists()) {
               const currentDonated = parseFloat(campaignSnap.data().totalDonated || 0);
-              await updateDoc(campaignRef, {
+              updateDoc(campaignRef, {
                 totalDonated: currentDonated + parseFloat(amount)
-              });
+              }).catch(err => console.error("updateDoc error:", err));
             }
-          }
-        } catch (dbErr) {
-          console.error("Failed to update database totalDonated:", dbErr);
+          }).catch(dbErr => {
+            console.error("Failed to update database totalDonated:", dbErr);
+          });
         }
 
         fetchData();

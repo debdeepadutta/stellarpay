@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, onSnapshot } from 'firebase/firestore';
 import { db } from '../firebase';
 import { Helmet } from 'react-helmet-async';
 import { 
@@ -24,10 +24,9 @@ const CampaignDetails = ({ address, balance, isFetchingData, handleDonate, isSen
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchCampaign = async () => {
+    const docRef = doc(db, "campaigns", id);
+    const unsubscribe = onSnapshot(docRef, async (docSnap) => {
       try {
-        const docRef = doc(db, "campaigns", id);
-        const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
           const data = { id: docSnap.id, ...docSnap.data() };
           const cid = data.donationContractId || data.contractId;
@@ -61,8 +60,12 @@ const CampaignDetails = ({ address, balance, isFetchingData, handleDonate, isSen
       } finally {
         setLoading(false);
       }
-    };
-    fetchCampaign();
+    }, (error) => {
+      console.error("onSnapshot error:", error);
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
   }, [id, lastDonationAt]);
 
   const copyLink = () => {
