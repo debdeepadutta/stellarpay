@@ -9,7 +9,8 @@ import {
   Operation, 
   Account, 
   rpc, 
-  scValToNative 
+  scValToNative,
+  nativeToScVal 
 } from "@stellar/stellar-sdk";
 import toast from 'react-hot-toast';
 
@@ -32,22 +33,30 @@ const CampaignDetails = ({ address, balance, isFetchingData, handleDonate, isSen
           const cid = data.donationContractId || data.contractId;
           
           let chainTotal = data.totalDonated || 0;
-          // Only query the chain if we have a valid Soroban contract ID and it's not the shared default contract
-          if (cid && cid.length === 56 && cid.startsWith('C') && cid !== "CCYNUO7LFWI3IT2IZMFEFU4CQUYGI7JPOODXEHJ7UQEP5JKSBPY2SLCG") {
+          // Query on-chain campaign total if we have a valid contract ID
+          if (cid && cid.length === 56 && cid.startsWith('C')) {
             try {
               const rpcServer = new rpc.Server("https://soroban-testnet.stellar.org");
+              const campaignSymbol = nativeToScVal(docSnap.id.substring(0, 32), { type: "symbol" });
               const builder = new TransactionBuilder(new Account("GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF", "0"), { 
                 fee: "100", 
                 networkPassphrase: Networks.TESTNET 
               });
-              const tx = builder.addOperation(Operation.invokeContractFunction({ contract: cid, function: "get_total", args: [] })).setTimeout(30).build();
+              const tx = builder.addOperation(Operation.invokeContractFunction({ 
+                contract: cid, 
+                function: "get_campaign_total", 
+                args: [campaignSymbol] 
+              })).setTimeout(30).build();
               const res = await rpcServer.simulateTransaction(tx);
               if (rpc.Api.isSimulationSuccess(res)) {
                 const val = scValToNative(res.result.retval);
-                chainTotal = Number(BigInt(val));
+                const onChainTotal = Number(BigInt(val)) / 10000000; // Convert stroops to XLM
+                if (onChainTotal > 0) {
+                  chainTotal = onChainTotal;
+                }
               }
             } catch (rpcErr) {
-              // Silently ignore — contract may not exist on testnet anymore
+              // Silently ignore — campaign may not exist on-chain yet
             }
           }
           
@@ -111,10 +120,6 @@ const CampaignDetails = ({ address, balance, isFetchingData, handleDonate, isSen
   }
 
   const chainTotal = parseFloat(campaign.totalDonated || 0);
-  const isUsingOldContract = (campaign.donationContractId || campaign.contractId) === "CCYNUO7LFWI3IT2IZMFEFU4CQUYGI7JPOODXEHJ7UQEP5JKSBPY2SLCG";
-  
-  // UI-side fix: If they are using the old contract, the history makes the bar look full.
-  // We show the real progress but warn the user.
   const progress = campaign.goal > 0 ? Math.min((chainTotal / campaign.goal) * 100, 100) : 0;
 
   return (
@@ -157,15 +162,6 @@ const CampaignDetails = ({ address, balance, isFetchingData, handleDonate, isSen
           </div>
 
           <div className="bg-slate-900/50 border border-slate-800 p-8 rounded-[40px] space-y-6">
-            {isUsingOldContract && (
-              <div className="bg-indigo-500/10 border border-indigo-500/20 p-4 rounded-2xl flex gap-3 items-start">
-                <span className="text-xl">ℹ️</span>
-                <div>
-                  <h4 className="text-indigo-400 font-bold text-sm">Shared Testing Mode</h4>
-                  <p className="text-indigo-400/60 text-xs mt-1">This campaign is using the platform's default test contract. Progress shown reflects the collective history of all test campaigns.</p>
-                </div>
-              </div>
-            )}
             
             <div className="space-y-2">
               <div className="flex justify-between text-xs font-bold text-slate-500 uppercase tracking-widest">

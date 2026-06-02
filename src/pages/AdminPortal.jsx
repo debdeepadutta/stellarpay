@@ -183,6 +183,7 @@ const AdminPortal = ({
                   vaultContractId={campaign.vaultContractId || VAULT_CONTRACT_ID} 
                   connectedWallet={address} 
                   initialAdmin={campaign.adminWallet}
+                  campaignId={campaign.id}
                   compact={true}
                   onActionComplete={fetchData}
                 />

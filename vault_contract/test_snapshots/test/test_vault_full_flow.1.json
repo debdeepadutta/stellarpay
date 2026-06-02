@@ -4,6 +4,7 @@
     "nonce": 0
   },
   "auth": [
+    [],
     [
       [
         "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAJXFF",
@@ -87,6 +88,9 @@
               "function_name": "deposit",
               "args": [
                 {
+                  "symbol": "camp_1"
+                },
+                {
                   "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFCT4"
                 },
                 {
@@ -114,6 +118,9 @@
               "contract_address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAK3IM",
               "function_name": "withdraw",
               "args": [
+                {
+                  "symbol": "camp_1"
+                },
                 {
                   "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD2KM"
                 },
@@ -246,6 +253,47 @@
         {
           "contract_data": {
             "contract": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFCT4",
+            "key": "ledger_key_contract_instance",
+            "durability": "persistent"
+          }
+        },
+        [
+          {
+            "last_modified_ledger_seq": 0,
+            "data": {
+              "contract_data": {
+                "ext": "v0",
+                "contract": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFCT4",
+                "key": "ledger_key_contract_instance",
+                "durability": "persistent",
+                "val": {
+                  "contract_instance": {
+                    "executable": {
+                      "wasm": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+                    },
+                    "storage": [
+                      {
+                        "key": {
+                          "symbol": "admin"
+                        },
+                        "val": {
+                          "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD2KM"
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            },
+            "ext": "v0"
+          },
+          4095
+        ]
+      ],
+      [
+        {
+          "contract_data": {
+            "contract": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFCT4",
             "key": {
               "ledger_key_nonce": {
                 "nonce": 1033654523790656264
@@ -348,7 +396,10 @@
             "key": {
               "vec": [
                 {
-                  "symbol": "Withdrawals"
+                  "symbol": "CampaignStats"
+                },
+                {
+                  "symbol": "camp_1"
                 }
               ]
             },
@@ -365,7 +416,97 @@
                 "key": {
                   "vec": [
                     {
-                      "symbol": "Withdrawals"
+                      "symbol": "CampaignStats"
+                    },
+                    {
+                      "symbol": "camp_1"
+                    }
+                  ]
+                },
+                "durability": "persistent",
+                "val": {
+                  "map": [
+                    {
+                      "key": {
+                        "symbol": "current_balance"
+                      },
+                      "val": {
+                        "i128": {
+                          "hi": 0,
+                          "lo": 400
+                        }
+                      }
+                    },
+                    {
+                      "key": {
+                        "symbol": "deposit_count"
+                      },
+                      "val": {
+                        "u32": 1
+                      }
+                    },
+                    {
+                      "key": {
+                        "symbol": "total_deposited"
+                      },
+                      "val": {
+                        "i128": {
+                          "hi": 0,
+                          "lo": 600
+                        }
+                      }
+                    },
+                    {
+                      "key": {
+                        "symbol": "total_withdrawn"
+                      },
+                      "val": {
+                        "i128": {
+                          "hi": 0,
+                          "lo": 200
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            },
+            "ext": "v0"
+          },
+          4095
+        ]
+      ],
+      [
+        {
+          "contract_data": {
+            "contract": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAK3IM",
+            "key": {
+              "vec": [
+                {
+                  "symbol": "CampaignWithdrawals"
+                },
+                {
+                  "symbol": "camp_1"
+                }
+              ]
+            },
+            "durability": "persistent"
+          }
+        },
+        [
+          {
+            "last_modified_ledger_seq": 0,
+            "data": {
+              "contract_data": {
+                "ext": "v0",
+                "contract": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAK3IM",
+                "key": {
+                  "vec": [
+                    {
+                      "symbol": "CampaignWithdrawals"
+                    },
+                    {
+                      "symbol": "camp_1"
                     }
                   ]
                 },
@@ -457,60 +598,6 @@
                         },
                         "val": {
                           "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFCT4"
-                        }
-                      },
-                      {
-                        "key": {
-                          "vec": [
-                            {
-                              "symbol": "Stats"
-                            }
-                          ]
-                        },
-                        "val": {
-                          "map": [
-                            {
-                              "key": {
-                                "symbol": "current_balance"
-                              },
-                              "val": {
-                                "i128": {
-                                  "hi": 0,
-                                  "lo": 400
-                                }
-                              }
-                            },
-                            {
-                              "key": {
-                                "symbol": "deposit_count"
-                              },
-                              "val": {
-                                "u32": 1
-                              }
-                            },
-                            {
-                              "key": {
-                                "symbol": "total_deposited"
-                              },
-                              "val": {
-                                "i128": {
-                                  "hi": 0,
-                                  "lo": 600
-                                }
-                              }
-                            },
-                            {
-                              "key": {
-                                "symbol": "total_withdrawn"
-                              },
-                              "val": {
-                                "i128": {
-                                  "hi": 0,
-                                  "lo": 200
-                                }
-                              }
-                            }
-                          ]
                         }
                       },
                       {
@@ -902,6 +989,53 @@
                 "symbol": "fn_call"
               },
               {
+                "bytes": "0000000000000000000000000000000000000000000000000000000000000002"
+              },
+              {
+                "symbol": "initialize"
+              }
+            ],
+            "data": {
+              "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD2KM"
+            }
+          }
+        }
+      },
+      "failed_call": false
+    },
+    {
+      "event": {
+        "ext": "v0",
+        "contract_id": "0000000000000000000000000000000000000000000000000000000000000002",
+        "type_": "diagnostic",
+        "body": {
+          "v0": {
+            "topics": [
+              {
+                "symbol": "fn_return"
+              },
+              {
+                "symbol": "initialize"
+              }
+            ],
+            "data": "void"
+          }
+        }
+      },
+      "failed_call": false
+    },
+    {
+      "event": {
+        "ext": "v0",
+        "contract_id": null,
+        "type_": "diagnostic",
+        "body": {
+          "v0": {
+            "topics": [
+              {
+                "symbol": "fn_call"
+              },
+              {
                 "bytes": "8011bbf4cdf04e5bc6ac886935b99aa4b2c0cabde133f9d7fb3e656799f0a896"
               },
               {
@@ -1269,6 +1403,9 @@
             "data": {
               "vec": [
                 {
+                  "symbol": "camp_1"
+                },
+                {
                   "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFCT4"
                 },
                 {
@@ -1294,6 +1431,9 @@
             "topics": [
               {
                 "symbol": "deposit"
+              },
+              {
+                "symbol": "camp_1"
               },
               {
                 "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFCT4"
@@ -1346,10 +1486,12 @@
                 "bytes": "0000000000000000000000000000000000000000000000000000000000000005"
               },
               {
-                "symbol": "get_balance"
+                "symbol": "get_campaign_balance"
               }
             ],
-            "data": "void"
+            "data": {
+              "symbol": "camp_1"
+            }
           }
         }
       },
@@ -1367,7 +1509,7 @@
                 "symbol": "fn_return"
               },
               {
-                "symbol": "get_balance"
+                "symbol": "get_campaign_balance"
               }
             ],
             "data": {
@@ -1396,10 +1538,12 @@
                 "bytes": "0000000000000000000000000000000000000000000000000000000000000005"
               },
               {
-                "symbol": "get_vault_stats"
+                "symbol": "get_campaign_stats"
               }
             ],
-            "data": "void"
+            "data": {
+              "symbol": "camp_1"
+            }
           }
         }
       },
@@ -1417,7 +1561,7 @@
                 "symbol": "fn_return"
               },
               {
-                "symbol": "get_vault_stats"
+                "symbol": "get_campaign_stats"
               }
             ],
             "data": {
@@ -1489,7 +1633,7 @@
               }
             ],
             "data": {
-              "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAK3IM"
+              "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFCT4"
             }
           }
         }
@@ -1514,7 +1658,7 @@
             "data": {
               "i128": {
                 "hi": 0,
-                "lo": 600
+                "lo": 400
               }
             }
           }
@@ -1543,6 +1687,9 @@
             "data": {
               "vec": [
                 {
+                  "symbol": "camp_1"
+                },
+                {
                   "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD2KM"
                 },
                 {
@@ -1555,6 +1702,55 @@
                   "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAMDR4"
                 }
               ]
+            }
+          }
+        }
+      },
+      "failed_call": false
+    },
+    {
+      "event": {
+        "ext": "v0",
+        "contract_id": "0000000000000000000000000000000000000000000000000000000000000005",
+        "type_": "diagnostic",
+        "body": {
+          "v0": {
+            "topics": [
+              {
+                "symbol": "fn_call"
+              },
+              {
+                "bytes": "0000000000000000000000000000000000000000000000000000000000000002"
+              },
+              {
+                "symbol": "get_campaign_admin"
+              }
+            ],
+            "data": {
+              "symbol": "camp_1"
+            }
+          }
+        }
+      },
+      "failed_call": false
+    },
+    {
+      "event": {
+        "ext": "v0",
+        "contract_id": "0000000000000000000000000000000000000000000000000000000000000002",
+        "type_": "diagnostic",
+        "body": {
+          "v0": {
+            "topics": [
+              {
+                "symbol": "fn_return"
+              },
+              {
+                "symbol": "get_campaign_admin"
+              }
+            ],
+            "data": {
+              "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD2KM"
             }
           }
         }
@@ -1665,6 +1861,9 @@
                 "symbol": "withdraw"
               },
               {
+                "symbol": "camp_1"
+              },
+              {
                 "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAMDR4"
               }
             ],
@@ -1715,10 +1914,12 @@
                 "bytes": "0000000000000000000000000000000000000000000000000000000000000005"
               },
               {
-                "symbol": "get_balance"
+                "symbol": "get_campaign_balance"
               }
             ],
-            "data": "void"
+            "data": {
+              "symbol": "camp_1"
+            }
           }
         }
       },
@@ -1736,7 +1937,7 @@
                 "symbol": "fn_return"
               },
               {
-                "symbol": "get_balance"
+                "symbol": "get_campaign_balance"
               }
             ],
             "data": {
@@ -1817,10 +2018,12 @@
                 "bytes": "0000000000000000000000000000000000000000000000000000000000000005"
               },
               {
-                "symbol": "get_vault_stats"
+                "symbol": "get_campaign_stats"
               }
             ],
-            "data": "void"
+            "data": {
+              "symbol": "camp_1"
+            }
           }
         }
       },
@@ -1838,7 +2041,7 @@
                 "symbol": "fn_return"
               },
               {
-                "symbol": "get_vault_stats"
+                "symbol": "get_campaign_stats"
               }
             ],
             "data": {
@@ -1906,10 +2109,12 @@
                 "bytes": "0000000000000000000000000000000000000000000000000000000000000005"
               },
               {
-                "symbol": "get_withdrawal_history"
+                "symbol": "get_campaign_withdrawal_history"
               }
             ],
-            "data": "void"
+            "data": {
+              "symbol": "camp_1"
+            }
           }
         }
       },
@@ -1927,7 +2132,7 @@
                 "symbol": "fn_return"
               },
               {
-                "symbol": "get_withdrawal_history"
+                "symbol": "get_campaign_withdrawal_history"
               }
             ],
             "data": {

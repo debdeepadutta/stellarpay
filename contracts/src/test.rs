@@ -21,7 +21,7 @@ pub struct MockVault;
 
 #[contractimpl]
 impl MockVault {
-    pub fn deposit(env: Env, _from: Address, _amount: i128) {
+    pub fn deposit(env: Env, _campaign_id: Symbol, _from: Address, _amount: i128) {
         // Mock deposit logic
     }
 }
@@ -54,20 +54,23 @@ fn test_donation_flow() {
     // Initialize
     client.initialize(&admin, &token_id, &logger, &vault);
 
+    let campaign_id = Symbol::new(&env, "campaign_1");
+    client.create_campaign(&campaign_id, &admin, &1000);
+
     let donor = Address::generate(&env);
     token_admin_client.mint(&donor, &2000);
 
     // 1. Successful Donation
-    client.donate(&donor, &500);
+    client.donate(&campaign_id, &donor, &500);
 
-    assert_eq!(client.get_total(), 500);
-    assert_eq!(client.get_donor_total(&donor), 500);
+    assert_eq!(client.get_campaign_total(&campaign_id), 500);
+    assert_eq!(client.get_campaign_donor_total(&campaign_id, &donor), 500);
     assert_eq!(token_client.balance(&donor), 1500);
 
     // 2. Second Donation (Cumulative)
-    client.donate(&donor, &300);
-    assert_eq!(client.get_total(), 800);
-    assert_eq!(client.get_donor_total(&donor), 800);
+    client.donate(&campaign_id, &donor, &300);
+    assert_eq!(client.get_campaign_total(&campaign_id), 800);
+    assert_eq!(client.get_campaign_donor_total(&campaign_id, &donor), 800);
 }
 
 
@@ -78,6 +81,9 @@ fn test_top_donors() {
 
     let (admin, token_id, logger, vault, _, token_admin_client, client) = setup_test(&env);
     client.initialize(&admin, &token_id, &logger, &vault);
+
+    let campaign_id = Symbol::new(&env, "campaign_1");
+    client.create_campaign(&campaign_id, &admin, &2000);
 
     let d1 = Address::generate(&env);
     let d2 = Address::generate(&env);
@@ -90,10 +96,10 @@ fn test_top_donors() {
 
     for (donor, amt) in donors.iter() {
         token_admin_client.mint(donor, amt);
-        client.donate(donor, amt);
+        client.donate(&campaign_id, donor, amt);
     }
 
-    let top = client.get_top_donors();
+    let top = client.get_campaign_top_donors(&campaign_id);
     assert_eq!(top.len(), 5);
     
     // Top 5 should be: d4 (1000), d6 (800), d2 (500), d3 (300), d1 (100)
@@ -103,4 +109,3 @@ fn test_top_donors() {
     assert_eq!(top.get(3).unwrap().1, 300);
     assert_eq!(top.get(4).unwrap().1, 100);
 }
-

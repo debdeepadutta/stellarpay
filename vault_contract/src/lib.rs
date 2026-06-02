@@ -1,5 +1,5 @@
 #![no_std]
-use soroban_sdk::{contract, contractimpl, contracttype, symbol_short, token, Address, Env, Vec};
+use soroban_sdk::{contract, contractimpl, contracttype, symbol_short, token, Address, Env, IntoVal, Symbol, Vec};
 
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -24,8 +24,8 @@ pub enum DataKey {
     Admin,
     DonationContract,
     Token,
-    Stats,
-    Withdrawals,
+    CampaignStats(Symbol),
+    CampaignWithdrawals(Symbol),
 }
 
 #[contract]
@@ -33,7 +33,7 @@ pub struct VaultContract;
 
 #[contractimpl]
 impl VaultContract {
-    /// Initialize the vault with admin, authorized donation contract, and token address.
+    /// Initialize the vault with platform admin, authorized donation contract, and token address.
     pub fn initialize(env: Env, admin: Address, donation_contract: Address, token: Address) {
         if env.storage().instance().has(&DataKey::Admin) {
             panic!("Already initialized");
@@ -41,21 +41,10 @@ impl VaultContract {
         env.storage().instance().set(&DataKey::Admin, &admin);
         env.storage().instance().set(&DataKey::DonationContract, &donation_contract);
         env.storage().instance().set(&DataKey::Token, &token);
-
-        let stats = VaultStats {
-            total_deposited: 0,
-            total_withdrawn: 0,
-            current_balance: 0,
-            deposit_count: 0,
-        };
-        env.storage().instance().set(&DataKey::Stats, &stats);
-        
-        let withdrawals: Vec<WithdrawalRecord> = Vec::new(&env);
-        env.storage().persistent().set(&DataKey::Withdrawals, &withdrawals);
     }
 
-    /// Deposits XLM from the Donation contract.
-    pub fn deposit(env: Env, from: Address, amount: i128) {
+    /// Deposits XLM from the Donation contract for a specific campaign.
+    pub fn deposit(env: Env, campaign_id: Symbol, from: Address, amount: i128) {
         let authorized_contract: Address = env
             .storage()
             .instance()
@@ -69,29 +58,55 @@ impl VaultContract {
             panic!("Amount must be positive");
         }
 
-        // Update stats
-        let mut stats: VaultStats = env.storage().instance().get(&DataKey::Stats).unwrap();
+        // Update stats for this specific campaign
+        let stats_key = DataKey::CampaignStats(campaign_id.clone());
+        let mut stats: VaultStats = env.storage().persistent().get(&stats_key).unwrap_or(VaultStats {
+            total_deposited: 0,
+            total_withdrawn: 0,
+            current_balance: 0,
+            deposit_count: 0,
+        });
+
         stats.total_deposited += amount;
         stats.current_balance += amount;
         stats.deposit_count += 1;
-        env.storage().instance().set(&DataKey::Stats, &stats);
+        env.storage().persistent().set(&stats_key, &stats);
 
         // Emit event
         env.events().publish(
-            (symbol_short!("deposit"), from),
+            (symbol_short!("deposit"), campaign_id, from),
             amount
         );
     }
 
-    /// Withdraws funds from the vault. Only callable by admin.
-    pub fn withdraw(env: Env, admin: Address, amount: i128, to: Address) {
-        let stored_admin: Address = env.storage().instance().get(&DataKey::Admin).expect("Vault not initialized");
-        if admin != stored_admin {
-            panic!("Only admin can withdraw");
+    /// Withdraws funds from a specific campaign's vault sub-balance. Only callable by the campaign admin.
+    pub fn withdraw(env: Env, campaign_id: Symbol, admin: Address, amount: i128, to: Address) {
+        let donation_contract: Address = env
+            .storage()
+            .instance()
+            .get(&DataKey::DonationContract)
+            .expect("Vault not initialized");
+        
+        // Query the donation contract to find the registered admin of this campaign
+        let campaign_admin: Address = env.invoke_contract(
+            &donation_contract,
+            &Symbol::new(&env, "get_campaign_admin"),
+            (campaign_id.clone(),).into_val(&env)
+        );
+
+        if admin != campaign_admin {
+            panic!("Only campaign admin can withdraw");
         }
         admin.require_auth();
 
-        let mut stats: VaultStats = env.storage().instance().get(&DataKey::Stats).unwrap();
+        let stats_key = DataKey::CampaignStats(campaign_id.clone());
+        let mut stats: VaultStats = env.storage().persistent().get(&stats_key).unwrap_or(VaultStats {
+            total_deposited: 0,
+            total_withdrawn: 0,
+            current_balance: 0,
+            deposit_count: 0,
+        });
+
         if amount > stats.current_balance {
             panic!("Insufficient balance");
         }
@@ -99,7 +114,7 @@ impl VaultContract {
         let token_addr: Address = env.storage().instance().get(&DataKey::Token).unwrap();
         let token_client = token::Client::new(&env, &token_addr);
 
-        // Transfer funds to the destination
+        // Transfer funds from Vault to 'to' address
         token_client.transfer(&env.current_contract_address(), &to, &amount);
 
         // Record withdrawal
@@ -108,25 +123,28 @@ impl VaultContract {
             to: to.clone(),
             timestamp: env.ledger().timestamp(),
         };
-        let mut history: Vec<WithdrawalRecord> = env.storage().persistent().get(&DataKey::Withdrawals).unwrap();
+        
+        let withdrawals_key = DataKey::CampaignWithdrawals(campaign_id.clone());
+        let mut history: Vec<WithdrawalRecord> = env.storage().persistent().get(&withdrawals_key).unwrap_or(Vec::new(&env));
         history.push_back(record);
-        env.storage().persistent().set(&DataKey::Withdrawals, &history);
+        env.storage().persistent().set(&withdrawals_key, &history);
 
         // Update stats
         stats.total_withdrawn += amount;
         stats.current_balance -= amount;
-        env.storage().instance().set(&DataKey::Stats, &stats);
+        env.storage().persistent().set(&stats_key, &stats);
 
         // Emit event
         env.events().publish(
-            (symbol_short!("withdraw"), to),
+            (symbol_short!("withdraw"), campaign_id, to),
             amount
         );
     }
 
-    /// Returns the total balance held in the vault
-    pub fn get_balance(env: Env) -> i128 {
-        let stats: VaultStats = env.storage().instance().get(&DataKey::Stats).unwrap_or(VaultStats {
+    /// Returns the current balance held in the vault for a specific campaign
+    pub fn get_campaign_balance(env: Env, campaign_id: Symbol) -> i128 {
+        let stats_key = DataKey::CampaignStats(campaign_id);
+        let stats: VaultStats = env.storage().persistent().get(&stats_key).unwrap_or(VaultStats {
             total_deposited: 0,
             total_withdrawn: 0,
             current_balance: 0,
@@ -135,14 +153,21 @@ impl VaultContract {
         stats.current_balance
     }
 
-    /// Returns the full withdrawal history
-    pub fn get_withdrawal_history(env: Env) -> Vec<WithdrawalRecord> {
-        env.storage().persistent().get(&DataKey::Withdrawals).unwrap_or(Vec::new(&env))
+    /// Returns the withdrawal history for a specific campaign
+    pub fn get_campaign_withdrawal_history(env: Env, campaign_id: Symbol) -> Vec<WithdrawalRecord> {
+        let withdrawals_key = DataKey::CampaignWithdrawals(campaign_id);
+        env.storage().persistent().get(&withdrawals_key).unwrap_or(Vec::new(&env))
     }
 
-    /// Returns current vault statistics
-    pub fn get_vault_stats(env: Env) -> VaultStats {
-        env.storage().instance().get(&DataKey::Stats).unwrap()
+    /// Returns statistics for a specific campaign
+    pub fn get_campaign_stats(env: Env, campaign_id: Symbol) -> VaultStats {
+        let stats_key = DataKey::CampaignStats(campaign_id);
+        env.storage().persistent().get(&stats_key).unwrap_or(VaultStats {
+            total_deposited: 0,
+            total_withdrawn: 0,
+            current_balance: 0,
+            deposit_count: 0,
+        })
     }
 }
 

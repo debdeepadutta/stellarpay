@@ -1,5 +1,5 @@
 #![cfg(test)]
-use soroban_sdk::{testutils::{Address as _, Ledger}, Address, Env, token};
+use soroban_sdk::{testutils::{Address as _, Ledger}, Address, Env, Symbol, token};
 use donation_contract::{DonationContract, DonationContractClient};
 use logger_contract::{LoggerContract, LoggerContractClient};
 use vault_contract::{VaultContract, VaultContractClient};
@@ -39,8 +39,11 @@ fn test_full_donation_flow_end_to_end() {
     let env = Env::default();
     env.mock_all_auths();
     
-    let (_admin, _token_id, _logger_id, vault_id, token_client, token_admin_client, donation_client, logger_client, vault_client) = setup_test(&env);
+    let (admin, _token_id, _logger_id, vault_id, token_client, token_admin_client, donation_client, logger_client, vault_client) = setup_test(&env);
     
+    let campaign_id = Symbol::new(&env, "camp_1");
+    donation_client.create_campaign(&campaign_id, &admin, &1000);
+
     let d1 = Address::generate(&env);
     let d2 = Address::generate(&env);
     let d3 = Address::generate(&env);
@@ -50,12 +53,13 @@ fn test_full_donation_flow_end_to_end() {
     token_admin_client.mint(&d3, &1000);
     
     // Prove: Multiple donors can contribute and funds are moved to Vault
-    donation_client.donate(&d1, &100);
-    donation_client.donate(&d2, &500);
-    donation_client.donate(&d3, &300);
+    donation_client.donate(&campaign_id, &d1, &100);
+    donation_client.donate(&campaign_id, &d2, &500);
+    donation_client.donate(&campaign_id, &d3, &300);
     
     // Verify Vault Balance
-    assert_eq!(vault_client.get_balance(), 900);
+    let vault_stats = vault_client.get_campaign_stats(&campaign_id);
+    assert_eq!(vault_stats.current_balance, 900);
     assert_eq!(token_client.balance(&vault_id), 900);
     
     // Verify Logger Records
@@ -66,7 +70,7 @@ fn test_full_donation_flow_end_to_end() {
     assert_eq!(history.get(2).unwrap().amount, 300);
     
     // Verify Leaderboard (d2, d3, d1)
-    let top = donation_client.get_top_donors();
+    let top = donation_client.get_campaign_top_donors(&campaign_id);
     assert_eq!(top.get(0).unwrap().0, d2);
     assert_eq!(top.get(1).unwrap().0, d3);
     assert_eq!(top.get(2).unwrap().0, d1);
@@ -84,15 +88,18 @@ fn test_edge_case_unauthorized_logger_call() {
 }
 
 #[test]
-#[should_panic(expected = "Only admin can withdraw")]
+#[should_panic(expected = "Only campaign admin can withdraw")]
 fn test_edge_case_unauthorized_vault_withdrawal() {
     let env = Env::default();
     env.mock_all_auths();
-    let (_admin, _token_id, _, _, _, _, _, _, vault_client) = setup_test(&env);
+    let (admin, _token_id, _, _, _, _, donation_client, _, vault_client) = setup_test(&env);
     
+    let campaign_id = Symbol::new(&env, "camp_1");
+    donation_client.create_campaign(&campaign_id, &admin, &1000);
+
     let attacker = Address::generate(&env);
     // Prove: Non-admin cannot withdraw
-    vault_client.withdraw(&attacker, &100, &attacker);
+    vault_client.withdraw(&campaign_id, &attacker, &100, &attacker);
 }
 
 #[test]
@@ -100,11 +107,14 @@ fn test_edge_case_unauthorized_vault_withdrawal() {
 fn test_edge_case_zero_donation() {
     let env = Env::default();
     env.mock_all_auths();
-    let (_admin, _token_id, _, _, _, _, donation_client, _, _) = setup_test(&env);
+    let (admin, _token_id, _, _, _, _, donation_client, _, _) = setup_test(&env);
     
+    let campaign_id = Symbol::new(&env, "camp_1");
+    donation_client.create_campaign(&campaign_id, &admin, &1000);
+
     let donor = Address::generate(&env);
     // Prove: Zero amount is rejected
-    donation_client.donate(&donor, &0);
+    donation_client.donate(&campaign_id, &donor, &0);
 }
 
 #[test]
@@ -113,18 +123,21 @@ fn test_admin_functions() {
     env.mock_all_auths();
     let (admin, _token_id, _, _, token_client, token_admin_client, donation_client, _, vault_client) = setup_test(&env);
     
+    let campaign_id = Symbol::new(&env, "camp_1");
+    donation_client.create_campaign(&campaign_id, &admin, &3000);
+
     let donor = Address::generate(&env);
     token_admin_client.mint(&donor, &2000);
-    donation_client.donate(&donor, &2000); // Should succeed
-    assert_eq!(donation_client.get_donor_total(&donor), 2000);
+    donation_client.donate(&campaign_id, &donor, &2000); // Should succeed
+    assert_eq!(donation_client.get_campaign_donor_total(&campaign_id, &donor), 2000);
     
     // 2. Vault Withdrawal
     let receiver = Address::generate(&env);
-    vault_client.withdraw(&admin, &500, &receiver);
+    vault_client.withdraw(&campaign_id, &admin, &500, &receiver);
     
-    assert_eq!(vault_client.get_balance(), 1500);
+    let vault_stats = vault_client.get_campaign_stats(&campaign_id);
+    assert_eq!(vault_stats.current_balance, 1500);
     assert_eq!(token_client.balance(&receiver), 500);
     
-    let stats = vault_client.get_vault_stats();
-    assert_eq!(stats.total_withdrawn, 500);
+    assert_eq!(vault_stats.total_withdrawn, 500);
 }

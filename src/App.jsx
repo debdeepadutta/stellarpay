@@ -63,8 +63,8 @@ const fromI128 = (v) => {
   return Number(val) / 10000000;
 };
 
-const CONTRACT_ID = "CCYNUO7LFWI3IT2IZMFEFU4CQUYGI7JPOODXEHJ7UQEP5JKSBPY2SLCG";
-const VAULT_CONTRACT_ID = "CCQL3IUGJXIWY34SKKRO4ZZO44R6VVY3WWO33VSF2K5LDSQUGV6VC2FD";
+const CONTRACT_ID = "CBGFHRSQ275OQRZGOZXLO7JABDVTI5UIZLD7ETSAGJVI5WMIWGBC2TK4";
+const VAULT_CONTRACT_ID = "CB7O4AJFIBTGQODDCOPQICCSHRA35WFTIA2ZZ5O6OUMKWV4ROZIE3BZD";
 const DUMMY_ACCOUNT = new Account("GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF", "0");
 const server = new Horizon.Server("https://horizon-testnet.stellar.org");
 const rpcServer = new rpc.Server("https://soroban-testnet.stellar.org");
@@ -190,22 +190,6 @@ function AppContent() {
       const totalSum = campaignTotals.reduce((a, b) => a + b, 0);
       setTotalDonations(totalSum);
 
-      const simulate = async (cid, fn, args = []) => {
-        if (!cid || cid.length < 56) return null;
-        const builder = new TransactionBuilder(DUMMY_ACCOUNT, { fee: "100", networkPassphrase: Networks.TESTNET });
-        const tx = builder.addOperation(Operation.invokeContractFunction({ contract: cid, function: fn, args })).setTimeout(30).build();
-        const res = await rpcServer.simulateTransaction(tx);
-        return rpc.Api.isSimulationSuccess(res) ? scValToNative(res.result.retval) : null;
-      };
-
-      // We still fetch the vault balance for the UI, but we don't let it override the global sum if it's stale
-      const stats = await simulate(VAULT_CONTRACT_ID, "get_stats", []);
-      if (stats !== null) setVaultStats({
-        total_deposited: fromI128(stats.total_deposited).toLocaleString(),
-        total_withdrawn: fromI128(stats.total_withdrawn).toLocaleString(),
-        current_balance: fromI128(stats.current_balance).toLocaleString(),
-        deposit_count: Number(stats.deposit_count)
-      });
       setLastUpdated(prev => ({ ...prev, wallet: Date.now(), vault: Date.now() }));
     } catch (e) {
       console.error("Fetch failed", e);
@@ -301,10 +285,15 @@ function AppContent() {
       }
 
       const builder = new TransactionBuilder(account, { fee: "10000", networkPassphrase: Networks.TESTNET });
+      
+      // Build campaign_id Symbol for on-chain identification
+      // Use the Firestore document ID (truncated to 32 chars max for Soroban Symbol)
+      const campaignSymbol = nativeToScVal(campaignId.substring(0, 32), { type: "symbol" });
+      
       const tx = builder.addOperation(Operation.invokeContractFunction({
         contract: targetContractId,
         function: "donate",
-        args: [Address.fromString(address).toScVal(), toI128(amount)]
+        args: [campaignSymbol, Address.fromString(address).toScVal(), toI128(amount)]
       })).setTimeout(60).build();
 
       console.log("Step 2: Simulating on Soroban...");
@@ -387,28 +376,76 @@ function AppContent() {
     if (!address) return toast.error("Connect wallet first");
     setIsSending(true);
     try {
-      // Create campaign in Firestore. We do not await addDoc to prevent
-      // UI hang on "Initializing..." if Firestore is offline or syncing.
-      addDoc(collection(db, "campaigns"), {
+      // 1. Save to Firestore first to get the document ID
+      const docRef = await addDoc(collection(db, "campaigns"), {
         ...newCampaign,
         adminWallet: address,
         goal: parseFloat(newCampaign.goal),
-        totalDonated: 0, // Initialize to 0
+        totalDonated: 0,
         isActive: true,
         createdAt: serverTimestamp(),
         donationContractId: newCampaign.contractId || CONTRACT_ID,
         vaultContractId: newCampaign.vaultContractId || VAULT_CONTRACT_ID
-      }).catch((err) => {
-        console.error("Firestore background sync error:", err);
       });
 
-      toast.success("Campaign launched!");
+      // 2. Register campaign on-chain using the Firestore document ID
+      const targetContractId = newCampaign.contractId || CONTRACT_ID;
+      const campaignSymbol = nativeToScVal(docRef.id.substring(0, 32), { type: "symbol" });
+      const goalInStroops = toI128(newCampaign.goal);
+
+      let account;
+      try {
+        account = await server.loadAccount(address);
+      } catch (err) {
+        if (err?.response?.status === 404) {
+          throw new Error("Your account does not exist on Testnet. Please fund it using Friendbot first.");
+        }
+        account = new Account(address, "0");
+      }
+
+      const builder = new TransactionBuilder(account, { fee: "10000", networkPassphrase: Networks.TESTNET });
+      const tx = builder.addOperation(Operation.invokeContractFunction({
+        contract: targetContractId,
+        function: "create_campaign",
+        args: [campaignSymbol, Address.fromString(address).toScVal(), goalInStroops]
+      })).setTimeout(60).build();
+
+      const sim = await rpcServer.simulateTransaction(tx);
+      if (rpc.Api.isSimulationError(sim)) {
+        console.error("create_campaign simulation failed:", sim.error);
+        throw new Error("Failed to register campaign on-chain: " + (sim.error || "Unknown error"));
+      }
+
+      const prepared = rpc.assembleTransaction(tx, sim).build();
+      const { signedTxXdr } = await kit.signTransaction(prepared.toXDR(), { networkPassphrase: Networks.TESTNET });
+      const send = await rpcServer.sendTransaction(new Transaction(signedTxXdr, Networks.TESTNET));
+      
+      if (send.status === "ERROR") {
+        throw new Error(`On-chain campaign creation rejected: ${send.errorResultXdr || send.errorResult || "Unknown"}`);
+      }
+
+      // Poll for confirmation
+      let res = await rpcServer.getTransaction(send.hash);
+      let attempts = 0;
+      while ((res.status === "NOT_FOUND" || res.status === "PENDING") && attempts < 25) {
+        await new Promise(r => setTimeout(r, 2000));
+        res = await rpcServer.getTransaction(send.hash);
+        attempts++;
+      }
+
+      if (res.status === rpc.Api.GetTransactionStatus.SUCCESS) {
+        toast.success("Campaign launched on-chain!");
+      } else {
+        console.warn("On-chain registration status:", res.status, "- campaign saved to DB but may not be on-chain yet");
+        toast.success("Campaign saved! On-chain registration is processing...");
+      }
+
       setNewCampaign({ name: '', description: '', goal: '', contractId: CONTRACT_ID, vaultContractId: VAULT_CONTRACT_ID });
       setIsSending(false);
       navigate('/admin');
     } catch (e) {
-      console.error("Firebase Create Error:", e);
-      toast.error("Failed to save campaign: " + e.message);
+      console.error("Campaign Create Error:", e);
+      toast.error("Failed to create campaign: " + parseStellarError(e));
       setIsSending(false);
     }
   };

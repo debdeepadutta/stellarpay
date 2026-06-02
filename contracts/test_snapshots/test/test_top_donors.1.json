@@ -24,6 +24,7 @@
       ]
     ],
     [],
+    [],
     [
       [
         "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAITA4",
@@ -58,6 +59,9 @@
               "contract_address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAMDR4",
               "function_name": "donate",
               "args": [
+                {
+                  "symbol": "campaign_1"
+                },
                 {
                   "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAOLZM"
                 },
@@ -133,6 +137,9 @@
               "function_name": "donate",
               "args": [
                 {
+                  "symbol": "campaign_1"
+                },
+                {
                   "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAARQG5"
                 },
                 {
@@ -206,6 +213,9 @@
               "contract_address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAMDR4",
               "function_name": "donate",
               "args": [
+                {
+                  "symbol": "campaign_1"
+                },
                 {
                   "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAATYON"
                 },
@@ -281,6 +291,9 @@
               "function_name": "donate",
               "args": [
                 {
+                  "symbol": "campaign_1"
+                },
+                {
                   "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAVAX5"
                 },
                 {
@@ -355,6 +368,9 @@
               "function_name": "donate",
               "args": [
                 {
+                  "symbol": "campaign_1"
+                },
+                {
                   "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAXI7N"
                 },
                 {
@@ -428,6 +444,9 @@
               "contract_address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAMDR4",
               "function_name": "donate",
               "args": [
+                {
+                  "symbol": "campaign_1"
+                },
                 {
                   "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAYRE5"
                 },
@@ -810,7 +829,86 @@
             "key": {
               "vec": [
                 {
-                  "symbol": "DonorTotal"
+                  "symbol": "Campaign"
+                },
+                {
+                  "symbol": "campaign_1"
+                }
+              ]
+            },
+            "durability": "persistent"
+          }
+        },
+        [
+          {
+            "last_modified_ledger_seq": 0,
+            "data": {
+              "contract_data": {
+                "ext": "v0",
+                "contract": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAMDR4",
+                "key": {
+                  "vec": [
+                    {
+                      "symbol": "Campaign"
+                    },
+                    {
+                      "symbol": "campaign_1"
+                    }
+                  ]
+                },
+                "durability": "persistent",
+                "val": {
+                  "map": [
+                    {
+                      "key": {
+                        "symbol": "admin"
+                      },
+                      "val": {
+                        "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD2KM"
+                      }
+                    },
+                    {
+                      "key": {
+                        "symbol": "goal"
+                      },
+                      "val": {
+                        "i128": {
+                          "hi": 0,
+                          "lo": 2000
+                        }
+                      }
+                    },
+                    {
+                      "key": {
+                        "symbol": "total_raised"
+                      },
+                      "val": {
+                        "i128": {
+                          "hi": 0,
+                          "lo": 2750
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            },
+            "ext": "v0"
+          },
+          4095
+        ]
+      ],
+      [
+        {
+          "contract_data": {
+            "contract": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAMDR4",
+            "key": {
+              "vec": [
+                {
+                  "symbol": "CampaignDonorTotal"
+                },
+                {
+                  "symbol": "campaign_1"
                 },
                 {
                   "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAOLZM"
@@ -830,7 +928,10 @@
                 "key": {
                   "vec": [
                     {
-                      "symbol": "DonorTotal"
+                      "symbol": "CampaignDonorTotal"
+                    },
+                    {
+                      "symbol": "campaign_1"
                     },
                     {
                       "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAOLZM"
@@ -858,7 +959,10 @@
             "key": {
               "vec": [
                 {
-                  "symbol": "DonorTotal"
+                  "symbol": "CampaignDonorTotal"
+                },
+                {
+                  "symbol": "campaign_1"
                 },
                 {
                   "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAARQG5"
@@ -878,7 +982,10 @@
                 "key": {
                   "vec": [
                     {
-                      "symbol": "DonorTotal"
+                      "symbol": "CampaignDonorTotal"
+                    },
+                    {
+                      "symbol": "campaign_1"
                     },
                     {
                       "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAARQG5"
@@ -906,7 +1013,10 @@
             "key": {
               "vec": [
                 {
-                  "symbol": "DonorTotal"
+                  "symbol": "CampaignDonorTotal"
+                },
+                {
+                  "symbol": "campaign_1"
                 },
                 {
                   "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAATYON"
@@ -926,7 +1036,10 @@
                 "key": {
                   "vec": [
                     {
-                      "symbol": "DonorTotal"
+                      "symbol": "CampaignDonorTotal"
+                    },
+                    {
+                      "symbol": "campaign_1"
                     },
                     {
                       "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAATYON"
@@ -954,7 +1067,10 @@
             "key": {
               "vec": [
                 {
-                  "symbol": "DonorTotal"
+                  "symbol": "CampaignDonorTotal"
+                },
+                {
+                  "symbol": "campaign_1"
                 },
                 {
                   "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAVAX5"
@@ -974,7 +1090,10 @@
                 "key": {
                   "vec": [
                     {
-                      "symbol": "DonorTotal"
+                      "symbol": "CampaignDonorTotal"
+                    },
+                    {
+                      "symbol": "campaign_1"
                     },
                     {
                       "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAVAX5"
@@ -1002,7 +1121,10 @@
             "key": {
               "vec": [
                 {
-                  "symbol": "DonorTotal"
+                  "symbol": "CampaignDonorTotal"
+                },
+                {
+                  "symbol": "campaign_1"
                 },
                 {
                   "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAXI7N"
@@ -1022,7 +1144,10 @@
                 "key": {
                   "vec": [
                     {
-                      "symbol": "DonorTotal"
+                      "symbol": "CampaignDonorTotal"
+                    },
+                    {
+                      "symbol": "campaign_1"
                     },
                     {
                       "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAXI7N"
@@ -1050,7 +1175,10 @@
             "key": {
               "vec": [
                 {
-                  "symbol": "DonorTotal"
+                  "symbol": "CampaignDonorTotal"
+                },
+                {
+                  "symbol": "campaign_1"
                 },
                 {
                   "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAYRE5"
@@ -1070,7 +1198,10 @@
                 "key": {
                   "vec": [
                     {
-                      "symbol": "DonorTotal"
+                      "symbol": "CampaignDonorTotal"
+                    },
+                    {
+                      "symbol": "campaign_1"
                     },
                     {
                       "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAYRE5"
@@ -1083,6 +1214,117 @@
                     "hi": 0,
                     "lo": 800
                   }
+                }
+              }
+            },
+            "ext": "v0"
+          },
+          4095
+        ]
+      ],
+      [
+        {
+          "contract_data": {
+            "contract": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAMDR4",
+            "key": {
+              "vec": [
+                {
+                  "symbol": "CampaignTopDonors"
+                },
+                {
+                  "symbol": "campaign_1"
+                }
+              ]
+            },
+            "durability": "persistent"
+          }
+        },
+        [
+          {
+            "last_modified_ledger_seq": 0,
+            "data": {
+              "contract_data": {
+                "ext": "v0",
+                "contract": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAMDR4",
+                "key": {
+                  "vec": [
+                    {
+                      "symbol": "CampaignTopDonors"
+                    },
+                    {
+                      "symbol": "campaign_1"
+                    }
+                  ]
+                },
+                "durability": "persistent",
+                "val": {
+                  "vec": [
+                    {
+                      "vec": [
+                        {
+                          "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAVAX5"
+                        },
+                        {
+                          "i128": {
+                            "hi": 0,
+                            "lo": 1000
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "vec": [
+                        {
+                          "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAYRE5"
+                        },
+                        {
+                          "i128": {
+                            "hi": 0,
+                            "lo": 800
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "vec": [
+                        {
+                          "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAARQG5"
+                        },
+                        {
+                          "i128": {
+                            "hi": 0,
+                            "lo": 500
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "vec": [
+                        {
+                          "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAATYON"
+                        },
+                        {
+                          "i128": {
+                            "hi": 0,
+                            "lo": 300
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "vec": [
+                        {
+                          "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAOLZM"
+                        },
+                        {
+                          "i128": {
+                            "hi": 0,
+                            "lo": 100
+                          }
+                        }
+                      ]
+                    }
+                  ]
                 }
               }
             },
@@ -1159,73 +1401,7 @@
                           ]
                         },
                         "val": {
-                          "vec": [
-                            {
-                              "vec": [
-                                {
-                                  "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAVAX5"
-                                },
-                                {
-                                  "i128": {
-                                    "hi": 0,
-                                    "lo": 1000
-                                  }
-                                }
-                              ]
-                            },
-                            {
-                              "vec": [
-                                {
-                                  "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAYRE5"
-                                },
-                                {
-                                  "i128": {
-                                    "hi": 0,
-                                    "lo": 800
-                                  }
-                                }
-                              ]
-                            },
-                            {
-                              "vec": [
-                                {
-                                  "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAARQG5"
-                                },
-                                {
-                                  "i128": {
-                                    "hi": 0,
-                                    "lo": 500
-                                  }
-                                }
-                              ]
-                            },
-                            {
-                              "vec": [
-                                {
-                                  "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAATYON"
-                                },
-                                {
-                                  "i128": {
-                                    "hi": 0,
-                                    "lo": 300
-                                  }
-                                }
-                              ]
-                            },
-                            {
-                              "vec": [
-                                {
-                                  "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAOLZM"
-                                },
-                                {
-                                  "i128": {
-                                    "hi": 0,
-                                    "lo": 100
-                                  }
-                                }
-                              ]
-                            }
-                          ]
+                          "vec": []
                         }
                       },
                       {
@@ -2302,6 +2478,99 @@
                 "symbol": "fn_call"
               },
               {
+                "bytes": "0000000000000000000000000000000000000000000000000000000000000006"
+              },
+              {
+                "symbol": "create_campaign"
+              }
+            ],
+            "data": {
+              "vec": [
+                {
+                  "symbol": "campaign_1"
+                },
+                {
+                  "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD2KM"
+                },
+                {
+                  "i128": {
+                    "hi": 0,
+                    "lo": 2000
+                  }
+                }
+              ]
+            }
+          }
+        }
+      },
+      "failed_call": false
+    },
+    {
+      "event": {
+        "ext": "v0",
+        "contract_id": "0000000000000000000000000000000000000000000000000000000000000006",
+        "type_": "contract",
+        "body": {
+          "v0": {
+            "topics": [
+              {
+                "symbol": "created"
+              },
+              {
+                "symbol": "campaign_1"
+              }
+            ],
+            "data": {
+              "vec": [
+                {
+                  "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD2KM"
+                },
+                {
+                  "i128": {
+                    "hi": 0,
+                    "lo": 2000
+                  }
+                }
+              ]
+            }
+          }
+        }
+      },
+      "failed_call": false
+    },
+    {
+      "event": {
+        "ext": "v0",
+        "contract_id": "0000000000000000000000000000000000000000000000000000000000000006",
+        "type_": "diagnostic",
+        "body": {
+          "v0": {
+            "topics": [
+              {
+                "symbol": "fn_return"
+              },
+              {
+                "symbol": "create_campaign"
+              }
+            ],
+            "data": "void"
+          }
+        }
+      },
+      "failed_call": false
+    },
+    {
+      "event": {
+        "ext": "v0",
+        "contract_id": null,
+        "type_": "diagnostic",
+        "body": {
+          "v0": {
+            "topics": [
+              {
+                "symbol": "fn_call"
+              },
+              {
                 "bytes": "d63a954726751a876d37290072af1ee723d7d761eec3bf4191849d2116acdc73"
               },
               {
@@ -2399,6 +2668,9 @@
             ],
             "data": {
               "vec": [
+                {
+                  "symbol": "campaign_1"
+                },
                 {
                   "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAOLZM"
                 },
@@ -2528,6 +2800,9 @@
             "data": {
               "vec": [
                 {
+                  "symbol": "campaign_1"
+                },
+                {
                   "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAOLZM"
                 },
                 {
@@ -2652,6 +2927,9 @@
             "topics": [
               {
                 "symbol": "donation"
+              },
+              {
+                "symbol": "campaign_1"
               },
               {
                 "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAOLZM"
@@ -2806,6 +3084,9 @@
             "data": {
               "vec": [
                 {
+                  "symbol": "campaign_1"
+                },
+                {
                   "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAARQG5"
                 },
                 {
@@ -2934,6 +3215,9 @@
             "data": {
               "vec": [
                 {
+                  "symbol": "campaign_1"
+                },
+                {
                   "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAARQG5"
                 },
                 {
@@ -3058,6 +3342,9 @@
             "topics": [
               {
                 "symbol": "donation"
+              },
+              {
+                "symbol": "campaign_1"
               },
               {
                 "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAARQG5"
@@ -3212,6 +3499,9 @@
             "data": {
               "vec": [
                 {
+                  "symbol": "campaign_1"
+                },
+                {
                   "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAATYON"
                 },
                 {
@@ -3340,6 +3630,9 @@
             "data": {
               "vec": [
                 {
+                  "symbol": "campaign_1"
+                },
+                {
                   "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAATYON"
                 },
                 {
@@ -3464,6 +3757,9 @@
             "topics": [
               {
                 "symbol": "donation"
+              },
+              {
+                "symbol": "campaign_1"
               },
               {
                 "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAATYON"
@@ -3618,6 +3914,9 @@
             "data": {
               "vec": [
                 {
+                  "symbol": "campaign_1"
+                },
+                {
                   "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAVAX5"
                 },
                 {
@@ -3746,6 +4045,9 @@
             "data": {
               "vec": [
                 {
+                  "symbol": "campaign_1"
+                },
+                {
                   "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAVAX5"
                 },
                 {
@@ -3870,6 +4172,9 @@
             "topics": [
               {
                 "symbol": "donation"
+              },
+              {
+                "symbol": "campaign_1"
               },
               {
                 "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAVAX5"
@@ -4024,6 +4329,9 @@
             "data": {
               "vec": [
                 {
+                  "symbol": "campaign_1"
+                },
+                {
                   "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAXI7N"
                 },
                 {
@@ -4152,6 +4460,9 @@
             "data": {
               "vec": [
                 {
+                  "symbol": "campaign_1"
+                },
+                {
                   "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAXI7N"
                 },
                 {
@@ -4276,6 +4587,9 @@
             "topics": [
               {
                 "symbol": "donation"
+              },
+              {
+                "symbol": "campaign_1"
               },
               {
                 "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAXI7N"
@@ -4430,6 +4744,9 @@
             "data": {
               "vec": [
                 {
+                  "symbol": "campaign_1"
+                },
+                {
                   "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAYRE5"
                 },
                 {
@@ -4558,6 +4875,9 @@
             "data": {
               "vec": [
                 {
+                  "symbol": "campaign_1"
+                },
+                {
                   "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAYRE5"
                 },
                 {
@@ -4684,6 +5004,9 @@
                 "symbol": "donation"
               },
               {
+                "symbol": "campaign_1"
+              },
+              {
                 "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAYRE5"
               }
             ],
@@ -4741,10 +5064,12 @@
                 "bytes": "0000000000000000000000000000000000000000000000000000000000000006"
               },
               {
-                "symbol": "get_top_donors"
+                "symbol": "get_campaign_top_donors"
               }
             ],
-            "data": "void"
+            "data": {
+              "symbol": "campaign_1"
+            }
           }
         }
       },
@@ -4762,7 +5087,7 @@
                 "symbol": "fn_return"
               },
               {
-                "symbol": "get_top_donors"
+                "symbol": "get_campaign_top_donors"
               }
             ],
             "data": {

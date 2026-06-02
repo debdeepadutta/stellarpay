@@ -14,8 +14,9 @@ import {
 import toast from 'react-hot-toast';
 
 const DUMMY_ACCOUNT = new Account("GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF", "0");
+const toI128 = (n) => nativeToScVal(BigInt(Math.floor(parseFloat(n) * 10000000)), { type: "i128" });
 
-const AdminPanel = ({ contractId, vaultContractId, connectedWallet, networkPassphrase, kit, initialAdmin, onActionComplete }) => {
+const AdminPanel = ({ contractId, vaultContractId, connectedWallet, networkPassphrase, kit, initialAdmin, onActionComplete, campaignId }) => {
   const [adminAddress, setAdminAddress] = useState(initialAdmin || "");
   const [vaultBalance, setVaultBalance] = useState(0);
   const [history, setHistory] = useState([]);
@@ -50,8 +51,20 @@ const AdminPanel = ({ contractId, vaultContractId, connectedWallet, networkPassp
         }
       };
 
-      // Always fetch admin first
-      let admin = await simulate(contractId, "get_admin");
+      // Build campaign Symbol for on-chain queries
+      const campaignSymbol = campaignId 
+        ? nativeToScVal(campaignId.substring(0, 32), { type: "symbol" }) 
+        : null;
+
+      // Fetch campaign admin from on-chain registry
+      let admin = null;
+      if (campaignSymbol) {
+        admin = await simulate(contractId, "get_campaign_admin", [campaignSymbol]);
+      }
+      if (!admin) {
+        // Fallback: try legacy get_admin
+        admin = await simulate(contractId, "get_admin");
+      }
       
       if (admin) {
         setAdminAddress(admin.toString());
@@ -64,23 +77,41 @@ const AdminPanel = ({ contractId, vaultContractId, connectedWallet, networkPassp
 
       // Only fetch restricted data if connected wallet is admin
       if (connectedWallet && admin && connectedWallet.toString().toUpperCase() === admin.toString().toUpperCase()) {
-        const [balance, logs] = await Promise.all([
-          simulate(vaultContractId, "get_balance"),
-          simulate(vaultContractId, "get_withdrawal_history")
-        ]);
+        if (campaignSymbol) {
+          // Multi-campaign: use campaign-specific vault queries
+          const [stats, logs] = await Promise.all([
+            simulate(vaultContractId, "get_campaign_stats", [campaignSymbol]),
+            simulate(vaultContractId, "get_campaign_withdrawal_history", [campaignSymbol])
+          ]);
 
-        if (balance !== null) setVaultBalance(Number(BigInt(balance)));
-        if (logs !== null) setHistory(logs.map(log => ({
-          ...log,
-          amount: Number(BigInt(log.amount))
-        })));
+          if (stats !== null) {
+            const balance = Number(BigInt(stats.current_balance || 0));
+            setVaultBalance(balance);
+          }
+          if (logs !== null) setHistory(logs.map(log => ({
+            ...log,
+            amount: Number(BigInt(log.amount))
+          })));
+        } else {
+          // Legacy fallback for old campaigns
+          const [balance, logs] = await Promise.all([
+            simulate(vaultContractId, "get_balance"),
+            simulate(vaultContractId, "get_withdrawal_history")
+          ]);
+
+          if (balance !== null) setVaultBalance(Number(BigInt(balance)));
+          if (logs !== null) setHistory(logs.map(log => ({
+            ...log,
+            amount: Number(BigInt(log.amount))
+          })));
+        }
         setLastUpdated(Date.now());
       }
     } catch (err) {
       console.error("Admin fetch error:", err);
     }
 
-  }, [connectedWallet, contractId, vaultContractId, networkPassphrase]);
+  }, [connectedWallet, contractId, vaultContractId, networkPassphrase, campaignId]);
 
   useEffect(() => {
     fetchData();
@@ -254,7 +285,15 @@ const AdminPanel = ({ contractId, vaultContractId, connectedWallet, networkPassp
                 </div>
               </div>
               <button 
-                onClick={() => handleAction('withdraw', 'withdraw', vaultContractId, [Address.fromString(connectedWallet).toScVal(), nativeToScVal(BigInt(Math.floor(parseFloat(withdrawAmount) * 10000000)), { type: 'i128' }), Address.fromString(withdrawDest).toScVal()])}
+                onClick={() => {
+                  const campaignSymbol = campaignId 
+                    ? nativeToScVal(campaignId.substring(0, 32), { type: "symbol" }) 
+                    : null;
+                  const args = campaignSymbol 
+                    ? [campaignSymbol, Address.fromString(connectedWallet).toScVal(), toI128(withdrawAmount), Address.fromString(withdrawDest).toScVal()]
+                    : [Address.fromString(connectedWallet).toScVal(), nativeToScVal(BigInt(Math.floor(parseFloat(withdrawAmount) * 10000000)), { type: 'i128' }), Address.fromString(withdrawDest).toScVal()];
+                  handleAction('withdraw', 'withdraw', vaultContractId, args);
+                }}
                 disabled={actionLoading === 'withdraw' || !withdrawAmount || !withdrawDest}
                 className="w-full bg-red-600 hover:bg-red-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-3 rounded-xl transition-all shadow-lg shadow-red-600/20"
               >
