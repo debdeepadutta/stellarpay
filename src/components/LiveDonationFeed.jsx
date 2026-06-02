@@ -41,14 +41,14 @@ const LiveDonationFeed = ({ contractId }) => {
             try {
               // Parse topics to extract the donor's address
               if (event.topic && event.topic.length >= 2) {
-                const topics = event.topic.map(t => scValToNative(xdr.ScVal.fromXDR(t, "base64")));
+                const topics = event.topic.map(t => scValToNative(t));
                 if (topics && topics.length >= 2) {
                   donor = topics[1]?.toString() || "Donor";
                 }
               }
               
               // Parse event value (tuple of [amount, timestamp])
-              const data = scValToNative(xdr.ScVal.fromXDR(event.value, "base64"));
+              const data = scValToNative(event.value);
               if (Array.isArray(data) && data.length >= 1) {
                 const rawAmt = Number(BigInt(data[0]));
                 amountStr = `${(rawAmt / 10000000).toFixed(2)} XLM`;
