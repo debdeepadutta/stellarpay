@@ -14,7 +14,7 @@ import {
 
 const DUMMY_ACCOUNT = new Account("GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF", "0");
 
-const AnalyticsDashboard = ({ contractId, rpcUrl }) => {
+const AnalyticsDashboard = ({ contractId, rpcUrl, campaignId }) => {
   const [stats, setStats] = useState(null);
   const [chartData, setChartData] = useState([]);
   const [topDonorsData, setTopDonorsData] = useState([]);
@@ -37,10 +37,19 @@ const AnalyticsDashboard = ({ contractId, rpcUrl }) => {
         return rpc.Api.isSimulationSuccess(res) ? scValToNative(res.result.retval) : null;
       };
 
-      // Fetch all required data
+      // Build campaign symbol if available
+      const campaignSymbol = campaignId 
+        ? nativeToScVal(campaignId.substring(0, 32), { type: "symbol" }) 
+        : null;
+
+      // Fetch all required data using campaign-specific functions when available
       const [total, top, history] = await Promise.all([
-        simulate("get_total"),
-        simulate("get_top_donors"),
+        campaignSymbol 
+          ? simulate("get_campaign_total", [campaignSymbol]) 
+          : simulate("get_total"),
+        campaignSymbol 
+          ? simulate("get_campaign_top_donors", [campaignSymbol]) 
+          : simulate("get_top_donors"),
         simulate("get_recent_logs", [nativeToScVal(100, { type: "u32" })]) // Get last 100 for analytics
       ]);
 
@@ -95,7 +104,7 @@ const AnalyticsDashboard = ({ contractId, rpcUrl }) => {
     } finally {
       setLoading(false);
     }
-  }, [contractId, rpcUrl]);
+  }, [contractId, rpcUrl, campaignId]);
 
   useEffect(() => {
     fetchData();

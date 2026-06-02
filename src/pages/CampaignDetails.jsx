@@ -210,6 +210,7 @@ const CampaignDetails = ({ address, balance, isFetchingData, handleDonate, isSen
             contractId={campaign.donationContractId || campaign.contractId} 
             connectedWallet={address} 
             lastDonationAt={lastDonationAt}
+            campaignId={campaign.id}
           />
           <WalletCard 
             address={address} 

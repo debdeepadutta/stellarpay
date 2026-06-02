@@ -5,12 +5,13 @@ import {
   Operation, 
   Account, 
   rpc, 
-  scValToNative 
+  scValToNative,
+  nativeToScVal 
 } from "@stellar/stellar-sdk";
 
 const DUMMY_ACCOUNT = new Account("GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF", "0");
 
-const DonorLeaderboard = ({ contractId, networkPassphrase, connectedWallet, lastDonationAt }) => {
+const DonorLeaderboard = ({ contractId, networkPassphrase, connectedWallet, lastDonationAt, campaignId }) => {
   const [donors, setDonors] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -27,11 +28,15 @@ const DonorLeaderboard = ({ contractId, networkPassphrase, connectedWallet, last
         networkPassphrase: networkPassphrase || Networks.TESTNET 
       });
 
+      const campaignSymbol = campaignId 
+        ? nativeToScVal(campaignId.substring(0, 32), { type: "symbol" }) 
+        : null;
+
       const tx = builder
         .addOperation(Operation.invokeContractFunction({ 
           contract: contractId, 
-          function: "get_top_donors",
-          args: []
+          function: campaignSymbol ? "get_campaign_top_donors" : "get_top_donors",
+          args: campaignSymbol ? [campaignSymbol] : []
         }))
         .setTimeout(30)
         .build();
