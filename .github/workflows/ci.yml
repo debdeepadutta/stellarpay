@@ -2,9 +2,13 @@ name: CI/CD Pipeline
 
 on:
   push:
-    branches: [ main ]
+    branches:
+      - main
+      - level-4-upgrade
   pull_request:
-    branches: [ main ]
+    branches:
+      - main
+      - level-4-upgrade
 
 jobs:
   contract-tests:
