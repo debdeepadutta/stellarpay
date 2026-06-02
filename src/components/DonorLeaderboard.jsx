@@ -102,7 +102,7 @@ const DonorLeaderboard = ({ contractId, networkPassphrase, connectedWallet, last
     } finally {
       setLoading(false);
     }
-  }, [contractId, networkPassphrase]);
+  }, [contractId, networkPassphrase, campaignId]);
 
   useEffect(() => {
     fetchLeaderboard();

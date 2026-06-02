@@ -16,6 +16,7 @@ vi.mock('firebase/firestore', () => ({
   where: vi.fn(),
   onSnapshot: vi.fn(() => vi.fn()),
   addDoc: vi.fn(),
+  setDoc: vi.fn(),
   updateDoc: vi.fn(),
   doc: vi.fn(),
   serverTimestamp: vi.fn(),

@@ -85,12 +85,12 @@ const AdminPanel = ({ contractId, vaultContractId, connectedWallet, networkPassp
           ]);
 
           if (stats !== null) {
-            const balance = Number(BigInt(stats.current_balance || 0));
+            const balance = Number(BigInt(stats.current_balance || 0)) / 10000000;
             setVaultBalance(balance);
           }
           if (logs !== null) setHistory(logs.map(log => ({
             ...log,
-            amount: Number(BigInt(log.amount))
+            amount: Number(BigInt(log.amount)) / 10000000
           })));
         } else {
           // Legacy fallback for old campaigns
@@ -99,10 +99,10 @@ const AdminPanel = ({ contractId, vaultContractId, connectedWallet, networkPassp
             simulate(vaultContractId, "get_withdrawal_history")
           ]);
 
-          if (balance !== null) setVaultBalance(Number(BigInt(balance)));
+          if (balance !== null) setVaultBalance(Number(BigInt(balance)) / 10000000);
           if (logs !== null) setHistory(logs.map(log => ({
             ...log,
-            amount: Number(BigInt(log.amount))
+            amount: Number(BigInt(log.amount)) / 10000000
           })));
         }
         setLastUpdated(Date.now());

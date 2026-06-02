@@ -38,7 +38,7 @@ import CampaignDetails from './pages/CampaignDetails';
 import { db } from './firebase';
 import { 
   collection, 
-  addDoc, 
+  setDoc, 
   query, 
   where, 
   onSnapshot, 
@@ -133,7 +133,7 @@ function AppContent() {
     vaultContractId: VAULT_CONTRACT_ID 
   });
 
-  // Real-time listener for All Active Campaigns
+  // Real-time listener for All Active Campaigns (no wallet needed)
   useEffect(() => {
     const q = query(
       collection(db, "campaigns"), 
@@ -155,27 +155,29 @@ function AppContent() {
     return () => unsubscribe();
   }, []);
 
-  // Real-time listener for Admin's Campaigns
+  // Real-time listener for Admin's Campaigns — resets when wallet changes/disconnects
   useEffect(() => {
-    if (address) {
-      const q = query(
-        collection(db, "campaigns"), 
-        where("adminWallet", "==", address)
-      );
-      const unsubscribe = onSnapshot(q, (snapshot) => {
-        let data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        // Sort locally
-        data.sort((a, b) => {
-          const timeA = a.createdAt?.toMillis() || 0;
-          const timeB = b.createdAt?.toMillis() || 0;
-          return timeB - timeA; // desc
-        });
-        setCampaigns(data);
-      }, (error) => {
-         console.error("Firestore Error (Admin):", error);
-      });
-      return () => unsubscribe();
+    if (!address) {
+      setCampaigns([]); // Clear stale campaigns when wallet disconnects
+      return;
     }
+    const q = query(
+      collection(db, "campaigns"), 
+      where("adminWallet", "==", address)
+    );
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      let data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      // Sort locally — newest first
+      data.sort((a, b) => {
+        const timeA = a.createdAt?.toMillis() || 0;
+        const timeB = b.createdAt?.toMillis() || 0;
+        return timeB - timeA;
+      });
+      setCampaigns(data);
+    }, (error) => {
+      console.error("Firestore Error (Admin):", error);
+    });
+    return () => unsubscribe();
   }, [address]);
 
 
@@ -377,10 +379,71 @@ function AppContent() {
     e.preventDefault();
     if (!address) return toast.error("Connect wallet first");
     setIsCreatingCampaign(true);
-    let docRef = null;
+    
+    // 1. Generate Firestore document reference and ID locally (instant, no network request)
+    const campaignsRef = collection(db, "campaigns");
+    const docRef = doc(campaignsRef);
+    const campaignId = docRef.id;
+
     try {
-      // 1. Save to Firestore first to get the document ID
-      docRef = await addDoc(collection(db, "campaigns"), {
+      const targetContractId = newCampaign.contractId || CONTRACT_ID;
+      const campaignSymbol = nativeToScVal(campaignId.substring(0, 32), { type: "symbol" });
+      const goalInStroops = toI128(newCampaign.goal);
+
+      let account;
+      try {
+        account = await server.loadAccount(address);
+      } catch (err) {
+        if (err?.response?.status === 404) {
+          throw new Error("Your account does not exist on Testnet. Please fund it using Friendbot first.");
+        }
+        account = new Account(address, "0");
+      }
+
+      // 2. Register campaign on-chain first (instant popup)
+      const builder = new TransactionBuilder(account, { fee: "10000", networkPassphrase: Networks.TESTNET });
+      const tx = builder.addOperation(Operation.invokeContractFunction({
+        contract: targetContractId,
+        function: "create_campaign",
+        args: [campaignSymbol, Address.fromString(address).toScVal(), goalInStroops]
+      })).setTimeout(60).build();
+
+      const sim = await rpcServer.simulateTransaction(tx);
+      if (rpc.Api.isSimulationError(sim)) {
+        console.error("create_campaign simulation failed:", sim.error);
+        throw new Error("Failed to register campaign on-chain: " + (sim.error || "Unknown error"));
+      }
+
+      const prepared = rpc.assembleTransaction(tx, sim).build();
+      const { signedTxXdr } = await kit.signTransaction(prepared.toXDR(), { networkPassphrase: Networks.TESTNET });
+      const send = await rpcServer.sendTransaction(new Transaction(signedTxXdr, Networks.TESTNET));
+      
+      if (send.status === "ERROR") {
+        throw new Error(`On-chain campaign creation rejected: ${send.errorResultXdr || send.errorResult || "Unknown"}`);
+      }
+
+      // Poll for confirmation
+      let res = await rpcServer.getTransaction(send.hash);
+      let attempts = 0;
+      while ((res.status === "NOT_FOUND" || res.status === "PENDING") && attempts < 25) {
+        await new Promise(r => setTimeout(r, 2000));
+        res = await rpcServer.getTransaction(send.hash);
+        attempts++;
+      }
+
+      let isOnChain = false;
+      if (res.status === rpc.Api.GetTransactionStatus.SUCCESS) {
+        toast.success("Campaign launched on-chain!");
+        isOnChain = true;
+      } else if (res.status === "PENDING" || res.status === "NOT_FOUND") {
+        console.warn("On-chain registration status:", res.status, "- campaign saved to DB but may not be on-chain yet");
+        toast.success("Campaign saved! On-chain registration is processing...");
+      } else {
+        throw new Error(`Transaction failed on-chain with status: ${res.status}`);
+      }
+
+      // 3. Save to Firestore after successful on-chain call (or pending)
+      setDoc(docRef, {
         ...newCampaign,
         adminWallet: address,
         goal: parseFloat(newCampaign.goal),
@@ -388,73 +451,9 @@ function AppContent() {
         isActive: true,
         createdAt: serverTimestamp(),
         donationContractId: newCampaign.contractId || CONTRACT_ID,
-        vaultContractId: newCampaign.vaultContractId || VAULT_CONTRACT_ID
-      });
-
-      // 2. Register campaign on-chain using the Firestore document ID
-      try {
-        const targetContractId = newCampaign.contractId || CONTRACT_ID;
-        const campaignSymbol = nativeToScVal(docRef.id.substring(0, 32), { type: "symbol" });
-        const goalInStroops = toI128(newCampaign.goal);
-
-        let account;
-        try {
-          account = await server.loadAccount(address);
-        } catch (err) {
-          if (err?.response?.status === 404) {
-            throw new Error("Your account does not exist on Testnet. Please fund it using Friendbot first.");
-          }
-          account = new Account(address, "0");
-        }
-
-        const builder = new TransactionBuilder(account, { fee: "10000", networkPassphrase: Networks.TESTNET });
-        const tx = builder.addOperation(Operation.invokeContractFunction({
-          contract: targetContractId,
-          function: "create_campaign",
-          args: [campaignSymbol, Address.fromString(address).toScVal(), goalInStroops]
-        })).setTimeout(60).build();
-
-        const sim = await rpcServer.simulateTransaction(tx);
-        if (rpc.Api.isSimulationError(sim)) {
-          console.error("create_campaign simulation failed:", sim.error);
-          throw new Error("Failed to register campaign on-chain: " + (sim.error || "Unknown error"));
-        }
-
-        const prepared = rpc.assembleTransaction(tx, sim).build();
-        const { signedTxXdr } = await kit.signTransaction(prepared.toXDR(), { networkPassphrase: Networks.TESTNET });
-        const send = await rpcServer.sendTransaction(new Transaction(signedTxXdr, Networks.TESTNET));
-        
-        if (send.status === "ERROR") {
-          throw new Error(`On-chain campaign creation rejected: ${send.errorResultXdr || send.errorResult || "Unknown"}`);
-        }
-
-        // Poll for confirmation
-        let res = await rpcServer.getTransaction(send.hash);
-        let attempts = 0;
-        while ((res.status === "NOT_FOUND" || res.status === "PENDING") && attempts < 25) {
-          await new Promise(r => setTimeout(r, 2000));
-          res = await rpcServer.getTransaction(send.hash);
-          attempts++;
-        }
-
-        if (res.status === rpc.Api.GetTransactionStatus.SUCCESS) {
-          toast.success("Campaign launched on-chain!");
-        } else {
-          console.warn("On-chain registration status:", res.status, "- campaign saved to DB but may not be on-chain yet");
-          toast.success("Campaign saved! On-chain registration is processing...");
-        }
-      } catch (onChainErr) {
-        // Cleanup Firestore document if blockchain registration fails
-        console.warn("On-chain registration failed. Cleaning up Firestore document...", onChainErr);
-        if (docRef) {
-          try {
-            await deleteDoc(docRef);
-          } catch (cleanupErr) {
-            console.error("Failed to delete Firestore document during cleanup:", cleanupErr);
-          }
-        }
-        throw onChainErr;
-      }
+        vaultContractId: newCampaign.vaultContractId || VAULT_CONTRACT_ID,
+        isOnChain: isOnChain
+      }).catch(err => console.error("Firestore setDoc failed:", err));
 
       setNewCampaign({ name: '', description: '', goal: '', contractId: CONTRACT_ID, vaultContractId: VAULT_CONTRACT_ID });
       setIsCreatingCampaign(false);
@@ -517,6 +516,7 @@ function AppContent() {
 
       if (res.status === rpc.Api.GetTransactionStatus.SUCCESS) {
         toast.success("Campaign launched on-chain!");
+        await updateDoc(doc(db, "campaigns", campaignId), { isOnChain: true });
         fetchData();
         return true;
       } else {
@@ -554,7 +554,7 @@ function AppContent() {
       <Navbar 
         address={address} 
         isConnected={!!address} 
-        onDisconnect={() => setAddress('')} 
+        onDisconnect={() => { setAddress(''); setWalletName(''); setBalance('0.00'); setCampaigns([]); }} 
         walletName={walletName}
         onConnect={connectWallet}
       />
@@ -577,6 +577,7 @@ function AppContent() {
               fetchData={fetchData}
               CONTRACT_ID={CONTRACT_ID}
               VAULT_CONTRACT_ID={VAULT_CONTRACT_ID}
+              kit={kit}
             />
           } />
           <Route path="/donor" element={<DonorMarketplace campaigns={allCampaigns} />} />

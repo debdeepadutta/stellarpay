@@ -58,8 +58,12 @@ const CampaignDetails = ({ address, balance, isFetchingData, handleDonate, handl
                 if (infoVal !== null && infoVal !== undefined) {
                   isOnChain = true;
                   
-                  // Now get the total
-                  const txTotal = builder.addOperation(Operation.invokeContractFunction({ 
+                  // Now get the total — must use a fresh builder since the previous one was consumed by .build()
+                  const builder2 = new TransactionBuilder(new Account("GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF", "0"), { 
+                    fee: "100", 
+                    networkPassphrase: Networks.TESTNET 
+                  });
+                  const txTotal = builder2.addOperation(Operation.invokeContractFunction({ 
                     contract: cid, 
                     function: "get_campaign_total", 
                     args: [campaignSymbol] 

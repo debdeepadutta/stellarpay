@@ -14,7 +14,8 @@ const AdminPortal = ({
   lastUpdated, 
   fetchData,
   CONTRACT_ID,
-  VAULT_CONTRACT_ID
+  VAULT_CONTRACT_ID,
+  kit
 }) => {
   if (!address) {
     return (
@@ -186,6 +187,7 @@ const AdminPortal = ({
                   campaignId={campaign.id}
                   compact={true}
                   onActionComplete={fetchData}
+                  kit={kit}
                 />
               </div>
             ))}

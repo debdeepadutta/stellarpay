@@ -10,21 +10,30 @@ const DonorMarketplace = ({ campaigns }) => {
     const url = `${window.location.origin}/campaign/${id}`;
     navigator.clipboard.writeText(url);
     toast.success("Link copied! Share to get more donors", {
-        icon: '🔗',
-        style: {
-          borderRadius: '10px',
-          background: '#1e293b',
-          color: '#fff',
-          border: '1px solid #334155'
-        },
+      icon: '🔗',
+      style: {
+        borderRadius: '10px',
+        background: '#1e293b',
+        color: '#fff',
+        border: '1px solid #334155'
+      },
     });
   };
 
   return (
     <div className="max-w-7xl mx-auto px-6 py-12 space-y-12">
       <div className="text-center space-y-4">
-        <h1 className="text-5xl md:text-6xl font-black text-white italic tracking-tighter uppercase">Campaign <span className="text-indigo-500">Marketplace</span></h1>
-        <p className="text-slate-500 max-w-2xl mx-auto">Discover and support decentralized initiatives on the Stellar network.</p>
+        <h1 className="text-5xl md:text-6xl font-black text-white italic tracking-tighter uppercase">
+          Campaign <span className="text-indigo-500">Marketplace</span>
+        </h1>
+        <p className="text-slate-500 max-w-2xl mx-auto">
+          Discover and support decentralized initiatives on the Stellar network.
+        </p>
+        {campaigns.length > 0 && (
+          <p className="text-xs font-bold text-slate-600 uppercase tracking-widest">
+            {campaigns.length} Active Campaign{campaigns.length !== 1 ? 's' : ''}
+          </p>
+        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -34,14 +43,14 @@ const DonorMarketplace = ({ campaigns }) => {
           const remaining = Math.max(c.goal - totalDonated, 0);
 
           return (
-            <div 
-              key={c.id} 
+            <div
+              key={c.id}
               onClick={() => navigate(`/campaign/${c.id}`)}
               className="group bg-slate-900 border border-slate-800 p-8 rounded-[40px] hover:border-indigo-500/50 transition-all cursor-pointer shadow-xl transform hover:-translate-y-2 animate-marketplace-card relative overflow-hidden"
             >
               <div className="flex justify-between items-start mb-6">
                 <div className="w-12 h-12 bg-indigo-500/10 rounded-2xl flex items-center justify-center text-2xl">💙</div>
-                <button 
+                <button
                   onClick={(e) => copyLink(e, c.id)}
                   className="p-2 bg-white/5 rounded-xl text-slate-500 hover:text-indigo-400 transition-colors"
                   title="Copy Share Link"
@@ -51,20 +60,24 @@ const DonorMarketplace = ({ campaigns }) => {
                   </svg>
                 </button>
               </div>
-              
-              <h3 className="text-2xl font-bold text-white mb-3 group-hover:text-indigo-400 transition-colors">{c.name}</h3>
-              <p className="text-slate-500 text-sm mb-8 line-clamp-3 leading-relaxed">{c.description}</p>
-              
+
+              <h3 className="text-2xl font-bold text-white mb-3 group-hover:text-indigo-400 transition-colors">
+                {c.name}
+              </h3>
+              <p className="text-slate-500 text-sm mb-8 line-clamp-3 leading-relaxed">
+                {c.description}
+              </p>
+
               <div className="space-y-4">
                 <div className="flex justify-between items-end text-xs font-bold text-slate-600 uppercase tracking-widest">
                   <span>Goal: {c.goal} XLM</span>
                   <span className="text-slate-500">Remaining: {remaining.toFixed(2)} XLM</span>
                 </div>
                 <div className="w-full h-1.5 bg-slate-950 rounded-full overflow-hidden">
-                  <div 
+                  <div
                     className="h-full bg-indigo-500 transition-all duration-1000"
                     style={{ width: `${progress}%` }}
-                  ></div>
+                  />
                 </div>
                 <div className="flex justify-between items-center text-[10px] font-bold text-slate-500 uppercase tracking-widest">
                   <span>{totalDonated.toFixed(2)} XLM Donated ({progress.toFixed(1)}%)</span>
@@ -77,8 +90,10 @@ const DonorMarketplace = ({ campaigns }) => {
       </div>
 
       {campaigns.length === 0 && (
-        <div className="text-center py-24 bg-slate-900/40 border border-slate-800 border-dashed rounded-[50px]">
-          <p className="text-slate-500 italic">The marketplace is quiet... be the first to launch a campaign!</p>
+        <div className="text-center py-24 bg-slate-900/40 border border-slate-800 border-dashed rounded-[50px] space-y-4">
+          <div className="text-5xl">🌌</div>
+          <p className="text-slate-400 font-bold text-lg">No campaigns yet</p>
+          <p className="text-slate-600 text-sm italic">The marketplace is quiet... be the first to launch a campaign!</p>
         </div>
       )}
     </div>
