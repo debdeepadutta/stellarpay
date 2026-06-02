@@ -27,7 +27,7 @@ fn setup_test(env: &Env) -> (Address, Address, Address, Address, token::Client, 
     let token_admin_client = token::StellarAssetClient::new(env, &token_id);
     
     // 5. Initialize All
-    donation_client.initialize(&admin, &token_id, &logger_id, &vault_id, &1000);
+    donation_client.initialize(&admin, &token_id, &logger_id, &vault_id);
     logger_client.initialize(&donation_id);
     vault_client.initialize(&admin, &donation_id, &token_id);
     
@@ -73,20 +73,6 @@ fn test_full_donation_flow_end_to_end() {
 }
 
 #[test]
-#[should_panic(expected = "Donation exceeds per-wallet cap")]
-fn test_edge_case_exceed_cap() {
-    let env = Env::default();
-    env.mock_all_auths();
-    let (_admin, _token_id, _, _, _, token_admin_client, donation_client, _, _) = setup_test(&env);
-    
-    let donor = Address::generate(&env);
-    token_admin_client.mint(&donor, &2000);
-    
-    // Prove: Cap enforcement works
-    donation_client.donate(&donor, &1100); // Default cap is 1000
-}
-
-#[test]
 #[should_panic]
 fn test_edge_case_unauthorized_logger_call() {
     let env = Env::default();
@@ -127,12 +113,9 @@ fn test_admin_functions() {
     env.mock_all_auths();
     let (admin, _token_id, _, _, token_client, token_admin_client, donation_client, _, vault_client) = setup_test(&env);
     
-    // 1. Update Cap
-    donation_client.set_donation_cap(&admin, &5000);
-    
     let donor = Address::generate(&env);
     token_admin_client.mint(&donor, &2000);
-    donation_client.donate(&donor, &2000); // Should now succeed
+    donation_client.donate(&donor, &2000); // Should succeed
     assert_eq!(donation_client.get_donor_total(&donor), 2000);
     
     // 2. Vault Withdrawal
