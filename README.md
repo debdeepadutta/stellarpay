@@ -40,42 +40,42 @@
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                        FRONTEND (React)                      │
-│                                                              │
-│   Landing → Admin Portal          Landing → Donor Portal     │
-│   ├── Create Campaign             ├── Campaign Marketplace   │
-│   ├── Manage Vault                ├── Campaign Details       │
+│                        FRONTEND (React)                     │
+│                                                             │
+│   Landing → Admin Portal          Landing → Donor Portal    │
+│   ├── Create Campaign             ├── Campaign Marketplace  │
+│   ├── Manage Vault                ├── Campaign Details      │
 │   ├── View Analytics              ├── Donate XLM            │
 │   └── Delete Campaigns            ├── Leaderboard           │
 │                                   └── Live Feed             │
 └────────────────────────┬────────────────────────────────────┘
                          │
           ┌──────────────▼──────────────┐
-          │     Firebase Firestore       │  ← Campaign metadata
-          │   (name, description, goal)  │     global persistence
+          │     Firebase Firestore      │  ← Campaign metadata
+          │   (name, description, goal) │     global persistence
           └──────────────┬──────────────┘
                          │
           ┌──────────────▼──────────────┐
-          │      Horizon SSE Stream      │  ← Real-time events
+          │      Horizon SSE Stream     │  ← Real-time events
           └──────────────┬──────────────┘
                          │
           ┌──────────────▼──────────────┐
-          │       DONATION CONTRACT      │
-          │  donate() │ get_total()      │
-          │  create_campaign()           │
-          │  get_campaign_info()         │
-          │  get_campaign_admin()        │
+          │       DONATION CONTRACT     │
+          │  donate() │ get_total()     │
+          │  create_campaign()          │
+          │  get_campaign_info()        │
+          │  get_campaign_admin()       │
           └──────┬───────────┬──────────┘
                  │           │
      inter-contract calls    │
                  │           │
      ┌───────────▼──┐  ┌─────▼──────────┐
-     │   LOGGER     │  │     VAULT       │
-     │  CONTRACT    │  │    CONTRACT     │
-     │              │  │                 │
-     │ log_donation()│  │ deposit()      │
-     │ get_history() │  │ withdraw()     │
-     │ get_recent()  │  │ get_stats()    │
+     │   LOGGER     │  │     VAULT      │
+     │  CONTRACT    │  │    CONTRACT    │
+     │              │  │                │
+     │ log_donation()│  │ deposit()     │
+     │ get_history() │  │ withdraw()    │
+     │ get_recent()  │  │ get_stats()   │
      └──────────────┘  └────────────────┘
 ```
 
