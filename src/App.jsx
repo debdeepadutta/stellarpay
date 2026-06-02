@@ -118,6 +118,7 @@ function AppContent() {
   
   const [isFetchingData, setIsFetchingData] = useState(false);
   const [isSending, setIsSending] = useState(false);
+  const [isCreatingCampaign, setIsCreatingCampaign] = useState(false);
   const [txStatus, setTxStatus] = useState(null);
   const [txHash, setTxHash] = useState('');
   const [lastDonationAt, setLastDonationAt] = useState(null);
@@ -374,7 +375,7 @@ function AppContent() {
   const handleCreateCampaign = async (e) => {
     e.preventDefault();
     if (!address) return toast.error("Connect wallet first");
-    setIsSending(true);
+    setIsCreatingCampaign(true);
     try {
       // 1. Save to Firestore first to get the document ID
       const docRef = await addDoc(collection(db, "campaigns"), {
@@ -441,12 +442,12 @@ function AppContent() {
       }
 
       setNewCampaign({ name: '', description: '', goal: '', contractId: CONTRACT_ID, vaultContractId: VAULT_CONTRACT_ID });
-      setIsSending(false);
+      setIsCreatingCampaign(false);
       navigate('/admin');
     } catch (e) {
       console.error("Campaign Create Error:", e);
       toast.error("Failed to create campaign: " + parseStellarError(e));
-      setIsSending(false);
+      setIsCreatingCampaign(false);
     }
   };
 
@@ -487,7 +488,7 @@ function AppContent() {
             <AdminPortal 
               address={address}
               campaigns={campaigns}
-              isSending={isSending}
+              isSending={isCreatingCampaign}
               newCampaign={newCampaign}
               setNewCampaign={setNewCampaign}
               handleCreateCampaign={handleCreateCampaign}
