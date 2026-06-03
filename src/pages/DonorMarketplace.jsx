@@ -2,7 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 
-const DonorMarketplace = ({ campaigns }) => {
+const DonorMarketplace = ({ campaigns, firestoreError }) => {
   const navigate = useNavigate();
 
   const copyLink = (e, id) => {
@@ -89,7 +89,16 @@ const DonorMarketplace = ({ campaigns }) => {
         })}
       </div>
 
-      {campaigns.length === 0 && (
+      {firestoreError && (
+        <div className="text-center py-16 bg-red-500/5 border border-red-500/20 border-dashed rounded-[50px] space-y-4">
+          <div className="text-5xl">⚠️</div>
+          <p className="text-red-400 font-bold text-lg">Database Connection Error</p>
+          <p className="text-slate-500 text-sm italic max-w-md mx-auto">{firestoreError}</p>
+          <p className="text-slate-600 text-xs">Check your Firebase configuration or Firestore security rules and try refreshing.</p>
+        </div>
+      )}
+
+      {!firestoreError && campaigns.length === 0 && (
         <div className="text-center py-24 bg-slate-900/40 border border-slate-800 border-dashed rounded-[50px] space-y-4">
           <div className="text-5xl">🌌</div>
           <p className="text-slate-400 font-bold text-lg">No campaigns yet</p>

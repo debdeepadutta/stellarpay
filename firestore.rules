@@ -1,0 +1,26 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Campaigns collection
+    match /campaigns/{campaignId} {
+      // Anyone can read campaigns (donors, public marketplace)
+      allow read: if true;
+
+      // Anyone can create a campaign (wallet address stored in adminWallet field)
+      allow create: if request.resource.data.keys().hasAll(['name', 'goal', 'adminWallet', 'isActive'])
+                    && request.resource.data.name is string
+                    && request.resource.data.goal is number
+                    && request.resource.data.adminWallet is string;
+
+      // Only the campaign creator can update or delete their campaign
+      allow update, delete: if request.resource.data.adminWallet == resource.data.adminWallet;
+    }
+
+    // Donations subcollection (for leaderboard / feed)
+    match /campaigns/{campaignId}/donations/{donationId} {
+      allow read, write: if true;
+    }
+
+  }
+}

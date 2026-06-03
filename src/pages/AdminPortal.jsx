@@ -1,4 +1,5 @@
 import React from 'react';
+import toast from 'react-hot-toast';
 import AdminPanel from '../components/AdminPanel';
 
 const AdminPortal = ({ 
@@ -132,7 +133,7 @@ const AdminPortal = ({
 
               <button 
                 disabled={isSending}
-                className="w-full py-4 bg-indigo-600 hover:bg-indigo-500 text-white font-black rounded-2xl transition-all shadow-xl shadow-indigo-600/20"
+                className="w-full py-4 bg-indigo-600 hover:bg-indigo-500 disabled:bg-indigo-600/50 text-white font-black rounded-2xl transition-all shadow-xl shadow-indigo-600/20"
               >
                 {isSending ? 'Initializing...' : 'Launch Campaign'}
               </button>
