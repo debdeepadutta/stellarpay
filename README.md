@@ -341,7 +341,7 @@ Single atomic transaction — all or nothing
 <table>
   <tr>
     <td align="center">
-      <img src="level_4_screenshots/mobile_view_2_!.png" alt="Mobile Admin 1" width="280"/>
+      <img src="level_4_screenshots/mobile_view_2_1.png" alt="Mobile Admin 1" width="280"/>
     </td>
     <td align="center">
       <img src="level_4_screenshots/mobile_view_2_2.png" alt="Mobile Admin 2" width="280"/>
