@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="public/logo.png" alt="Stellar Philanthropy Logo" width="80"/>
+<img src="src/assets/logo.png" alt="Stellar Philanthropy Logo" width="80"/>
 
 # Stellar Philanthropy
 
@@ -40,42 +40,42 @@
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                        FRONTEND (React)                     │
-│                                                             │
-│   Landing → Admin Portal          Landing → Donor Portal    │
-│   ├── Create Campaign             ├── Campaign Marketplace  │
-│   ├── Manage Vault                ├── Campaign Details      │
+│                        FRONTEND (React)                      │
+│                                                              │
+│   Landing → Admin Portal          Landing → Donor Portal     │
+│   ├── Create Campaign             ├── Campaign Marketplace   │
+│   ├── Manage Vault                ├── Campaign Details       │
 │   ├── View Analytics              ├── Donate XLM            │
 │   └── Delete Campaigns            ├── Leaderboard           │
 │                                   └── Live Feed             │
 └────────────────────────┬────────────────────────────────────┘
                          │
           ┌──────────────▼──────────────┐
-          │     Firebase Firestore      │  ← Campaign metadata
-          │   (name, description, goal) │     global persistence
+          │     Firebase Firestore       │  ← Campaign metadata
+          │   (name, description, goal)  │     global persistence
           └──────────────┬──────────────┘
                          │
           ┌──────────────▼──────────────┐
-          │      Horizon SSE Stream     │  ← Real-time events
+          │      Horizon SSE Stream      │  ← Real-time events
           └──────────────┬──────────────┘
                          │
           ┌──────────────▼──────────────┐
-          │       DONATION CONTRACT     │
-          │  donate() │ get_total()     │
-          │  create_campaign()          │
-          │  get_campaign_info()        │
-          │  get_campaign_admin()       │
+          │       DONATION CONTRACT      │
+          │  donate() │ get_total()      │
+          │  create_campaign()           │
+          │  get_campaign_info()         │
+          │  get_campaign_admin()        │
           └──────┬───────────┬──────────┘
                  │           │
      inter-contract calls    │
                  │           │
      ┌───────────▼──┐  ┌─────▼──────────┐
-     │   LOGGER     │  │     VAULT      │
-     │  CONTRACT    │  │    CONTRACT    │
-     │              │  │                │
-     │ log_donation()│  │ deposit()     │
-     │ get_history() │  │ withdraw()    │
-     │ get_recent()  │  │ get_stats()   │
+     │   LOGGER     │  │     VAULT       │
+     │  CONTRACT    │  │    CONTRACT     │
+     │              │  │                 │
+     │ log_donation()│  │ deposit()      │
+     │ get_history() │  │ withdraw()     │
+     │ get_recent()  │  │ get_stats()    │
      └──────────────┘  └────────────────┘
 ```
 
@@ -151,7 +151,7 @@
 | 🔗 Deep linking — shareable campaign URLs | ✅ |
 | 📣 OG meta tags for social sharing (X, LinkedIn) | ✅ |
 | ⚡ Horizon SSE real-time streaming | ✅ |
-| 🧪 6 Rust contract-level integration tests | ✅ |
+| 🧪 7 Rust contract-level tests (2 unit + 5 integration) | ✅ |
 | ⚙️ CI/CD — contract compile + test + deploy pipeline | ✅ |
 | 🛡️ Security scan — no hardcoded secrets in CI | ✅ |
 | 📱 Fully responsive mobile UI | ✅ |
@@ -296,56 +296,27 @@ Single atomic transaction — all or nothing
   </tr>
 </table>
 
-**💙 Donor Marketplace — Browse Campaigns**
+**💙 Donor Portal — Campaign Marketplace & Details**
 
 <table>
   <tr>
     <td align="center">
-      <img src="level_4_screenshots/donor_marketplace.png" alt="Donor Marketplace" width="860"/>
+      <strong>Campaign Marketplace — Browse All Campaigns</strong><br/>
+      <img src="level_4_screenshots/philanthropist1.png" alt="Donor Marketplace" width="860"/>
     </td>
   </tr>
 </table>
-
-**📄 Campaign Detail — Donate + Leaderboard + Live Feed**
 
 <table>
   <tr>
     <td align="center">
-      <img src="level_4_screenshots/campaign_details.png" alt="Campaign Details" width="860"/>
+      <strong>Campaign Details — Donate + Leaderboard + Live Feed</strong><br/>
+      <img src="level_4_screenshots/philanthropist2.png" alt="Campaign Details" width="860"/>
     </td>
   </tr>
 </table>
 
-**📱 Mobile Responsive Views**
-
-<table>
-  <tr>
-    <td align="center">
-      <strong>Mobile — Landing</strong><br/>
-      <img src="level_4_screenshots/mobile_view_1.png" alt="Mobile View 1" width="220"/>
-    </td>
-    <td align="center">
-      <strong>Mobile — Marketplace</strong><br/>
-      <img src="level_4_screenshots/mobile_view_2.png" alt="Mobile View 2" width="220"/>
-    </td>
-    <td align="center">
-      <strong>Mobile — Campaign</strong><br/>
-      <img src="level_4_screenshots/mobile_view_3.png" alt="Mobile View 3" width="220"/>
-    </td>
-  </tr>
-</table>
-
-**⚙️ CI/CD Pipeline — All Jobs Passing**
-
-<table>
-  <tr>
-    <td align="center">
-      <img src="level_4_screenshots/ci_cd_pipeline.png" alt="CI/CD Pipeline" width="860"/>
-    </td>
-  </tr>
-</table>
-
-**🔁 Inter-Contract Atomic Transaction**
+**🔁 Inter-Contract Atomic Transaction on Stellar Expert**
 
 <table>
   <tr>
@@ -355,44 +326,82 @@ Single atomic transaction — all or nothing
   </tr>
 </table>
 
-**🧪 Rust Contract Tests — 6 Passing**
+**📱 Mobile Responsive — Landing Page**
 
 <table>
   <tr>
     <td align="center">
-      <img src="level_4_screenshots/rust_tests.png" alt="Rust Tests" width="860"/>
+      <img src="level_4_screenshots/mobile_view_1.png" alt="Mobile Landing" width="300"/>
     </td>
   </tr>
 </table>
 
-> ✅ **Level 4 Proof:** Dual-portal architecture, global Firebase marketplace, 3-contract ecosystem, atomic inter-contract transactions, deep linking, Horizon SSE streaming, 6 Rust tests, full CI/CD pipeline.
+**📱 Mobile Responsive — Admin Portal**
+
+<table>
+  <tr>
+    <td align="center">
+      <img src="level_4_screenshots/mobile_view_2_!.png" alt="Mobile Admin 1" width="280"/>
+    </td>
+    <td align="center">
+      <img src="level_4_screenshots/mobile_view_2_2.png" alt="Mobile Admin 2" width="280"/>
+    </td>
+    <td align="center">
+      <img src="level_4_screenshots/mobile_view_2_3.png" alt="Mobile Admin 3" width="280"/>
+    </td>
+  </tr>
+</table>
+
+**📱 Mobile Responsive — Donor Portal**
+
+<table>
+  <tr>
+    <td align="center">
+      <strong>Donor Marketplace</strong><br/>
+      <img src="level_4_screenshots/mobile_view_3_1.png" alt="Mobile Donor 1" width="280"/>
+    </td>
+    <td align="center">
+      <strong>Campaign Details Part 1</strong><br/>
+      <img src="level_4_screenshots/mobile_view_3_2_1.png" alt="Mobile Donor 2" width="280"/>
+    </td>
+    <td align="center">
+      <strong>Campaign Details Part 2</strong><br/>
+      <img src="level_4_screenshots/mobile_view_3_2_2.png" alt="Mobile Donor 3" width="280"/>
+    </td>
+  </tr>
+</table>
+
+> ✅ **Level 4 Proof:** Dual-portal architecture, global Firebase marketplace, 3-contract ecosystem, atomic inter-contract transactions, deep linking, Horizon SSE streaming, 7 Rust tests, full CI/CD pipeline, fully responsive on all devices.
 
 ---
 
 ## 🧪 Test Results
 
-### Rust Contract Tests (6 passing)
+### Rust Contract Tests (7 passing)
 
 ```
-running 6 tests
-test test_edge_case_unauthorized_vault_withdrawal - should panic ... ok
-test test_edge_case_zero_donation - should panic                 ... ok
-test test_edge_case_unauthorized_logger_call - should panic      ... ok
-test test_edge_case_exceed_cap - should panic                    ... ok
-test test_admin_functions                                        ... ok
-test test_full_donation_flow_end_to_end                          ... ok
+running 2 tests
+test test::test_donation_flow                    ... ok
+test test::test_top_donors                       ... ok
+test result: ok. 2 passed; 0 failed; finished in 0.34s
 
-test result: ok. 6 passed; 0 failed; 0 ignored; finished in 0.27s
+running 5 tests
+test test_edge_case_unauthorized_logger_call - should panic    ... ok
+test test_edge_case_zero_donation - should panic               ... ok
+test test_edge_case_unauthorized_vault_withdrawal - should panic... ok
+test test_admin_functions                                      ... ok
+test test_full_donation_flow_end_to_end                        ... ok
+test result: ok. 5 passed; 0 failed; finished in 0.33s
 ```
 
 ### Vitest Frontend Tests (4 passing)
 
 ```
 ✓ Stellar Philanthropy DApp (4)
-  ✓ renders the landing page initially                              
+  ✓ renders the landing page initially
   ✓ connects the wallet and displays the truncated address in Navbar
-  ✓ navigates to marketplace and shows campaigns placeholder        
-  ✓ navigates to admin portal and shows empty state                 
+  ✓ navigates to marketplace and shows campaigns placeholder
+  ✓ navigates to admin portal and shows empty state
 
 Test Files  1 passed (1)
      Tests  4 passed (4)
@@ -513,7 +522,9 @@ stellarpay/
 ├── contracts/                         # Donation Contract (Rust/Soroban)
 │   └── src/
 │       ├── lib.rs                     # create_campaign, donate, get_campaign_info
-│       └── test.rs                    # Rust unit + integration tests (6 passing)
+│       └── test.rs                    # Rust unit tests (2 passing)
+│   └── tests/
+│       └── integration_test.rs        # Rust integration tests (5 passing)
 ├── logger_contract/                   # Logger Contract (Rust/Soroban)
 │   └── src/lib.rs                     # log_donation, get_history, get_recent
 ├── vault_contract/                    # Vault Contract (Rust/Soroban)
@@ -527,7 +538,7 @@ stellarpay/
 │   ├── components/
 │   │   ├── AdminPanel.jsx             # Vault controls per campaign
 │   │   ├── AnalyticsDashboard.jsx     # Charts & donation stats
-│   │   ├── DonorLeaderboard.jsx       # Top donors ranking
+│   │   ├── DonorLeaderboard.jsx       # Top philanthropists ranking
 │   │   ├── LiveDonationFeed.jsx       # Horizon SSE real-time feed
 │   │   ├── Navbar.jsx                 # Navigation + wallet status
 │   │   ├── RecentLogs.jsx             # Logger contract events
@@ -536,6 +547,8 @@ stellarpay/
 │   │   ├── TransactionStatus.jsx      # Tx status indicator
 │   │   ├── VaultStats.jsx             # Vault balance display
 │   │   └── WalletCard.jsx             # Connected wallet info
+│   ├── assets/
+│   │   └── logo.png                   # Stellar Philanthropy logo
 │   ├── firebase.js                    # Firebase Firestore config
 │   └── App.jsx                        # Router + contract constants
 ├── .github/workflows/ci.yml           # GitHub Actions pipeline
@@ -543,6 +556,18 @@ stellarpay/
 ├── level_2_screenshots/               # Level 2 proof
 ├── level_3_screenshots/               # Level 3 proof
 ├── level_4_screenshots/               # Level 4 proof
+│   ├── landing_page.png               # Portal selection screen
+│   ├── admin_portal.png               # Admin campaign management
+│   ├── philanthropist1.png            # Donor marketplace
+│   ├── philanthropist2.png            # Campaign details + donate
+│   ├── inter_contract.png             # Stellar Expert atomic tx
+│   ├── mobile_view_1.png              # Mobile landing
+│   ├── mobile_view_2_!.png            # Mobile admin part 1
+│   ├── mobile_view_2_2.png            # Mobile admin part 2
+│   ├── mobile_view_2_3.png            # Mobile admin part 3
+│   ├── mobile_view_3_1.png            # Mobile donor marketplace
+│   ├── mobile_view_3_2_1.png          # Mobile campaign details part 1
+│   └── mobile_view_3_2_2.png          # Mobile campaign details part 2
 ├── contract_deployment_summary.txt    # Deployed contract addresses
 └── README.md
 ```
