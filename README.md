@@ -16,7 +16,7 @@
 
 **A production-ready decentralized philanthropy marketplace built on the Stellar blockchain using Soroban smart contracts. Admins launch fundraising campaigns on-chain. Donors browse a global marketplace, contribute XLM, and track impact in real time — all powered by a three-contract ecosystem with no central authority.**
 
-[🌐 Live Demo](https://stellarpay-lac.vercel.app/) &nbsp;·&nbsp; [🎬 Demo Video](https://drive.google.com/file/d/1sBxUY_Wt0idMdf0WuAeqn7IarSZYihaf/view?usp=sharing) &nbsp;·&nbsp; [📜 Donation Contract](https://stellar.expert/explorer/testnet/contract/CBGFHRSQ275OQRZGOZXLO7JABDVTI5UIZLD7ETSAGJVI5WMIWGBC2TK4) &nbsp;·&nbsp; [🔗 Inter-Contract Tx](https://stellar.expert/explorer/testnet/tx/65c2af62d4160528de7342f7dc9df35a122999c06aba78f12a944b090ad493d3)
+[🌐 Live Demo](https://stellarpay-lac.vercel.app/) &nbsp;·&nbsp; [🎬 Demo Video](https://drive.google.com/file/d/195XyArDZfn1T8xCJH_gzOuPSLEE86IdA/view?usp=sharing) &nbsp;·&nbsp; [📜 Donation Contract](https://stellar.expert/explorer/testnet/contract/CBGFHRSQ275OQRZGOZXLO7JABDVTI5UIZLD7ETSAGJVI5WMIWGBC2TK4) &nbsp;·&nbsp; [🔗 Inter-Contract Tx](https://stellar.expert/explorer/testnet/tx/65c2af62d4160528de7342f7dc9df35a122999c06aba78f12a944b090ad493d3)
 
 </div>
 
@@ -40,31 +40,31 @@
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                        FRONTEND (React)                      │
-│                                                              │
-│   Landing → Admin Portal          Landing → Donor Portal     │
-│   ├── Create Campaign             ├── Campaign Marketplace   │
-│   ├── Manage Vault                ├── Campaign Details       │
+│                        FRONTEND (React)                     │
+│                                                             │
+│   Landing → Admin Portal          Landing → Donor Portal    │
+│   ├── Create Campaign             ├── Campaign Marketplace  │
+│   ├── Manage Vault                ├── Campaign Details      │
 │   ├── View Analytics              ├── Donate XLM            │
 │   └── Delete Campaigns            ├── Leaderboard           │
 │                                   └── Live Feed             │
 └────────────────────────┬────────────────────────────────────┘
                          │
           ┌──────────────▼──────────────┐
-          │     Firebase Firestore       │  ← Campaign metadata
-          │   (name, description, goal)  │     global persistence
+          │     Firebase Firestore      │  ← Campaign metadata
+          │   (name, description, goal) │     global persistence
           └──────────────┬──────────────┘
                          │
           ┌──────────────▼──────────────┐
-          │      Horizon SSE Stream      │  ← Real-time events
+          │      Horizon SSE Stream     │  ← Real-time events
           └──────────────┬──────────────┘
                          │
           ┌──────────────▼──────────────┐
-          │       DONATION CONTRACT      │
-          │  donate() │ get_total()      │
-          │  create_campaign()           │
-          │  get_campaign_info()         │
-          │  get_campaign_admin()        │
+          │       DONATION CONTRACT     │
+          │  donate() │ get_total()     │
+          │  create_campaign()          │
+          │  get_campaign_info()        │
+          │  get_campaign_admin()       │
           └──────┬───────────┬──────────┘
                  │           │
      inter-contract calls    │
