@@ -1,0 +1,20 @@
+[package]
+name = "smart_wallet"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+soroban-sdk = "21.7.7"
+serde = { version = "1.0.200", default-features = false, features = ["derive"] }
+serde-json-core = { version = "0.5.1", default-features = false }
+
+[profile.release]
+opt-level = "z"
+overflow-checks = true
+debug = false
+panic = "abort"
+lto = true
+codegen-units = 1
