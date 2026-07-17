@@ -87,6 +87,11 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', network: NETWORK_PASSPHRASE, rpc: RPC_URL });
 });
 
-app.listen(PORT, () => {
-  console.log(`Sponsorship relayer server running on port ${PORT}`);
-});
+if (process.env.NODE_ENV !== 'production' || process.env.RUN_LOCAL === 'true') {
+  app.listen(PORT, () => {
+    console.log(`Sponsorship relayer server running on port ${PORT}`);
+  });
+}
+
+// Export the app for Vercel Serverless Functions
+export default app;
