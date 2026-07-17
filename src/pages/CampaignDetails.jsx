@@ -19,7 +19,7 @@ import DonorLeaderboard from '../components/DonorLeaderboard';
 import LiveDonationFeed from '../components/LiveDonationFeed';
 import WalletCard from '../components/WalletCard';
 
-const CampaignDetails = ({ address, balance, isFetchingData, handleDonate, handleRegisterOnChain, isSending, txStatus, txHash, lastDonationAt, lastUpdated }) => {
+const CampaignDetails = ({ address, balance, isFetchingData, handleDonate, handleRegisterOnChain, isSending, txStatus, txHash, lastDonationAt, lastUpdated, fetchData }) => {
   const { id } = useParams();
   const [campaign, setCampaign] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -291,7 +291,8 @@ const CampaignDetails = ({ address, balance, isFetchingData, handleDonate, handl
             address={address} 
             balance={balance} 
             isFetching={isFetchingData} 
-            lastUpdated={lastUpdated.wallet} 
+            lastUpdated={lastUpdated.wallet}
+            onBalanceRefresh={fetchData}
           />
         </div>
       </div>

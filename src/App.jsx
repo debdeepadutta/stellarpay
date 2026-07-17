@@ -966,6 +966,7 @@ function AppContent() {
               txHash={txHash}
               lastDonationAt={lastDonationAt}
               lastUpdated={lastUpdated}
+              fetchData={fetchData}
             />
           } />
           <Route path="/mobile-auth" element={<MobileAuth />} />
