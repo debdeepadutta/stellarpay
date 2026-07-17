@@ -93,6 +93,23 @@ export function isWebAuthnSupported() {
   return !!(navigator.credentials && navigator.credentials.create && navigator.credentials.get);
 }
 
+// Helper to dynamically get the Relying Party ID
+function getRpId() {
+  const hostname = window.location.hostname;
+  const envRpId = import.meta.env.VITE_PASSKEY_RP_ID;
+  const targetStableId = 'stellarpay-debdeepa-duttas-projects.vercel.app';
+
+  const isValid = (rp) => rp === hostname || hostname.endsWith('.' + rp);
+
+  if (envRpId && isValid(envRpId)) {
+    return envRpId;
+  }
+  if (isValid(targetStableId)) {
+    return targetStableId;
+  }
+  return hostname;
+}
+
 // 1. Register a new passkey credential and extract raw SEC-1 65-byte public key
 export async function registerPasskey(username) {
   if (!isWebAuthnSupported()) {
@@ -100,12 +117,7 @@ export async function registerPasskey(username) {
   }
 
   const challenge = window.crypto.getRandomValues(new Uint8Array(32));
-  const hostname = window.location.hostname;
-  const targetStableId = 'stellarpay-debdeepa-duttas-projects.vercel.app';
-  const rpId = import.meta.env.VITE_PASSKEY_RP_ID || 
-    (hostname === targetStableId || hostname.endsWith('.' + targetStableId)
-      ? targetStableId
-      : hostname);
+  const rpId = getRpId();
 
   const options = {
     publicKey: {
@@ -173,12 +185,7 @@ export async function signChallenge(challengeBytes, keyIdBase64) {
     throw new Error("WebAuthn is not supported on this device/browser.");
   }
 
-  const hostname = window.location.hostname;
-  const targetStableId = 'stellarpay-debdeepa-duttas-projects.vercel.app';
-  const rpId = import.meta.env.VITE_PASSKEY_RP_ID || 
-    (hostname === targetStableId || hostname.endsWith('.' + targetStableId)
-      ? targetStableId
-      : hostname);
+  const rpId = getRpId();
   const allowCredentials = [];
   
   if (keyIdBase64) {
