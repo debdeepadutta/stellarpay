@@ -542,7 +542,7 @@ function AppContent() {
 
         console.log("Assembling and signing with Passkey...");
         let prepared = rpc.assembleTransaction(tx, sim).build();
-        prepared = await signSorobanAuthsWithPasskey(prepared, passkeyKeyId, address);
+        prepared = await signSorobanAuthsWithPasskey(prepared, passkeyKeyId, address, sim.latestLedger);
 
         console.log("Submitting to Sponsor Relayer...");
         const result = await sponsorAndSubmit(prepared.toXDR(), RELAYER_URL);
@@ -701,7 +701,7 @@ function AppContent() {
         }
 
         let prepared = rpc.assembleTransaction(tx, sim).build();
-        prepared = await signSorobanAuthsWithPasskey(prepared, passkeyKeyId, address);
+        prepared = await signSorobanAuthsWithPasskey(prepared, passkeyKeyId, address, sim.latestLedger);
 
         const result = await sponsorAndSubmit(prepared.toXDR(), RELAYER_URL);
         sendHash = result.hash;

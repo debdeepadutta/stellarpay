@@ -245,7 +245,7 @@ export function buildSorobanSignatureScVal(authenticatorData, clientDataJSON, si
 }
 
 // 3. Loop through transaction auth entries, request passkey signatures, and inject them
-export async function signSorobanAuthsWithPasskey(tx, keyIdBase64, walletAddressHex) {
+export async function signSorobanAuthsWithPasskey(tx, keyIdBase64, walletAddressHex, latestLedger) {
   const auths = [];
   
   if (tx && tx.tx && typeof tx.tx.operations === 'function') {
@@ -291,6 +291,16 @@ export async function signSorobanAuthsWithPasskey(tx, keyIdBase64, walletAddress
         
       const entryAddr = Address.fromScAddress(addressVal).toString();
       if (entryAddr === walletAddressHex) {
+        if (latestLedger) {
+          const futureExpiration = Number(latestLedger) + 500;
+          if (credentials.switch().name === 'sorobanCredentialsAddress') {
+            credentials.address().signatureExpirationLedger(futureExpiration);
+          } else if (credentials.switch().name === 'sorobanCredentialsAddressV2') {
+            credentials.addressV2().signatureExpirationLedger(futureExpiration);
+          }
+          console.log(`[Passkey] Overriding signatureExpirationLedger to ${futureExpiration}`);
+        }
+
         // Generate the 32-byte signature payload hash from the preimage
         // buildAuthorizationEntryPreimage was removed in stellar-sdk v15, we build it manually
         const preimageXdr = buildAuthPreimage(entry, Networks.TESTNET);
