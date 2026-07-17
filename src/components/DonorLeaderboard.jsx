@@ -16,7 +16,7 @@ const DonorLeaderboard = ({ contractId, networkPassphrase, connectedWallet, last
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [totalDonated, setTotalDonated] = useState(0);
-  const [lastUpdated, setLastUpdated] = useState(Date.now());
+  const [lastUpdated, setLastUpdated] = useState(() => Date.now());
 
 
   const fetchLeaderboard = useCallback(async () => {
@@ -53,13 +53,13 @@ const DonorLeaderboard = ({ contractId, networkPassphrase, connectedWallet, last
           if (typeof retval.vec === 'function') {
             const v = retval.vec();
             rawData = v ? v.map(i => {
-                try { return scValToNative(i); } catch(e) { return null; }
+                try { return scValToNative(i); } catch { return null; }
             }).filter(i => i !== null) : [];
           } else {
             rawData = scValToNative(retval);
           }
         } catch (e) {
-          throw new Error("Data conversion failed: " + e.message);
+          throw new Error("Data conversion failed: " + e.message, { cause: e });
         }
         
         if (Array.isArray(rawData)) {
@@ -105,14 +105,14 @@ const DonorLeaderboard = ({ contractId, networkPassphrase, connectedWallet, last
   }, [contractId, networkPassphrase, campaignId]);
 
   useEffect(() => {
-    fetchLeaderboard();
+    Promise.resolve().then(() => fetchLeaderboard());
     const interval = setInterval(fetchLeaderboard, 30000);
     return () => clearInterval(interval);
   }, [fetchLeaderboard]);
 
   useEffect(() => {
     if (lastDonationAt) {
-      fetchLeaderboard();
+      Promise.resolve().then(() => fetchLeaderboard());
     }
   }, [lastDonationAt, fetchLeaderboard]);
 

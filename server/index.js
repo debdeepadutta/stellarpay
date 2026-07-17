@@ -50,7 +50,7 @@ app.post('/api/sponsor-and-submit', async (req, res) => {
     try {
       sponsorAccount = await server.loadAccount(sponsorKeypair.publicKey());
     } catch (e) {
-      throw new Error(`Failed to load sponsor account from network: ${e.message}`);
+      throw new Error(`Failed to load sponsor account from network: ${e.message}`, { cause: e });
     }
 
     // 3. Rebuild transaction with correct sequence number using XDR mutation
@@ -103,7 +103,6 @@ app.post('/api/sponsor-and-submit', async (req, res) => {
     // 6. Sign the rebuilt transaction
     mutableTx.sign(sponsorKeypair);
 
-    const signedXdr = mutableTx.toXDR();
     console.log(`[Sponsor] Sponsoring transaction with source ${sponsorKeypair.publicKey()}, seq ${sponsorAccount.sequenceNumber()}`);
 
     // 7. Submit to Soroban RPC
@@ -156,7 +155,7 @@ app.post('/api/fund-contract', async (req, res) => {
     try {
       sponsorAccount = await server.loadAccount(sponsorKeypair.publicKey());
     } catch (e) {
-      throw new Error(`Failed to load sponsor account: ${e.message}`);
+      throw new Error(`Failed to load sponsor account: ${e.message}`, { cause: e });
     }
 
     // Check if sponsor account needs more XLM (Testnet only)

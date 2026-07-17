@@ -9,7 +9,7 @@ import {
   nativeToScVal
 } from "@stellar/stellar-sdk";
 import { 
-  LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area 
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area 
 } from 'recharts';
 
 const DUMMY_ACCOUNT = new Account("GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF", "0");
@@ -107,25 +107,10 @@ const AnalyticsDashboard = ({ contractId, rpcUrl, campaignId }) => {
   }, [contractId, rpcUrl, campaignId]);
 
   useEffect(() => {
-    fetchData();
+    Promise.resolve().then(() => fetchData());
     const interval = setInterval(fetchData, 60000);
     return () => clearInterval(interval);
   }, [fetchData]);
-
-  const Card = ({ title, value, sub, icon, color }) => (
-    <div className={`relative p-0.5 rounded-2xl bg-gradient-to-br ${color} overflow-hidden group shadow-lg`}>
-      <div className="bg-slate-900 rounded-[14px] p-5 h-full transition-all group-hover:bg-slate-900/80">
-        <div className="flex justify-between items-start mb-4">
-          <span className="text-slate-500 text-xs font-bold uppercase tracking-widest">{title}</span>
-          <div className="p-2 bg-white/5 rounded-lg text-white/50 group-hover:text-white transition-colors">
-            {icon}
-          </div>
-        </div>
-        <div className="text-3xl font-black text-white mb-1">{value}</div>
-        <div className="text-[10px] text-slate-500 font-mono">{sub}</div>
-      </div>
-    </div>
-  );
 
   if (loading && !stats) {
     return (
@@ -238,5 +223,20 @@ const AnalyticsDashboard = ({ contractId, rpcUrl, campaignId }) => {
     </div>
   );
 };
+
+const Card = ({ title, value, sub, icon, color }) => (
+  <div className={`relative p-0.5 rounded-2xl bg-gradient-to-br ${color} overflow-hidden group shadow-lg`}>
+    <div className="bg-slate-900 rounded-[14px] p-5 h-full transition-all group-hover:bg-slate-900/80">
+      <div className="flex justify-between items-start mb-4">
+        <span className="text-slate-500 text-xs font-bold uppercase tracking-widest">{title}</span>
+        <div className="p-2 bg-white/5 rounded-lg text-white/50 group-hover:text-white transition-colors">
+          {icon}
+        </div>
+      </div>
+      <div className="text-3xl font-black text-white mb-1">{value}</div>
+      <div className="text-[10px] text-slate-500 font-mono">{sub}</div>
+    </div>
+  </div>
+);
 
 export default AnalyticsDashboard;

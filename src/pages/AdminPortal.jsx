@@ -1,6 +1,17 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import AdminPanel from '../components/AdminPanel';
+
+const RelativeTime = ({ timestamp }) => {
+  const [seconds, setSeconds] = useState(() => Math.floor((Date.now() - timestamp) / 1000));
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setSeconds(Math.floor((Date.now() - timestamp) / 1000));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [timestamp]);
+  return <>{seconds === 0 ? 'Just now' : `${seconds}s ago`}</>;
+};
 
 const AdminPortal = ({ 
   address, 
@@ -43,7 +54,7 @@ const AdminPortal = ({
             <div className="text-4xl font-black text-white mt-2">{campaigns.length}</div>
             <div className="text-[10px] text-slate-500 mt-1">{campaigns.filter(c => c.isActive).length} Active / {campaigns.filter(c => !c.isActive).length} Inactive</div>
             <div className="absolute top-4 right-4 text-[8px] font-mono text-slate-600">
-              {Math.floor((Date.now() - lastUpdated.marketplace) / 1000)}s ago
+              <RelativeTime timestamp={lastUpdated.marketplace} />
             </div>
           </div>
 
@@ -51,14 +62,14 @@ const AdminPortal = ({
             <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Global Managed Funds</span>
             <div className="text-4xl font-black text-emerald-400 mt-2">{totalDonations.toLocaleString()} XLM</div>
             <div className="absolute top-4 right-4 text-[8px] font-mono text-slate-600">
-              {Math.floor((Date.now() - lastUpdated.vault) / 1000)}s ago
+              <RelativeTime timestamp={lastUpdated.vault} />
             </div>
           </div>
           <div className="bg-slate-900 border border-slate-800 p-8 rounded-3xl relative overflow-hidden">
             <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Total Donors</span>
             <div className="text-4xl font-black text-indigo-400 mt-2">{vaultStats.deposit_count}</div>
             <div className="absolute top-4 right-4 text-[8px] font-mono text-slate-600">
-              {Math.floor((Date.now() - lastUpdated.vault) / 1000)}s ago
+              <RelativeTime timestamp={lastUpdated.vault} />
             </div>
           </div>
       </div>

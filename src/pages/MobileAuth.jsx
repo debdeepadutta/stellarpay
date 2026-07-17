@@ -5,23 +5,20 @@ import { doc, getDoc, updateDoc, setDoc, serverTimestamp } from 'firebase/firest
 import { registerPasskey, signChallenge, sponsorAndSubmit } from '../lib/passkeyWallet';
 import { TransactionBuilder, Account, Networks, Operation, rpc, scValToNative, xdr } from '@stellar/stellar-sdk';
 import toast, { Toaster } from 'react-hot-toast';
+import { Buffer } from 'buffer';
 
 const MobileAuth = () => {
   const [searchParams] = useSearchParams();
   const sessionId = searchParams.get('session');
   
   const [session, setSession] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => !!sessionId);
   const [actionLoading, setActionLoading] = useState(false);
   const [success, setSuccess] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState(() => sessionId ? '' : 'Invalid session link.');
 
   useEffect(() => {
-    if (!sessionId) {
-      setError('Invalid session link.');
-      setLoading(false);
-      return;
-    }
+    if (!sessionId) return;
 
     const fetchSession = async () => {
       try {
@@ -147,23 +144,24 @@ const MobileAuth = () => {
         const dummyChallenge = window.crypto.getRandomValues(new Uint8Array(32));
         const webauthnSig = await signChallenge(dummyChallenge, null); // null keyId lets browser pick
         
-        const keyIdBase64 = Buffer.from(webauthnSig.authenticatorData).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, ''); // wait, the credential ID is what we want!
-        // WebAuthn signature response doesn't directly contain keyId unless we save the one selected
-        // Actually, navigator.credentials.get returns the credential object, which has the credential ID!
-        // Let's modify signChallenge to return keyId!
-        // Let's review how we fetch assertion in signChallenge. We can get credential.id!
-        // Wait, signChallenge returns webauthnSig. We need the keyId of the authenticated credential.
-        // Let's check how we can get keyId inside signChallenge. In signChallenge:
-        // const assertion = await navigator.credentials.get(options);
-        // We can return { ... webauthnSig, keyIdBase64: Buffer.from(assertion.rawId).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '') }!
-        // Yes, let's write a lookup in Firestore!
+        const keyIdBase64 = webauthnSig.keyIdBase64;
         
-        // Wait, since we need keyIdBase64, we can look up the user profile.
-        // Let's check if the browser returned assertion has the rawId.
-        // Yes, assertion.rawId is the credential ID!
+        const userDoc = await getDoc(doc(db, 'users', keyIdBase64));
+        if (!userDoc.exists()) {
+          throw new Error("No smart wallet found for this passkey.");
+        }
         
-        // Let's retrieve credential.rawId base64 and look up user:
-        // (Wait, we will make sure our signChallenge or passkeyWallet helper handles it)
+        const { walletAddress } = userDoc.data();
+        
+        // Update session
+        await updateDoc(doc(db, 'sessions', sessionId), {
+          status: 'completed',
+          walletAddress,
+          keyIdBase64
+        });
+        
+        setSuccess(true);
+        toast.success('Successfully connected!');
       }
     } catch (err) {
       console.error(err);

@@ -1,16 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { rpc, scValToNative, xdr, Horizon } from "@stellar/stellar-sdk";
+import { rpc, scValToNative } from "@stellar/stellar-sdk";
 
+const rpcServer = new rpc.Server("https://soroban-testnet.stellar.org");
 
 const LiveDonationFeed = ({ contractId }) => {
   const [events, setEvents] = useState([]);
   const [status, setStatus] = useState('Disconnected');
   const lastLedgerRef = useRef(null);
-  const rpcServer = new rpc.Server("https://soroban-testnet.stellar.org");
 
-  const [lastUpdated, setLastUpdated] = useState(Date.now());
-  const [backoff, setBackoff] = useState(1000);
-  const server = new Horizon.Server("https://horizon-testnet.stellar.org");
+  const [lastUpdated, setLastUpdated] = useState(() => Date.now());
 
   useEffect(() => {
     let isMounted = true;

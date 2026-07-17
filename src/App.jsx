@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import toast, { Toaster } from 'react-hot-toast';
-import { BrowserRouter, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
-import { HelmetProvider } from 'react-helmet-async';
+import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
+import { Buffer } from 'buffer';
+
 import { 
   Networks, 
   Transaction, 
@@ -29,8 +30,7 @@ import {
   registerPasskey,
   signChallenge,
   signSorobanAuthsWithPasskey,
-  sponsorAndSubmit,
-  isWebAuthnSupported
+  sponsorAndSubmit
 } from './lib/passkeyWallet';
 
 // Components
@@ -54,24 +54,12 @@ import {
   updateDoc, 
   doc, 
   getDoc,
-  deleteDoc,
-  serverTimestamp,
-  orderBy
+  serverTimestamp
 } from 'firebase/firestore';
 
 
 // Constants
 const toI128 = (n) => nativeToScVal(BigInt(Math.floor(parseFloat(n) * 10000000)), { type: "i128" });
-const fromI128 = (v) => {
-  if (v === null || v === undefined) return 0;
-  let val;
-  if (typeof v === 'bigint') val = v;
-  else if (typeof v === 'number') val = BigInt(v);
-  else {
-    try { val = BigInt(v); } catch(e) { return 0; }
-  }
-  return Number(val) / 10000000;
-};
 
 const validateContractId = (val, fallback) => {
   return (val && val.length === 56 && val.startsWith('C')) ? val : fallback;
@@ -127,13 +115,13 @@ function AppContent() {
   const location = useLocation();
 
   // Wallet State
-  const [address, setAddress] = useState('');
-  const [walletName, setWalletName] = useState('');
+  const [address, setAddress] = useState(() => localStorage.getItem('smart_wallet_address') || '');
+  const [walletName, setWalletName] = useState(() => localStorage.getItem('smart_wallet_address') ? 'Smart Wallet' : '');
   const [balance, setBalance] = useState('0.00');
 
   // Passkey Smart Wallet State
-  const [isPasskeyWallet, setIsPasskeyWallet] = useState(false);
-  const [passkeyKeyId, setPasskeyKeyId] = useState('');
+  const [isPasskeyWallet, setIsPasskeyWallet] = useState(() => !!localStorage.getItem('smart_wallet_address'));
+  const [passkeyKeyId, setPasskeyKeyId] = useState(() => localStorage.getItem('smart_wallet_key_id') || '');
 
   // Modals & Guided Walkthrough State
   const [showOnboardingModal, setShowOnboardingModal] = useState(false);
@@ -149,10 +137,11 @@ function AppContent() {
   const [copied, setCopied] = useState(false);
 
   // Device Environment Detection
-  const [deviceEnv, setDeviceEnv] = useState({
-    isMobile: false,
-    hasExtension: false,
-    primaryPath: 'connect',
+  const [deviceEnv] = useState(() => {
+    const isMobile = typeof navigator !== 'undefined' ? /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) : false;
+    const hasExtension = typeof window !== 'undefined' ? !!(window.freighter || window.xbull || window.albedo) : false;
+    const primaryPath = (isMobile || !hasExtension) ? 'quickstart' : 'connect';
+    return { isMobile, hasExtension, primaryPath };
   });
 
   // Campaign Data State
@@ -162,7 +151,7 @@ function AppContent() {
 
   // On-Chain Data
   const [totalDonations, setTotalDonations] = useState(0); 
-  const [vaultStats, setVaultStats] = useState({ total_deposited: '0', total_withdrawn: '0', current_balance: '0', deposit_count: 0 });
+  const [vaultStats] = useState({ total_deposited: '0', total_withdrawn: '0', current_balance: '0', deposit_count: 0 });
   
   const [isFetchingData, setIsFetchingData] = useState(false);
   const [isSending, setIsSending] = useState(false);
@@ -170,7 +159,7 @@ function AppContent() {
   const [txStatus, setTxStatus] = useState(null);
   const [txHash, setTxHash] = useState('');
   const [lastDonationAt, setLastDonationAt] = useState(null);
-  const [lastUpdated, setLastUpdated] = useState({ wallet: Date.now(), vault: Date.now(), marketplace: Date.now() });
+  const [lastUpdated, setLastUpdated] = useState(() => ({ wallet: Date.now(), vault: Date.now(), marketplace: Date.now() }));
 
   const [newCampaign, setNewCampaign] = useState({ 
     name: '', 
@@ -180,34 +169,7 @@ function AppContent() {
     vaultContractId: VAULT_CONTRACT_ID 
   });
 
-  // Restore passkey smart wallet from localStorage on page load
-  useEffect(() => {
-    const savedAddr = localStorage.getItem('smart_wallet_address');
-    const savedKeyId = localStorage.getItem('smart_wallet_key_id');
-    if (savedAddr && savedKeyId) {
-      setAddress(savedAddr);
-      setPasskeyKeyId(savedKeyId);
-      setIsPasskeyWallet(true);
-      setWalletName("Smart Wallet");
-    }
-  }, []);
-
-  // Detect user device environment and wallet extension presence
-  useEffect(() => {
-    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-    const hasExtension = !!(window.freighter || window.xbull || window.albedo);
-    
-    let primaryPath = 'connect';
-    if (isMobile) {
-      primaryPath = 'quickstart';
-    } else if (!hasExtension) {
-      primaryPath = 'quickstart';
-    } else {
-      primaryPath = 'connect';
-    }
-    
-    setDeviceEnv({ isMobile, hasExtension, primaryPath });
-  }, []);
+  // Restoring smart wallet address and detecting device env is now done in lazy state initializers above.
 
   // Real-time listener for All Active Campaigns (no wallet needed)
   useEffect(() => {
@@ -237,7 +199,7 @@ function AppContent() {
   // Real-time listener for Admin's Campaigns — resets when wallet changes/disconnects
   useEffect(() => {
     if (!address) {
-      setCampaigns([]); // Clear stale campaigns when wallet disconnects
+      Promise.resolve().then(() => setCampaigns(prev => prev.length > 0 ? [] : prev)); // Clear stale campaigns when wallet disconnects
       return;
     }
     const q = query(
@@ -261,7 +223,7 @@ function AppContent() {
   }, [address]);
 
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     if (!address) return;
     setIsFetchingData(true);
     try {
@@ -298,15 +260,15 @@ function AppContent() {
     } finally {
       setIsFetchingData(false);
     }
-  };
+  }, [address, allCampaigns]);
 
   useEffect(() => {
     if (address) {
-      fetchData();
+      Promise.resolve().then(() => fetchData());
       const timer = setInterval(fetchData, 15000);
       return () => clearInterval(timer);
     }
-  }, [address]);
+  }, [address, fetchData]);
 
   const connectWallet = async () => {
     console.log("Connect Wallet triggered -> opening onboarding choices");
@@ -626,7 +588,7 @@ function AppContent() {
           account = await server.loadAccount(address);
         } catch (err) {
           if (err?.response?.status === 404) {
-            throw new Error("Your account does not exist on Testnet. Please fund it using Friendbot first.");
+            throw new Error("Your account does not exist on Testnet. Please fund it using Friendbot first.", { cause: err });
           }
           console.warn("Could not load account from Horizon, using fallback:", err);
           account = new Account(address, "0");
@@ -652,7 +614,7 @@ function AppContent() {
         const { signedTxXdr } = await kit.signTransaction(prepared.toXDR(), { networkPassphrase: NETWORK_PASSPHRASE });
         
         console.log("Step 4: Submitting to Network...");
-        const send = await rpcServer.sendTransaction(new Transaction(signedTxXdr, NETWORK_PASSPHRASE));
+        const send = await rpcServer.sendTransaction(TransactionBuilder.fromXDR(signedTxXdr, NETWORK_PASSPHRASE));
         console.log("Transaction Hash:", send.hash, "Status:", send.status);
         
         if (send.status === "ERROR") {
@@ -747,7 +709,7 @@ function AppContent() {
         let account;
         try {
           account = await server.loadAccount(address);
-        } catch (err) {
+        } catch {
           account = new Account(address, "0");
         }
         const builder = new TransactionBuilder(account, { fee: "10000", networkPassphrase: NETWORK_PASSPHRASE });
@@ -764,7 +726,7 @@ function AppContent() {
 
         const prepared = rpc.assembleTransaction(tx, sim).build();
         const { signedTxXdr } = await kit.signTransaction(prepared.toXDR(), { networkPassphrase: NETWORK_PASSPHRASE });
-        const send = await rpcServer.sendTransaction(new Transaction(signedTxXdr, NETWORK_PASSPHRASE));
+        const send = await rpcServer.sendTransaction(TransactionBuilder.fromXDR(signedTxXdr, NETWORK_PASSPHRASE));
         if (send.status === "ERROR") {
           throw new Error(`Transaction rejected: ${send.errorResultXdr || "Unknown"}`);
         }
@@ -854,7 +816,7 @@ function AppContent() {
         let account;
         try {
           account = await server.loadAccount(address);
-        } catch (err) {
+        } catch {
           account = new Account(address, "0");
         }
 
@@ -906,7 +868,7 @@ function AppContent() {
     try {
       await updateDoc(doc(db, "campaigns", id), { isActive: false });
       toast.success("Campaign deactivated");
-    } catch (e) {
+    } catch {
       toast.error("Failed to deactivate");
     }
   };

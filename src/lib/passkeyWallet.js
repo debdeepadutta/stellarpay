@@ -9,7 +9,10 @@ import {
 // We rebuild it manually using the raw XDR types.
 function buildAuthPreimage(entry, networkPassphrase) {
   const networkId = hash(Buffer.from(networkPassphrase));
-  const addrCreds = entry.credentials().address();
+  const creds = entry.credentials();
+  const addrCreds = creds.switch().name === 'sorobanCredentialsAddress'
+    ? creds.address()
+    : creds.addressV2();
   const preimage = xdr.HashIdPreimage.envelopeTypeSorobanAuthorization(
     new xdr.HashIdPreimageSorobanAuthorization({
       networkId,
@@ -97,12 +100,11 @@ export async function registerPasskey(username) {
   }
 
   const challenge = window.crypto.getRandomValues(new Uint8Array(32));
-  // Use a STABLE rpId so passkeys survive Vercel re-deployments to new URLs.
-  // For localhost dev, use hostname. For production, use the stable Vercel project alias.
   const hostname = window.location.hostname;
-  const rpId = hostname === 'localhost' || hostname === '127.0.0.1'
-    ? hostname
-    : 'stellarpay-debdeepa-duttas-projects.vercel.app';
+  const rpId = import.meta.env.VITE_PASSKEY_RP_ID || 
+    (hostname === 'localhost' || hostname === '127.0.0.1'
+      ? hostname
+      : 'stellarpay-debdeepa-duttas-projects.vercel.app');
 
   const options = {
     publicKey: {
@@ -171,9 +173,10 @@ export async function signChallenge(challengeBytes, keyIdBase64) {
   }
 
   const hostname = window.location.hostname;
-  const rpId = hostname === 'localhost' || hostname === '127.0.0.1'
-    ? hostname
-    : 'stellarpay-debdeepa-duttas-projects.vercel.app';
+  const rpId = import.meta.env.VITE_PASSKEY_RP_ID || 
+    (hostname === 'localhost' || hostname === '127.0.0.1'
+      ? hostname
+      : 'stellarpay-debdeepa-duttas-projects.vercel.app');
   const allowCredentials = [];
   
   if (keyIdBase64) {

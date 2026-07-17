@@ -14,8 +14,22 @@ export default defineConfig([
       reactRefresh.configs.vite,
     ],
     languageOptions: {
-      globals: globals.browser,
+      globals: {
+        ...globals.browser,
+        ...globals.vitest,
+      },
       parserOptions: { ecmaFeatures: { jsx: true } },
+    },
+    rules: {
+      'no-unused-vars': ['error', { varsIgnorePattern: '^React$' }],
+    },
+  },
+  {
+    files: ['vite.config.js', 'eslint.config.js', 'server/**/*.js', 'deploy.cjs'],
+    languageOptions: {
+      globals: {
+        ...globals.node,
+      },
     },
   },
 ])

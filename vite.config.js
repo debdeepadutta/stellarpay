@@ -23,7 +23,7 @@ export default defineConfig(async () => {
     try {
       const tailwindcss = (await import('@tailwindcss/vite')).default;
       plugins.push(tailwindcss());
-    } catch (e) {
+    } catch {
       console.warn("Tailwind plugin skipped (likely in test environment)");
     }
   }

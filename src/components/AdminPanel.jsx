@@ -20,9 +20,8 @@ const AdminPanel = ({ contractId, vaultContractId, connectedWallet, networkPassp
   const [adminAddress, setAdminAddress] = useState(initialAdmin || "");
   const [vaultBalance, setVaultBalance] = useState(0);
   const [history, setHistory] = useState([]);
-  const [loading, setLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState(null); // 'cap' or 'withdraw'
-  const [lastUpdated, setLastUpdated] = useState(Date.now());
+  const [lastUpdated, setLastUpdated] = useState(() => Date.now());
   const [withdrawAmount, setWithdrawAmount] = useState("");
   const [withdrawDest, setWithdrawDest] = useState("");
 
@@ -111,10 +110,10 @@ const AdminPanel = ({ contractId, vaultContractId, connectedWallet, networkPassp
       console.error("Admin fetch error:", err);
     }
 
-  }, [connectedWallet, contractId, vaultContractId, networkPassphrase, campaignId]);
+  }, [connectedWallet, contractId, vaultContractId, networkPassphrase, campaignId, initialAdmin]);
 
   useEffect(() => {
-    fetchData();
+    Promise.resolve().then(() => fetchData());
     const interval = setInterval(fetchData, 30000);
     return () => clearInterval(interval);
   }, [fetchData]);
@@ -139,10 +138,10 @@ const AdminPanel = ({ contractId, vaultContractId, connectedWallet, networkPassp
       try {
         const horizonServer = new Horizon.Server("https://horizon-testnet.stellar.org");
         account = await horizonServer.loadAccount(connectedWallet);
-      } catch (err) {
-        if (err?.response?.status === 404) {
-          throw new Error("Your account does not exist on Testnet. Please fund it using Friendbot first.");
-        }
+        } catch (err) {
+          if (err?.response?.status === 404) {
+            throw new Error("Your account does not exist on Testnet. Please fund it using Friendbot first.", { cause: err });
+          }
         console.warn("Could not load account from Horizon, using fallback:", err);
         account = new Account(connectedWallet, "0");
       }

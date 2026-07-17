@@ -1,5 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
+
+const RelativeTime = ({ timestamp }) => {
+  const [seconds, setSeconds] = useState(() => Math.floor((Date.now() - timestamp) / 1000));
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setSeconds(Math.floor((Date.now() - timestamp) / 1000));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [timestamp]);
+  return <>{seconds === 0 ? 'Just now' : `${seconds}s ago`}</>;
+};
 
 const RELAYER_BASE = import.meta.env.VITE_SPONSOR_RELAYER_URL
   ? import.meta.env.VITE_SPONSOR_RELAYER_URL.replace('/sponsor-and-submit', '')
@@ -73,9 +84,7 @@ const WalletCard = ({ address, balance, isFetching, lastUpdated, onBalanceRefres
             </div>
             {address && !isFetching && (
               <div className="text-[10px] text-slate-500 font-bold uppercase tracking-widest text-right">
-                Last Sync: {Math.floor((Date.now() - lastUpdated) / 1000) === 0
-                  ? 'Just now'
-                  : `${Math.floor((Date.now() - lastUpdated) / 1000)}s ago`}
+                Last Sync: <RelativeTime timestamp={lastUpdated} />
               </div>
             )}
           </div>
