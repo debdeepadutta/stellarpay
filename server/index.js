@@ -169,20 +169,13 @@ app.post('/api/fund-contract', async (req, res) => {
     const builder = new TransactionBuilder(sponsorAccount, { fee: '10000', networkPassphrase: NETWORK_PASSPHRASE });
     const NATIVE_CONTRACT = 'CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC';
     
-    const { Address, nativeToScVal } = require('@stellar/stellar-sdk');
+    const sdk = await import('@stellar/stellar-sdk');
+    const { Address, nativeToScVal } = sdk;
+    
     const from = new Address(sponsorKeypair.publicKey()).toScVal();
     const to = new Address(contractId).toScVal();
     const amount = nativeToScVal(10000000000, { type: 'i128' }); // 1000 XLM
 
-    builder.addOperation(import('@stellar/stellar-sdk').then(sdk => sdk.Operation.invokeContractFunction({
-      contract: NATIVE_CONTRACT,
-      function: 'transfer',
-      args: [from, to, amount]
-    }))).setTimeout(120);
-    // Wait, import() is async, Operation is already imported at the top!
-    
-    // Re-writing this without the dynamic import bug:
-    builder.operations = []; // reset in case
     builder.addOperation(Operation.invokeContractFunction({
       contract: NATIVE_CONTRACT,
       function: 'transfer',
