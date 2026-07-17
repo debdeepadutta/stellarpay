@@ -1,7 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import { Transaction, Keypair, Networks, rpc } from '@stellar/stellar-sdk';
+import { Transaction, Keypair, Networks, rpc, TransactionBuilder } from '@stellar/stellar-sdk';
 
 // Load environment variables from parent directory if present, otherwise local
 dotenv.config({ path: '../.env' });
@@ -46,16 +46,47 @@ app.post('/api/sponsor-and-submit', async (req, res) => {
       });
     }
 
-    // 3. Sign the transaction with the sponsor keypair
+    // 3. Fetch latest sequence number for sponsor account
     const sponsorKeypair = Keypair.fromSecret(SPONSOR_SECRET_KEY);
-    tx.sign(sponsorKeypair);
+    const horizonServer = new rpc.Server(RPC_URL); // reusing rpc server? No, we need horizon or rpc getAccount
+    // Actually, in Soroban RPC, we can use getTransaction or we can load the account via horizon.
+    // We can also just use Stellar SDK's native horizon client
+    const { Horizon } = await import('@stellar/stellar-sdk');
+    const horizonUrl = process.env.VITE_HORIZON_URL || 'https://horizon-testnet.stellar.org';
+    const server = new Horizon.Server(horizonUrl);
+    
+    let sponsorAccount;
+    try {
+      sponsorAccount = await server.loadAccount(sponsorKeypair.publicKey());
+    } catch (e) {
+      throw new Error(`Failed to load sponsor account from network: ${e.message}`);
+    }
 
-    const signedXdr = tx.toXDR();
-    console.log(`[Sponsor] Sponsoring transaction with source ${sponsorKeypair.publicKey()}`);
+    // 4. Rebuild transaction with correct sequence number
+    // We extract operations and sorobanData from the original tx
+    const builder = new TransactionBuilder(sponsorAccount, {
+      fee: '100000', // Set a safe fee, or copy from tx
+      networkPassphrase: NETWORK_PASSPHRASE
+    });
 
-    // 4. Submit to Soroban RPC
+    tx.operations.forEach(op => builder.addOperation(op));
+    
+    let newTx = builder.setTimeout(300).build();
+    
+    // Copy soroban data if present (for smart wallet auths)
+    if (tx.sorobanData) {
+      newTx.sorobanData = tx.sorobanData;
+    }
+
+    // 5. Sign the rebuilt transaction
+    newTx.sign(sponsorKeypair);
+
+    const signedXdr = newTx.toXDR();
+    console.log(`[Sponsor] Sponsoring transaction with source ${sponsorKeypair.publicKey()}, seq ${sponsorAccount.sequenceNumber()}`);
+
+    // 6. Submit to Soroban RPC
     console.log(`[Sponsor] Submitting to RPC: ${RPC_URL}`);
-    const response = await rpcServer.sendTransaction(tx);
+    const response = await rpcServer.sendTransaction(newTx);
     
     if (response.status === 'ERROR') {
       console.error('[Sponsor] Submission failed:', response.errorResultXdr || response);
