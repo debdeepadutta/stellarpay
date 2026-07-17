@@ -82,7 +82,7 @@ app.post('/api/sponsor-and-submit', async (req, res) => {
     }
     
     // Assemble the final transaction with the simulated data and required fees
-    mutableTx = rpc.assembleTransaction(mutableTx, NETWORK_PASSPHRASE, simResult).build();
+    mutableTx = rpc.assembleTransaction(mutableTx, simResult).build();
 
     // 6. Sign the rebuilt transaction
     mutableTx.sign(sponsorKeypair);
