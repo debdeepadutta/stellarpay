@@ -2,7 +2,8 @@ import {
   xdr, 
   Address, 
   hash, 
-  Networks 
+  Networks,
+  rpc
 } from '@stellar/stellar-sdk';
 
 // buildAuthorizationEntryPreimage was removed in stellar-sdk v15.
@@ -246,6 +247,18 @@ export function buildSorobanSignatureScVal(authenticatorData, clientDataJSON, si
 
 // 3. Loop through transaction auth entries, request passkey signatures, and inject them
 export async function signSorobanAuthsWithPasskey(tx, keyIdBase64, walletAddressHex, latestLedger) {
+  let currentLedger = latestLedger;
+  if (!currentLedger) {
+    try {
+      const rpcServer = new rpc.Server("https://soroban-testnet.stellar.org");
+      const latest = await rpcServer.getLatestLedger();
+      currentLedger = latest.sequence;
+      console.log("[Passkey] Fetched latest ledger from RPC:", currentLedger);
+    } catch (e) {
+      console.warn("[Passkey] Failed to fetch latest ledger from RPC, using fallback:", e);
+    }
+  }
+
   const auths = [];
   
   if (tx && tx.tx && typeof tx.tx.operations === 'function') {
@@ -290,9 +303,9 @@ export async function signSorobanAuthsWithPasskey(tx, keyIdBase64, walletAddress
         : credentials.addressV2().address();
         
       const entryAddr = Address.fromScAddress(addressVal).toString();
-      if (entryAddr === walletAddressHex) {
-        if (latestLedger) {
-          const futureExpiration = Number(latestLedger) + 500;
+      if (entryAddr.toUpperCase() === walletAddressHex.toUpperCase()) {
+        if (currentLedger) {
+          const futureExpiration = Number(currentLedger) + 1000;
           if (credentials.switch().name === 'sorobanCredentialsAddress') {
             credentials.address().signatureExpirationLedger(futureExpiration);
           } else if (credentials.switch().name === 'sorobanCredentialsAddressV2') {
