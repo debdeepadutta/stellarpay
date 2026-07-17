@@ -121,6 +121,7 @@ describe('Stellar Philanthropy DApp', () => {
     renderApp();
     const connectBtns = screen.getAllByText(/Connect Wallet/i);
     fireEvent.click(connectBtns[0]);
+    fireEvent.click(screen.getAllByText(/Connect Wallet/i)[1]);
     expect(await screen.findByText(/GBYQ\.\.\.L2F6/i)).toBeInTheDocument();
   });
 
@@ -135,6 +136,7 @@ describe('Stellar Philanthropy DApp', () => {
   it('navigates to admin portal and shows empty state', async () => {
     renderApp();
     fireEvent.click(screen.getAllByText(/Connect Wallet/i)[0]);
+    fireEvent.click(screen.getAllByText(/Connect Wallet/i)[1]);
     await screen.findByText(/GBYQ\.\.\.L2F6/i);
     const adminBtn = screen.getByText(/Enter Terminal/i);
     fireEvent.click(adminBtn);
