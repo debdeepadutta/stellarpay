@@ -219,6 +219,83 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', network: NETWORK_PASSPHRASE, rpc: RPC_URL });
 });
 
+// Priority 7: Subscription / Recurring Donations
+const activeSubscriptions = [];
+
+// Register a subscription for the cron job to track
+app.post('/api/register-subscription', (req, res) => {
+  const { contractId, campaignId, donor, interval } = req.body;
+  if (!contractId || !campaignId || !donor || !interval) {
+    return res.status(400).json({ error: 'Missing parameters' });
+  }
+  
+  // Store the next execution time based on the interval (in seconds)
+  activeSubscriptions.push({
+    contractId,
+    campaignId,
+    donor,
+    interval: parseInt(interval, 10),
+    nextExecution: Date.now() + (parseInt(interval, 10) * 1000)
+  });
+  
+  console.log(`[Cron] Registered subscription for donor ${donor} to campaign ${campaignId}`);
+  res.json({ success: true });
+});
+
+// Run a background cron every 10 seconds to check for due subscriptions
+setInterval(async () => {
+  const now = Date.now();
+  for (const sub of activeSubscriptions) {
+    if (now >= sub.nextExecution) {
+      console.log(`[Cron] Triggering subscription for ${sub.donor} to ${sub.campaignId}...`);
+      
+      try {
+        if (!SPONSOR_SECRET_KEY) continue;
+        const sponsorKeypair = Keypair.fromSecret(SPONSOR_SECRET_KEY);
+        
+        const horizonUrl = process.env.VITE_HORIZON_URL || 'https://horizon-testnet.stellar.org';
+        const server = new Horizon.Server(horizonUrl);
+        const sponsorAccount = await server.loadAccount(sponsorKeypair.publicKey());
+        
+        const builder = new TransactionBuilder(sponsorAccount, { fee: '200000', networkPassphrase: NETWORK_PASSPHRASE });
+        const sdk = await import('@stellar/stellar-sdk');
+        const { Address, nativeToScVal } = sdk;
+        
+        const campaignIdScVal = sdk.xdr.ScVal.scvSymbol(sub.campaignId);
+        const donorScVal = new Address(sub.donor).toScVal();
+        
+        builder.addOperation(Operation.invokeContractFunction({
+          contract: sub.contractId,
+          function: 'trigger_subscription_donation',
+          args: [campaignIdScVal, donorScVal]
+        })).setTimeout(120);
+        
+        let tx = builder.build();
+        const simResult = await rpcServer.simulateTransaction(tx);
+        
+        if (rpc.Api.isSimulationError(simResult)) {
+          console.error(`[Cron] Simulation failed for subscription trigger:`, simResult.error);
+        } else {
+          let prepared = rpc.assembleTransaction(tx, simResult).build();
+          prepared.sign(sponsorKeypair);
+          
+          const response = await rpcServer.sendTransaction(prepared);
+          if (response.status === 'ERROR') {
+             console.error(`[Cron] Subscription trigger failed:`, response.errorResultXdr);
+          } else {
+             console.log(`[Cron] Subscription triggered successfully! Hash: ${response.hash}`);
+          }
+        }
+      } catch (err) {
+        console.error(`[Cron] Error triggering subscription:`, err.message);
+      }
+      
+      // Update next execution
+      sub.nextExecution = now + (sub.interval * 1000);
+    }
+  }
+}, 10000);
+
 if (process.env.NODE_ENV !== 'production' || process.env.RUN_LOCAL === 'true') {
   app.listen(PORT, () => {
     console.log(`Sponsorship relayer server running on port ${PORT}`);

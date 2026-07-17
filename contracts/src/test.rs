@@ -1,7 +1,7 @@
 #![cfg(test)]
 
 use super::*;
-use soroban_sdk::{testutils::{Address as _, Events}, Address, Env, IntoVal, Symbol, token};
+use soroban_sdk::{testutils::{Address as _, Events, Ledger}, Address, Env, IntoVal, Symbol, token};
 
 // Mock Logger Contract
 #[contract]
@@ -171,3 +171,62 @@ fn test_sbt_integration_flow() {
     assert_eq!(receipt.category, category);
 }
 
+#[test]
+fn test_subscription_flow() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let (admin, _token_id, _logger, vault, token_client, token_admin_client, client) = setup_test(&env);
+    client.initialize(&admin, &_token_id, &_logger, &vault);
+
+    let campaign_id = Symbol::new(&env, "camp_sub");
+    let verifier = Address::generate(&env);
+    let mut milestones = Vec::new(&env);
+    milestones.push_back(100);
+    client.create_campaign(&campaign_id, &admin, &1000, &milestones, &verifier, &Symbol::new(&env, "tech"));
+
+    let donor = Address::generate(&env);
+    let relayer = Address::generate(&env);
+    token_admin_client.mint(&donor, &1000);
+
+    // Setup subscription: 100 XLM, every 3600 seconds (1 hour)
+    client.subscribe(&campaign_id, &donor, &100, &3600, &relayer);
+
+    // Approve the contract to spend the donor's tokens
+    token_client.approve(&donor, &client.address, &1000, &200000);
+
+    // Advance time by 3601 seconds
+    env.ledger().set_timestamp(3601);
+
+    // Trigger subscription (simulating the relayer calling it)
+    client.trigger_subscription_donation(&campaign_id, &donor);
+
+    assert_eq!(client.get_campaign_total(&campaign_id), 100);
+    assert_eq!(token_client.balance(&donor), 900);
+}
+
+#[test]
+#[should_panic(expected = "Too early")]
+fn test_subscription_too_early() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let (admin, _token_id, _logger, vault, _token_client, token_admin_client, client) = setup_test(&env);
+    client.initialize(&admin, &_token_id, &_logger, &vault);
+
+    let campaign_id = Symbol::new(&env, "camp_sub2");
+    let verifier = Address::generate(&env);
+    let mut milestones = Vec::new(&env);
+    milestones.push_back(100);
+    client.create_campaign(&campaign_id, &admin, &1000, &milestones, &verifier, &Symbol::new(&env, "tech"));
+
+    let donor = Address::generate(&env);
+    let relayer = Address::generate(&env);
+    token_admin_client.mint(&donor, &1000);
+
+    // Subscribe
+    env.ledger().set_timestamp(1000);
+    client.subscribe(&campaign_id, &donor, &100, &3600, &relayer);
+
+    // Trigger immediately (should panic because 1000 < 4600)
+    client.trigger_subscription_donation(&campaign_id, &donor);
+}

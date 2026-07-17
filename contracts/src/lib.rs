@@ -40,6 +40,15 @@ pub struct DonorReputation {
 }
 
 #[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct Subscription {
+    pub amount: i128,
+    pub interval: u64,
+    pub next_execution: u64,
+    pub relayer: Address,
+}
+
+#[contracttype]
 #[derive(Clone)]
 pub enum DataKey {
     Admin,
@@ -55,6 +64,7 @@ pub enum DataKey {
     DonorReputation(Address),
     DonorCampaignSeen(Address, Symbol), // whether donor has donated to this campaign before
     Sbt,                                // SBT contract address for impact receipts
+    Subscription(Address, Symbol),      // (donor, campaign_id)
 }
 
 #[contract]
@@ -140,7 +150,12 @@ impl DonationContract {
     /// Donate tokens to a specific campaign. Updates registry, transfers funds to Vault, and calls Logger.
     pub fn donate(env: Env, campaign_id: Symbol, donor: Address, amount: i128) {
         donor.require_auth();
+        Self::internal_donate(env, campaign_id, donor, amount, false);
+    }
 
+    /// Internal function to execute donation logic without requiring donor auth directly
+    /// (used by trigger_subscription_donation which is authenticated by the relayer).
+    fn internal_donate(env: Env, campaign_id: Symbol, donor: Address, amount: i128, from_allowance: bool) {
         if amount <= 0 {
             panic!("Amount must be positive");
         }
@@ -175,7 +190,11 @@ impl DonationContract {
         let vault_addr: Address = env.storage().instance().get(&DataKey::Vault).expect("Vault not set");
         
         let token_client = token::Client::new(&env, &token_addr);
-        token_client.transfer(&donor, &vault_addr, &amount);
+        if from_allowance {
+            token_client.transfer_from(&env.current_contract_address(), &donor, &vault_addr, &amount);
+        } else {
+            token_client.transfer(&donor, &vault_addr, &amount);
+        }
         
         // Call Vault.deposit (for campaign-specific accounting)
         env.invoke_contract::<()>(
@@ -320,6 +339,65 @@ impl DonationContract {
         }
 
         env.storage().persistent().set(&top_key, &final_list);
+    }
+
+    /// Setup a recurring subscription. The `donor` must sign this transaction.
+    /// `interval` is in seconds. The donor must have already approved the donation contract
+    /// via the token's `approve` method.
+    pub fn subscribe(
+        env: Env,
+        campaign_id: Symbol,
+        donor: Address,
+        amount: i128,
+        interval: u64,
+        relayer: Address,
+    ) {
+        donor.require_auth();
+
+        if amount <= 0 {
+            panic!("Amount must be positive");
+        }
+        if interval == 0 {
+            panic!("Interval must be positive");
+        }
+
+        let key = DataKey::Subscription(donor.clone(), campaign_id.clone());
+        let sub = Subscription {
+            amount,
+            interval,
+            next_execution: env.ledger().timestamp() + interval,
+            relayer: relayer.clone(),
+        };
+        env.storage().persistent().set(&key, &sub);
+        
+        env.events().publish(
+            (symbol_short!("subscribe"), campaign_id, donor),
+            (amount, interval, relayer)
+        );
+    }
+
+    /// Trigger a subscription donation. The `relayer` must sign this transaction.
+    pub fn trigger_subscription_donation(
+        env: Env,
+        campaign_id: Symbol,
+        donor: Address,
+    ) {
+        let key = DataKey::Subscription(donor.clone(), campaign_id.clone());
+        let mut sub: Subscription = env.storage().persistent().get(&key).expect("No subscription found");
+        
+        sub.relayer.require_auth();
+
+        let current_time = env.ledger().timestamp();
+        if current_time < sub.next_execution {
+            panic!("Too early to trigger subscription");
+        }
+
+        // Execute donation (pulling funds using transfer_from)
+        Self::internal_donate(env.clone(), campaign_id.clone(), donor.clone(), sub.amount, true);
+
+        // Update next execution time
+        sub.next_execution = current_time + sub.interval;
+        env.storage().persistent().set(&key, &sub);
     }
 }
 
