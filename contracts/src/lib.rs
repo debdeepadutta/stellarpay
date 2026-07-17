@@ -31,6 +31,15 @@ pub struct VaultStats {
 }
 
 #[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct DonorReputation {
+    pub total_donated: i128,
+    pub campaign_count: u32,
+    pub score: i128,  // total_donated / 10_000_000 (XLM) * 10 + campaign_count * 50
+    pub last_donation_at: u64,
+}
+
+#[contracttype]
 #[derive(Clone)]
 pub enum DataKey {
     Admin,
@@ -43,6 +52,8 @@ pub enum DataKey {
     CampaignTopDonors(Symbol),
     DonorTotal(Address),
     TopDonors,
+    DonorReputation(Address),
+    DonorCampaignSeen(Address, Symbol), // whether donor has donated to this campaign before
 }
 
 #[contract]
@@ -173,6 +184,27 @@ impl DonationContract {
             (donor.clone(), amount, env.ledger().timestamp()).into_val(&env),
         );
 
+        // 8. Update global donor reputation
+        let seen_key = DataKey::DonorCampaignSeen(donor.clone(), campaign_id.clone());
+        let already_donated_here: bool = env.storage().persistent().get(&seen_key).unwrap_or(false);
+        
+        let rep_key = DataKey::DonorReputation(donor.clone());
+        let mut rep: DonorReputation = env.storage().persistent().get(&rep_key).unwrap_or(DonorReputation {
+            total_donated: 0,
+            campaign_count: 0,
+            score: 0,
+            last_donation_at: 0,
+        });
+        rep.total_donated += amount;
+        if !already_donated_here {
+            rep.campaign_count += 1;
+            env.storage().persistent().set(&seen_key, &true);
+        }
+        rep.last_donation_at = env.ledger().timestamp();
+        // Score: 10 pts per XLM donated + 50 pts per unique campaign
+        rep.score = (rep.total_donated / 10_000_000) * 10 + (rep.campaign_count as i128) * 50;
+        env.storage().persistent().set(&rep_key, &rep);
+
         // 7. Emit typed event
         env.events().publish(
             (symbol_short!("donation"), campaign_id, donor),
@@ -218,6 +250,11 @@ impl DonationContract {
     pub fn get_campaign_top_donors(env: Env, campaign_id: Symbol) -> Vec<(Address, i128)> {
         env.storage().persistent().get(&DataKey::CampaignTopDonors(campaign_id))
             .unwrap_or(Vec::new(&env))
+    }
+
+    /// Return donor reputation score for a given address
+    pub fn get_donor_reputation(env: Env, donor: Address) -> Option<DonorReputation> {
+        env.storage().persistent().get(&DataKey::DonorReputation(donor))
     }
 
     /// Helper to update top 5 donors list for a campaign

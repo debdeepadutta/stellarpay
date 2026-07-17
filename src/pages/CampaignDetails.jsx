@@ -18,12 +18,14 @@ import DonateXLMForm from '../components/SendXLMForm';
 import DonorLeaderboard from '../components/DonorLeaderboard';
 import LiveDonationFeed from '../components/LiveDonationFeed';
 import WalletCard from '../components/WalletCard';
+import ReputationBadge from '../components/ReputationBadge';
 
 const CampaignDetails = ({ address, balance, isFetchingData, handleDonate, handleRegisterOnChain, isSending, txStatus, txHash, lastDonationAt, lastUpdated, fetchData }) => {
   const { id } = useParams();
   const [campaign, setCampaign] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isRegistering, setIsRegistering] = useState(false);
+  const [reputation, setReputation] = useState(null);
 
   useEffect(() => {
     const docRef = doc(db, "campaigns", id);
@@ -99,6 +101,35 @@ const CampaignDetails = ({ address, balance, isFetchingData, handleDonate, handl
 
     return () => unsubscribe();
   }, [id, lastDonationAt]);
+
+  // Fetch donor reputation on-chain whenever address or lastDonationAt changes
+  useEffect(() => {
+    if (!address || !campaign?.donationContractId) return;
+    const fetchRep = async () => {
+      try {
+        const rpcServer = new rpc.Server('https://soroban-testnet.stellar.org');
+        const cid = campaign.donationContractId || campaign.contractId;
+        const { Address } = await import('@stellar/stellar-sdk');
+        const builder = new TransactionBuilder(
+          new Account('GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF', '0'),
+          { fee: '100', networkPassphrase: Networks.TESTNET }
+        );
+        const tx = builder.addOperation(Operation.invokeContractFunction({
+          contract: cid,
+          function: 'get_donor_reputation',
+          args: [Address.fromString(address).toScVal()]
+        })).setTimeout(30).build();
+        const res = await rpcServer.simulateTransaction(tx);
+        if (rpc.Api.isSimulationSuccess(res)) {
+          const val = scValToNative(res.result.retval);
+          if (val) setReputation(val);
+        }
+      } catch (e) {
+        console.warn('Reputation fetch failed:', e);
+      }
+    };
+    fetchRep();
+  }, [address, campaign, lastDonationAt]);
 
   const handleRegister = async () => {
     setIsRegistering(true);
@@ -294,6 +325,13 @@ const CampaignDetails = ({ address, balance, isFetchingData, handleDonate, handl
             lastUpdated={lastUpdated.wallet}
             onBalanceRefresh={fetchData}
           />
+          {reputation && (
+            <ReputationBadge
+              score={Number(BigInt(reputation.score || 0))}
+              totalDonated={reputation.total_donated}
+              campaignCount={Number(reputation.campaign_count || 0)}
+            />
+          )}
         </div>
       </div>
     </div>
