@@ -63,8 +63,9 @@ app.post('/api/sponsor-and-submit', async (req, res) => {
     const envelope = xdr.TransactionEnvelope.fromXDR(txXdr, 'base64');
     const txXdrObj = envelope.v1().tx();
     
-    // Override sequence number
-    txXdrObj.seqNum(new xdr.SequenceNumber(sponsorAccount.sequenceNumber()));
+    // Override sequence number (MUST increment by 1 for new transactions)
+    sponsorAccount.incrementSequenceNumber();
+    txXdrObj.seqNum(xdr.SequenceNumber.fromString(sponsorAccount.sequenceNumber()));
     
     // Override timebounds (add 5 minutes from relayer's local time) to prevent txTooLate errors
     const currentUnix = Math.floor(Date.now() / 1000);
