@@ -184,8 +184,33 @@ export function buildSorobanSignatureScVal(authenticatorData, clientDataJSON, si
 
 // 3. Loop through transaction auth entries, request passkey signatures, and inject them
 export async function signSorobanAuthsWithPasskey(tx, keyIdBase64, walletAddressHex) {
-  const auths = tx.sorobanAuth();
-  if (!auths || auths.length === 0) {
+  const auths = [];
+  
+  if (tx && tx.tx && typeof tx.tx.operations === 'function') {
+    const operations = tx.tx.operations();
+    for (const op of operations) {
+      const opBody = op.body();
+      if (opBody && opBody.switch().name === 'invokeHostFunction') {
+        const invokeHostFn = opBody.invokeHostFunctionOp();
+        if (invokeHostFn && typeof invokeHostFn.auth === 'function') {
+          const opAuths = invokeHostFn.auth();
+          if (opAuths && Array.isArray(opAuths)) {
+            auths.push(...opAuths);
+          }
+        }
+      }
+    }
+  }
+
+  // Fallback for older versions if they exist
+  if (auths.length === 0 && typeof tx.sorobanAuth === 'function') {
+    const legacyAuths = tx.sorobanAuth();
+    if (legacyAuths && Array.isArray(legacyAuths)) {
+      auths.push(...legacyAuths);
+    }
+  }
+
+  if (auths.length === 0) {
     console.log("[Passkey] No auth entries in transaction requiring signature.");
     return tx;
   }
