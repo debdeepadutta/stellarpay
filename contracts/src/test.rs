@@ -24,6 +24,16 @@ impl MockVault {
     pub fn deposit(env: Env, _campaign_id: Symbol, _from: Address, _amount: i128) {
         // Mock deposit logic
     }
+
+    pub fn set_campaign_vault_config(
+        env: Env,
+        _campaign_id: Symbol,
+        _goal: i128,
+        _milestones: Vec<u32>,
+        _verifier: Address,
+    ) {
+        // Mock setup logic
+    }
 }
 
 fn setup_test(env: &Env) -> (Address, Address, Address, Address, token::Client<'_>, token::StellarAssetClient<'_>, DonationContractClient<'_>) {
@@ -55,7 +65,14 @@ fn test_donation_flow() {
     client.initialize(&admin, &token_id, &logger, &vault);
 
     let campaign_id = Symbol::new(&env, "campaign_1");
-    client.create_campaign(&campaign_id, &admin, &1000);
+    let verifier = Address::generate(&env);
+    let mut milestones = Vec::new(&env);
+    milestones.push_back(25);
+    milestones.push_back(50);
+    milestones.push_back(75);
+    milestones.push_back(100);
+    let category = Symbol::new(&env, "education");
+    client.create_campaign(&campaign_id, &admin, &1000, &milestones, &verifier, &category);
 
     let donor = Address::generate(&env);
     token_admin_client.mint(&donor, &2000);
@@ -83,7 +100,11 @@ fn test_top_donors() {
     client.initialize(&admin, &token_id, &logger, &vault);
 
     let campaign_id = Symbol::new(&env, "campaign_1");
-    client.create_campaign(&campaign_id, &admin, &2000);
+    let verifier = Address::generate(&env);
+    let mut milestones = Vec::new(&env);
+    milestones.push_back(25);
+    let category = Symbol::new(&env, "education");
+    client.create_campaign(&campaign_id, &admin, &2000, &milestones, &verifier, &category);
 
     let d1 = Address::generate(&env);
     let d2 = Address::generate(&env);

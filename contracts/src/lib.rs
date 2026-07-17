@@ -17,6 +17,8 @@ pub struct CampaignInfo {
     pub admin: Address,
     pub goal: i128,
     pub total_raised: i128,
+    pub category: Symbol,
+    pub status: Symbol,
 }
 
 #[contracttype]
@@ -69,8 +71,16 @@ impl DonationContract {
         env.storage().instance().set(&DataKey::TopDonors, &empty_top);
     }
 
-    /// Create a new campaign on-chain
-    pub fn create_campaign(env: Env, campaign_id: Symbol, admin: Address, goal: i128) {
+    /// Create a new campaign on-chain with milestones, verifier and category
+    pub fn create_campaign(
+        env: Env,
+        campaign_id: Symbol,
+        admin: Address,
+        goal: i128,
+        milestones: Vec<u32>,
+        verifier: Address,
+        category: Symbol,
+    ) {
         let key = DataKey::Campaign(campaign_id.clone());
         if env.storage().persistent().has(&key) {
             panic!("Campaign already exists");
@@ -83,11 +93,23 @@ impl DonationContract {
             admin: admin.clone(),
             goal,
             total_raised: 0,
+            category: category.clone(),
+            status: Symbol::new(&env, "active"),
         };
         env.storage().persistent().set(&key, &campaign);
         
         let empty_top: Vec<(Address, i128)> = Vec::new(&env);
         env.storage().persistent().set(&DataKey::CampaignTopDonors(campaign_id.clone()), &empty_top);
+
+        // Retrieve the vault contract address
+        let vault_addr: Address = env.storage().instance().get(&DataKey::Vault).expect("Vault not set");
+        
+        // Invoke vault to initialize the milestone configuration
+        env.invoke_contract::<()>(
+            &vault_addr,
+            &Symbol::new(&env, "set_campaign_vault_config"),
+            (campaign_id.clone(), goal, milestones, verifier).into_val(&env),
+        );
 
         // Emit campaign creation event
         env.events().publish(

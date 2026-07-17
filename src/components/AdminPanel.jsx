@@ -20,10 +20,11 @@ const AdminPanel = ({ contractId, vaultContractId, connectedWallet, networkPassp
   const [adminAddress, setAdminAddress] = useState(initialAdmin || "");
   const [vaultBalance, setVaultBalance] = useState(0);
   const [history, setHistory] = useState([]);
-  const [actionLoading, setActionLoading] = useState(null); // 'cap' or 'withdraw'
+  const [actionLoading, setActionLoading] = useState(null); // 'cap' or 'withdraw' or 'approve_M'
   const [lastUpdated, setLastUpdated] = useState(() => Date.now());
   const [withdrawAmount, setWithdrawAmount] = useState("");
   const [withdrawDest, setWithdrawDest] = useState("");
+  const [milestoneConfig, setMilestoneConfig] = useState(null); // { goal, milestones: [...], verifier, approved: [...] }
 
   const isAdmin = connectedWallet?.toString().trim().toUpperCase() === adminAddress?.toString().trim().toUpperCase();
 
@@ -78,9 +79,10 @@ const AdminPanel = ({ contractId, vaultContractId, connectedWallet, networkPassp
       if (connectedWallet && admin && connectedWallet.toString().toUpperCase() === admin.toString().toUpperCase()) {
         if (campaignSymbol) {
           // Multi-campaign: use campaign-specific vault queries
-          const [stats, logs] = await Promise.all([
+          const [stats, logs, config] = await Promise.all([
             simulate(vaultContractId, "get_campaign_stats", [campaignSymbol]),
-            simulate(vaultContractId, "get_campaign_withdrawal_history", [campaignSymbol])
+            simulate(vaultContractId, "get_campaign_withdrawal_history", [campaignSymbol]),
+            simulate(vaultContractId, "get_campaign_config", [campaignSymbol])
           ]);
 
           if (stats !== null) {
@@ -91,6 +93,14 @@ const AdminPanel = ({ contractId, vaultContractId, connectedWallet, networkPassp
             ...log,
             amount: Number(BigInt(log.amount)) / 10000000
           })));
+          if (config !== null) {
+            setMilestoneConfig({
+              goal: Number(BigInt(config.goal || 0)) / 10000000,
+              milestones: config.milestones || [],
+              verifier: config.verifier?.toString() || '',
+              approved: config.approved || []
+            });
+          }
         } else {
           // Legacy fallback for old campaigns
           const [balance, logs] = await Promise.all([
@@ -314,7 +324,59 @@ const AdminPanel = ({ contractId, vaultContractId, connectedWallet, networkPassp
         )}
       </div>
 
+      {/* Milestone Status Panel */}
+      {milestoneConfig && (
+        <div className="bg-slate-900 border border-emerald-900/30 rounded-3xl overflow-hidden">
+          <div className="p-6 border-b border-slate-800 flex justify-between items-center">
+            <div>
+              <h3 className="font-bold text-white flex items-center gap-2">
+                <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
+                Milestone Fund Gates
+              </h3>
+              <p className="text-xs text-slate-500 mt-1">
+                Goal: {milestoneConfig.goal.toLocaleString()} XLM &nbsp;·&nbsp;
+                Verifier: <span className="font-mono text-emerald-400">{milestoneConfig.verifier?.slice(0,8)}...{milestoneConfig.verifier?.slice(-6)}</span>
+              </p>
+            </div>
+            <span className="text-[10px] font-mono text-emerald-500 bg-emerald-500/10 px-2 py-1 rounded-full">On-Chain Enforced</span>
+          </div>
+          <div className="p-6 grid grid-cols-2 sm:grid-cols-4 gap-4">
+            {(milestoneConfig.milestones || []).map((pct, i) => {
+              const isApproved = (milestoneConfig.approved || []).includes(pct);
+              const isVerifier = connectedWallet?.toUpperCase() === milestoneConfig.verifier?.toUpperCase();
+              const capXlm = ((milestoneConfig.goal * pct) / 100).toLocaleString();
+              return (
+                <div
+                  key={i}
+                  className={`rounded-2xl p-4 text-center space-y-2 border ${isApproved ? 'border-emerald-500/40 bg-emerald-500/5' : 'border-slate-700 bg-slate-800/50'}`}
+                >
+                  <div className={`text-2xl font-black ${isApproved ? 'text-emerald-400' : 'text-slate-500'}`}>{pct}%</div>
+                  <div className="text-[10px] text-slate-500">{capXlm} XLM cap</div>
+                  <div className={`text-[10px] font-bold uppercase tracking-widest ${isApproved ? 'text-emerald-500' : 'text-slate-600'}`}>
+                    {isApproved ? '✓ Approved' : 'Pending'}
+                  </div>
+                  {!isApproved && isVerifier && (
+                    <button
+                      onClick={() => {
+                        const sym = nativeToScVal(campaignId.substring(0, 32), { type: "symbol" });
+                        const pctVal = nativeToScVal(pct, { type: 'u32' });
+                        handleAction(`approve_${pct}`, 'approve_milestone', vaultContractId, [sym, Address.fromString(connectedWallet).toScVal(), pctVal]);
+                      }}
+                      disabled={!!actionLoading}
+                      className="w-full text-[10px] font-bold bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white rounded-lg py-1 transition-all"
+                    >
+                      {actionLoading === `approve_${pct}` ? '...' : 'Approve'}
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* Withdrawal History */}
+
       <div className="bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden">
         <div className="p-6 border-b border-slate-800 flex justify-between items-center">
           <h3 className="font-bold text-white">Withdrawal History</h3>

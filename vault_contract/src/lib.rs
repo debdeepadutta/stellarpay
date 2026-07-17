@@ -11,6 +11,23 @@ pub struct WithdrawalRecord {
 
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub struct Milestone {
+    pub percentage: u32,
+    pub approved: bool,
+    pub cap: i128,
+}
+
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct CampaignVaultConfig {
+    pub goal: i128,
+    pub verifier: Address,
+    pub milestones: Vec<Milestone>,
+    pub total_withdrawn: i128,
+}
+
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct VaultStats {
     pub total_deposited: i128,
     pub total_withdrawn: i128,
@@ -26,6 +43,7 @@ pub enum DataKey {
     Token,
     CampaignStats(Symbol),
     CampaignWithdrawals(Symbol),
+    CampaignConfig(Symbol),
 }
 
 #[contract]
@@ -41,6 +59,80 @@ impl VaultContract {
         env.storage().instance().set(&DataKey::Admin, &admin);
         env.storage().instance().set(&DataKey::DonationContract, &donation_contract);
         env.storage().instance().set(&DataKey::Token, &token);
+    }
+
+    /// Sets the milestones and verifier configuration for a specific campaign's vault
+    pub fn set_campaign_vault_config(
+        env: Env,
+        campaign_id: Symbol,
+        goal: i128,
+        milestones_pct: Vec<u32>,
+        verifier: Address,
+    ) {
+        let authorized_contract: Address = env
+            .storage()
+            .instance()
+            .get(&DataKey::DonationContract)
+            .expect("Vault not initialized");
+        authorized_contract.require_auth();
+
+        let mut milestones = Vec::new(&env);
+        for pct in milestones_pct.iter() {
+            let cap = (goal * (pct as i128)) / 100;
+            milestones.push_back(Milestone {
+                percentage: pct,
+                approved: false,
+                cap,
+            });
+        }
+
+        let config = CampaignVaultConfig {
+            goal,
+            verifier,
+            milestones,
+            total_withdrawn: 0,
+        };
+
+        let config_key = DataKey::CampaignConfig(campaign_id);
+        env.storage().persistent().set(&config_key, &config);
+    }
+
+    /// Approves a milestone, releasing its associated withdrawal cap
+    pub fn approve_milestone(env: Env, campaign_id: Symbol, verifier: Address, percentage: u32) {
+        let config_key = DataKey::CampaignConfig(campaign_id.clone());
+        let mut config: CampaignVaultConfig = env
+            .storage()
+            .persistent()
+            .get(&config_key)
+            .expect("Campaign config not found");
+
+        if verifier != config.verifier {
+            panic!("Only designated verifier can approve milestones");
+        }
+        verifier.require_auth();
+
+        let mut updated_milestones = Vec::new(&env);
+        let mut found = false;
+        for milestone in config.milestones.iter() {
+            let mut m = milestone.clone();
+            if m.percentage == percentage {
+                m.approved = true;
+                found = true;
+            }
+            updated_milestones.push_back(m);
+        }
+
+        if !found {
+            panic!("Milestone percentage not found");
+        }
+
+        config.milestones = updated_milestones;
+        env.storage().persistent().set(&config_key, &config);
+
+        env.events().publish(
+            (Symbol::new(&env, "milestone_approved"), campaign_id),
+            percentage
+        );
     }
 
     /// Deposits XLM from the Donation contract for a specific campaign.
@@ -111,6 +203,26 @@ impl VaultContract {
             panic!("Insufficient balance");
         }
 
+        // Milestone cap checking
+        let config_key = DataKey::CampaignConfig(campaign_id.clone());
+        let config_opt: Option<CampaignVaultConfig> = env.storage().persistent().get(&config_key);
+        if let Some(mut config) = config_opt {
+            let mut total_approved_cap: i128 = 0;
+            for milestone in config.milestones.iter() {
+                if milestone.approved {
+                    total_approved_cap += milestone.cap;
+                }
+            }
+            if total_approved_cap > config.goal {
+                total_approved_cap = config.goal;
+            }
+            if config.total_withdrawn + amount > total_approved_cap {
+                panic!("Amount exceeds approved milestone cap");
+            }
+            config.total_withdrawn += amount;
+            env.storage().persistent().set(&config_key, &config);
+        }
+
         let token_addr: Address = env.storage().instance().get(&DataKey::Token).unwrap();
         let token_client = token::Client::new(&env, &token_addr);
 
@@ -168,6 +280,12 @@ impl VaultContract {
             current_balance: 0,
             deposit_count: 0,
         })
+    }
+
+    /// Returns the milestone configuration for a specific campaign
+    pub fn get_campaign_config(env: Env, campaign_id: Symbol) -> Option<CampaignVaultConfig> {
+        let config_key = DataKey::CampaignConfig(campaign_id);
+        env.storage().persistent().get(&config_key)
     }
 }
 

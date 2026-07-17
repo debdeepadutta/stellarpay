@@ -142,6 +142,50 @@ const AdminPortal = ({
                 />
               </div>
 
+              {/* Milestone Configuration */}
+              <div className="space-y-4 pt-4 border-t border-slate-800">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-black text-slate-500 uppercase tracking-widest">Milestone Gates</label>
+                  <span className="text-[10px] text-emerald-500 font-mono bg-emerald-500/10 px-2 py-1 rounded-full">On-Chain Enforced</span>
+                </div>
+                <p className="text-[11px] text-slate-500">Funds are gated in stages. The verifier approves each milestone before admin can withdraw.</p>
+                <div className="grid grid-cols-4 gap-2">
+                  {(newCampaign.milestones || [25, 50, 75, 100]).map((m, i) => (
+                    <div key={i} className="bg-slate-950 border border-emerald-500/20 rounded-xl p-3 text-center">
+                      <div className="text-emerald-400 font-black text-lg">{m}%</div>
+                      <div className="text-[9px] text-slate-500 mt-1">Stage {i + 1}</div>
+                    </div>
+                  ))}
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-black text-slate-500 uppercase tracking-widest">Verifier Address</label>
+                  <input 
+                    value={newCampaign.verifier || ''}
+                    onChange={e => setNewCampaign({...newCampaign, verifier: e.target.value})}
+                    className="w-full bg-slate-950 border border-slate-800 p-3 rounded-xl text-xs font-mono text-emerald-400 focus:border-emerald-500 outline-none transition-all"
+                    placeholder="G... (leave blank to use your own address as verifier)"
+                  />
+                </div>
+              </div>
+
+              {/* Category */}
+              <div className="space-y-2">
+                <label className="text-xs font-black text-slate-500 uppercase tracking-widest">Category</label>
+                <select
+                  value={newCampaign.category || 'general'}
+                  onChange={e => setNewCampaign({...newCampaign, category: e.target.value})}
+                  className="w-full bg-slate-950 border border-slate-800 p-4 rounded-xl text-white focus:border-amber-500 outline-none transition-all"
+                >
+                  <option value="general">🌐 General</option>
+                  <option value="education">📚 Education</option>
+                  <option value="health">❤️ Health</option>
+                  <option value="environment">🌿 Environment</option>
+                  <option value="disaster">🆘 Disaster Relief</option>
+                  <option value="community">🏘️ Community</option>
+                  <option value="arts">🎨 Arts & Culture</option>
+                </select>
+              </div>
+
               <button 
                 disabled={isSending}
                 className="w-full py-4 bg-indigo-600 hover:bg-indigo-500 disabled:bg-indigo-600/50 text-white font-black rounded-2xl transition-all shadow-xl shadow-indigo-600/20"
@@ -149,6 +193,7 @@ const AdminPortal = ({
                 {isSending ? 'Initializing...' : 'Launch Campaign'}
               </button>
             </form>
+
           </div>
         </div>
 

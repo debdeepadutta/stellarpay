@@ -166,7 +166,10 @@ function AppContent() {
     description: '', 
     goal: '', 
     contractId: CONTRACT_ID, 
-    vaultContractId: VAULT_CONTRACT_ID 
+    vaultContractId: VAULT_CONTRACT_ID,
+    category: 'general',
+    verifier: '',
+    milestones: [25, 50, 75, 100]
   });
 
   // Restoring smart wallet address and detecting device env is now done in lazy state initializers above.
@@ -689,10 +692,20 @@ function AppContent() {
           networkPassphrase: NETWORK_PASSPHRASE
         });
 
+        const milestoneVec = xdr.ScVal.scvVec([
+          ...( newCampaign.milestones || [25, 50, 75, 100] ).map(m => nativeToScVal(m, { type: 'u32' }))
+        ]);
+        const verifierAddr = newCampaign.verifier
+          ? Address.fromString(newCampaign.verifier).toScVal()
+          : Address.fromString(address).toScVal(); // Default to admin if no verifier set
+        const categorySymbol = nativeToScVal(
+          (newCampaign.category || 'general').substring(0, 32), { type: 'symbol' }
+        );
+
         const tx = builder.addOperation(Operation.invokeContractFunction({
           contract: targetContractId,
           function: "create_campaign",
-          args: [campaignSymbol, Address.fromString(address).toScVal(), goalInStroops]
+          args: [campaignSymbol, Address.fromString(address).toScVal(), goalInStroops, milestoneVec, verifierAddr, categorySymbol]
         })).setTimeout(60).build();
 
         const sim = await rpcServer.simulateTransaction(tx);
@@ -713,10 +726,20 @@ function AppContent() {
           account = new Account(address, "0");
         }
         const builder = new TransactionBuilder(account, { fee: "10000", networkPassphrase: NETWORK_PASSPHRASE });
+        const milestoneVec = xdr.ScVal.scvVec([
+          ...( newCampaign.milestones || [25, 50, 75, 100] ).map(m => nativeToScVal(m, { type: 'u32' }))
+        ]);
+        const verifierAddr = newCampaign.verifier
+          ? Address.fromString(newCampaign.verifier).toScVal()
+          : Address.fromString(address).toScVal();
+        const categorySymbol = nativeToScVal(
+          (newCampaign.category || 'general').substring(0, 32), { type: 'symbol' }
+        );
+
         const tx = builder.addOperation(Operation.invokeContractFunction({
           contract: targetContractId,
           function: "create_campaign",
-          args: [campaignSymbol, Address.fromString(address).toScVal(), goalInStroops]
+          args: [campaignSymbol, Address.fromString(address).toScVal(), goalInStroops, milestoneVec, verifierAddr, categorySymbol]
         })).setTimeout(60).build();
 
         const sim = await rpcServer.simulateTransaction(tx);
@@ -744,11 +767,14 @@ function AppContent() {
         createdAt: serverTimestamp(),
         donationContractId: newCampaign.contractId || CONTRACT_ID,
         vaultContractId: newCampaign.vaultContractId || VAULT_CONTRACT_ID,
-        txHash: sendHash
+        txHash: sendHash,
+        category: newCampaign.category || 'general',
+        verifier: newCampaign.verifier || address,
+        milestones: newCampaign.milestones || [25, 50, 75, 100]
       });
 
       toast.success("Campaign created! Confirming on blockchain in background...", { duration: 5000 });
-      setNewCampaign({ name: '', description: '', goal: '', contractId: CONTRACT_ID, vaultContractId: VAULT_CONTRACT_ID });
+      setNewCampaign({ name: '', description: '', goal: '', contractId: CONTRACT_ID, vaultContractId: VAULT_CONTRACT_ID, category: 'general', verifier: '', milestones: [25, 50, 75, 100] });
       navigate('/admin');
 
       (async () => {
@@ -796,10 +822,14 @@ function AppContent() {
           networkPassphrase: NETWORK_PASSPHRASE
         });
 
+        const defaultMilestoneVec = xdr.ScVal.scvVec([25, 50, 75, 100].map(m => nativeToScVal(m, { type: 'u32' })));
+        const defaultVerifierAddr = Address.fromString(address).toScVal();
+        const defaultCategorySymbol = nativeToScVal('general', { type: 'symbol' });
+
         const tx = builder.addOperation(Operation.invokeContractFunction({
           contract: targetContractId,
           function: "create_campaign",
-          args: [campaignSymbol, Address.fromString(address).toScVal(), goalInStroops]
+          args: [campaignSymbol, Address.fromString(address).toScVal(), goalInStroops, defaultMilestoneVec, defaultVerifierAddr, defaultCategorySymbol]
         })).setTimeout(60).build();
 
         const sim = await rpcServer.simulateTransaction(tx);
@@ -821,10 +851,14 @@ function AppContent() {
         }
 
         const builder = new TransactionBuilder(account, { fee: "10000", networkPassphrase: NETWORK_PASSPHRASE });
+        const defaultMilestoneVec = xdr.ScVal.scvVec([25, 50, 75, 100].map(m => nativeToScVal(m, { type: 'u32' })));
+        const defaultVerifierAddr = Address.fromString(address).toScVal();
+        const defaultCategorySymbol = nativeToScVal('general', { type: 'symbol' });
+
         const tx = builder.addOperation(Operation.invokeContractFunction({
           contract: targetContractId,
           function: "create_campaign",
-          args: [campaignSymbol, Address.fromString(address).toScVal(), goalInStroops]
+          args: [campaignSymbol, Address.fromString(address).toScVal(), goalInStroops, defaultMilestoneVec, defaultVerifierAddr, defaultCategorySymbol]
         })).setTimeout(60).build();
 
         const sim = await rpcServer.simulateTransaction(tx);

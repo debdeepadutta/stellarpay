@@ -110,3 +110,127 @@ fn test_unauthorized_deposit() {
     let attacker = Address::generate(&env);
     client.deposit(&campaign_id, &attacker, &100);
 }
+
+#[test]
+fn test_milestone_fund_release_success() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let admin = Address::generate(&env);
+    let donation_contract = env.register_contract(None, MockDonationContract);
+    let donation_client = MockDonationContractClient::new(&env, &donation_contract);
+    donation_client.initialize(&admin);
+
+    let token_admin = Address::generate(&env);
+    let token_id = env.register_stellar_asset_contract_v2(token_admin).address();
+    let token_admin_client = token::StellarAssetClient::new(&env, &token_id);
+    let token_client = token::Client::new(&env, &token_id);
+
+    let contract_id = env.register_contract(None, VaultContract);
+    let client = VaultContractClient::new(&env, &contract_id);
+    client.initialize(&admin, &donation_contract, &token_id);
+
+    let campaign_id = Symbol::new(&env, "camp_1");
+
+    // Set configuration
+    let verifier = Address::generate(&env);
+    let mut milestones = soroban_sdk::Vec::new(&env);
+    milestones.push_back(25);
+    milestones.push_back(50);
+    milestones.push_back(75);
+    milestones.push_back(100);
+
+    // Goal: 1000 XLM
+    client.set_campaign_vault_config(&campaign_id, &1000, &milestones, &verifier);
+
+    // Mint/deposit 1000 XLM
+    token_admin_client.mint(&donation_contract, &1000);
+    token_client.transfer(&donation_contract, &contract_id, &1000);
+    client.deposit(&campaign_id, &donation_contract, &1000);
+
+    let receiver = Address::generate(&env);
+
+    // Approve first milestone (25% -> 250 cap)
+    client.approve_milestone(&campaign_id, &verifier, &25);
+
+    // Withdrawal within 250 should succeed
+    client.withdraw(&campaign_id, &admin, &200, &receiver);
+    assert_eq!(token_client.balance(&receiver), 200);
+}
+
+#[test]
+#[should_panic(expected = "Amount exceeds approved milestone cap")]
+fn test_milestone_fund_release_no_approval_fails() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let admin = Address::generate(&env);
+    let donation_contract = env.register_contract(None, MockDonationContract);
+    let donation_client = MockDonationContractClient::new(&env, &donation_contract);
+    donation_client.initialize(&admin);
+
+    let token_admin = Address::generate(&env);
+    let token_id = env.register_stellar_asset_contract_v2(token_admin).address();
+    let token_admin_client = token::StellarAssetClient::new(&env, &token_id);
+    let token_client = token::Client::new(&env, &token_id);
+
+    let contract_id = env.register_contract(None, VaultContract);
+    let client = VaultContractClient::new(&env, &contract_id);
+    client.initialize(&admin, &donation_contract, &token_id);
+
+    let campaign_id = Symbol::new(&env, "camp_1");
+
+    // Set configuration
+    let verifier = Address::generate(&env);
+    let mut milestones = soroban_sdk::Vec::new(&env);
+    milestones.push_back(25);
+
+    client.set_campaign_vault_config(&campaign_id, &1000, &milestones, &verifier);
+
+    token_admin_client.mint(&donation_contract, &1000);
+    token_client.transfer(&donation_contract, &contract_id, &1000);
+    client.deposit(&campaign_id, &donation_contract, &1000);
+
+    let receiver = Address::generate(&env);
+    // Should panic because milestone is not approved yet
+    client.withdraw(&campaign_id, &admin, &100, &receiver);
+}
+
+#[test]
+#[should_panic(expected = "Amount exceeds approved milestone cap")]
+fn test_milestone_fund_release_exceed_cap_fails() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let admin = Address::generate(&env);
+    let donation_contract = env.register_contract(None, MockDonationContract);
+    let donation_client = MockDonationContractClient::new(&env, &donation_contract);
+    donation_client.initialize(&admin);
+
+    let token_admin = Address::generate(&env);
+    let token_id = env.register_stellar_asset_contract_v2(token_admin).address();
+    let token_admin_client = token::StellarAssetClient::new(&env, &token_id);
+    let token_client = token::Client::new(&env, &token_id);
+
+    let contract_id = env.register_contract(None, VaultContract);
+    let client = VaultContractClient::new(&env, &contract_id);
+    client.initialize(&admin, &donation_contract, &token_id);
+
+    let campaign_id = Symbol::new(&env, "camp_1");
+
+    // Set configuration
+    let verifier = Address::generate(&env);
+    let mut milestones = soroban_sdk::Vec::new(&env);
+    milestones.push_back(25);
+
+    client.set_campaign_vault_config(&campaign_id, &1000, &milestones, &verifier);
+
+    token_admin_client.mint(&donation_contract, &1000);
+    token_client.transfer(&donation_contract, &contract_id, &1000);
+    client.deposit(&campaign_id, &donation_contract, &1000);
+
+    let receiver = Address::generate(&env);
+    client.approve_milestone(&campaign_id, &verifier, &25);
+    // Should panic because 300 exceeds 25% (250)
+    client.withdraw(&campaign_id, &admin, &300, &receiver);
+}

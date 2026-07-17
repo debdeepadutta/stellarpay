@@ -42,7 +42,14 @@ fn test_full_donation_flow_end_to_end() {
     let (admin, _token_id, _logger_id, vault_id, token_client, token_admin_client, donation_client, logger_client, vault_client) = setup_test(&env);
     
     let campaign_id = Symbol::new(&env, "camp_1");
-    donation_client.create_campaign(&campaign_id, &admin, &1000);
+    let verifier = Address::generate(&env);
+    let mut milestones = soroban_sdk::Vec::new(&env);
+    milestones.push_back(25);
+    milestones.push_back(50);
+    milestones.push_back(75);
+    milestones.push_back(100);
+    let category = Symbol::new(&env, "education");
+    donation_client.create_campaign(&campaign_id, &admin, &1000, &milestones, &verifier, &category);
 
     let d1 = Address::generate(&env);
     let d2 = Address::generate(&env);
@@ -95,7 +102,11 @@ fn test_edge_case_unauthorized_vault_withdrawal() {
     let (admin, _token_id, _, _, _, _, donation_client, _, vault_client) = setup_test(&env);
     
     let campaign_id = Symbol::new(&env, "camp_1");
-    donation_client.create_campaign(&campaign_id, &admin, &1000);
+    let verifier = Address::generate(&env);
+    let mut milestones = soroban_sdk::Vec::new(&env);
+    milestones.push_back(25);
+    let category = Symbol::new(&env, "education");
+    donation_client.create_campaign(&campaign_id, &admin, &1000, &milestones, &verifier, &category);
 
     let attacker = Address::generate(&env);
     // Prove: Non-admin cannot withdraw
@@ -110,7 +121,11 @@ fn test_edge_case_zero_donation() {
     let (admin, _token_id, _, _, _, _, donation_client, _, _) = setup_test(&env);
     
     let campaign_id = Symbol::new(&env, "camp_1");
-    donation_client.create_campaign(&campaign_id, &admin, &1000);
+    let verifier = Address::generate(&env);
+    let mut milestones = soroban_sdk::Vec::new(&env);
+    milestones.push_back(25);
+    let category = Symbol::new(&env, "education");
+    donation_client.create_campaign(&campaign_id, &admin, &1000, &milestones, &verifier, &category);
 
     let donor = Address::generate(&env);
     // Prove: Zero amount is rejected
@@ -124,7 +139,11 @@ fn test_admin_functions() {
     let (admin, _token_id, _, _, token_client, token_admin_client, donation_client, _, vault_client) = setup_test(&env);
     
     let campaign_id = Symbol::new(&env, "camp_1");
-    donation_client.create_campaign(&campaign_id, &admin, &3000);
+    let verifier = Address::generate(&env);
+    let mut milestones = soroban_sdk::Vec::new(&env);
+    milestones.push_back(25);
+    let category = Symbol::new(&env, "education");
+    donation_client.create_campaign(&campaign_id, &admin, &3000, &milestones, &verifier, &category);
 
     let donor = Address::generate(&env);
     token_admin_client.mint(&donor, &2000);
@@ -133,6 +152,7 @@ fn test_admin_functions() {
     
     // 2. Vault Withdrawal
     let receiver = Address::generate(&env);
+    vault_client.approve_milestone(&campaign_id, &verifier, &25);
     vault_client.withdraw(&campaign_id, &admin, &500, &receiver);
     
     let vault_stats = vault_client.get_campaign_stats(&campaign_id);
