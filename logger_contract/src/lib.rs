@@ -1,5 +1,5 @@
 #![no_std]
-use soroban_sdk::{contract, contractimpl, contracttype, symbol_short, Address, Env, Symbol, Vec};
+use soroban_sdk::{contract, contractimpl, contracttype, symbol_short, Address, Env, String, Symbol, Vec};
 
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -9,11 +9,25 @@ pub struct DonationRecord {
     pub timestamp: u64,
 }
 
+/// A compliance flag raised against a campaign.
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct FlagRecord {
+    pub campaign_id: Symbol,
+    pub reason: String,      // human-readable reason code
+    pub flagged_by: Address, // compliance officer who raised the flag
+    pub timestamp: u64,
+    pub resolved: bool,
+}
+
 #[contracttype]
 #[derive(Clone)]
 pub enum DataKey {
     History,
     DonationContract,
+    Admin,                   // platform admin who can flag/resolve
+    CampaignFlags(Symbol),   // Vec<FlagRecord> per campaign
+    FlagCount,               // global flag count for quick access
 }
 
 #[contract]
@@ -21,12 +35,14 @@ pub struct LoggerContract;
 
 #[contractimpl]
 impl LoggerContract {
-    /// Initialize the logger with the authorized donation contract address
-    pub fn initialize(env: Env, donation_contract: Address) {
+    /// Initialize the logger with the authorized donation contract address and platform admin.
+    pub fn initialize(env: Env, donation_contract: Address, admin: Address) {
         if env.storage().instance().has(&DataKey::DonationContract) {
             panic!("Already initialized");
         }
         env.storage().instance().set(&DataKey::DonationContract, &donation_contract);
+        env.storage().instance().set(&DataKey::Admin, &admin);
+        env.storage().instance().set(&DataKey::FlagCount, &0u32);
         
         let empty_history: Vec<DonationRecord> = Vec::new(&env);
         env.storage().persistent().set(&DataKey::History, &empty_history);
@@ -68,6 +84,108 @@ impl LoggerContract {
             (symbol_short!("log"), donor),
             (amount, timestamp)
         );
+    }
+
+    /// Flag a campaign for potential compliance/fraud issues.
+    /// Only the platform admin can raise a flag.
+    pub fn flag_campaign(
+        env: Env,
+        campaign_id: Symbol,
+        reason: String,
+        flagged_by: Address,
+    ) {
+        let admin: Address = env
+            .storage()
+            .instance()
+            .get(&DataKey::Admin)
+            .expect("Logger not initialized");
+        
+        if flagged_by != admin {
+            panic!("Only admin can flag campaigns");
+        }
+        flagged_by.require_auth();
+
+        let flag = FlagRecord {
+            campaign_id: campaign_id.clone(),
+            reason,
+            flagged_by,
+            timestamp: env.ledger().timestamp(),
+            resolved: false,
+        };
+
+        let flags_key = DataKey::CampaignFlags(campaign_id.clone());
+        let mut flags: Vec<FlagRecord> = env
+            .storage()
+            .persistent()
+            .get(&flags_key)
+            .unwrap_or(Vec::new(&env));
+        flags.push_back(flag);
+        env.storage().persistent().set(&flags_key, &flags);
+
+        // Increment global flag count
+        let count: u32 = env.storage().instance().get(&DataKey::FlagCount).unwrap_or(0);
+        env.storage().instance().set(&DataKey::FlagCount, &(count + 1));
+
+        env.events().publish(
+            (symbol_short!("flagged"), campaign_id),
+            env.ledger().timestamp()
+        );
+    }
+
+    /// Resolve (clear) all flags for a campaign. Only admin can do this.
+    pub fn resolve_flags(env: Env, campaign_id: Symbol, resolver: Address) {
+        let admin: Address = env
+            .storage()
+            .instance()
+            .get(&DataKey::Admin)
+            .expect("Logger not initialized");
+        
+        if resolver != admin {
+            panic!("Only admin can resolve flags");
+        }
+        resolver.require_auth();
+
+        let flags_key = DataKey::CampaignFlags(campaign_id.clone());
+        let mut flags: Vec<FlagRecord> = env
+            .storage()
+            .persistent()
+            .get(&flags_key)
+            .unwrap_or(Vec::new(&env));
+
+        let mut resolved_flags = Vec::new(&env);
+        for flag in flags.iter() {
+            let mut f = flag.clone();
+            f.resolved = true;
+            resolved_flags.push_back(f);
+        }
+        env.storage().persistent().set(&flags_key, &resolved_flags);
+
+        env.events().publish(
+            (symbol_short!("resolved"), campaign_id),
+            env.ledger().timestamp()
+        );
+    }
+
+    /// Returns all flags for a specific campaign.
+    pub fn get_campaign_flags(env: Env, campaign_id: Symbol) -> Vec<FlagRecord> {
+        let flags_key = DataKey::CampaignFlags(campaign_id);
+        env.storage().persistent().get(&flags_key).unwrap_or(Vec::new(&env))
+    }
+
+    /// Check if a campaign has any unresolved flags.
+    pub fn is_flagged(env: Env, campaign_id: Symbol) -> bool {
+        let flags_key = DataKey::CampaignFlags(campaign_id);
+        let flags: Vec<FlagRecord> = env
+            .storage()
+            .persistent()
+            .get(&flags_key)
+            .unwrap_or(Vec::new(&env));
+        for flag in flags.iter() {
+            if !flag.resolved {
+                return true;
+            }
+        }
+        false
     }
 
     /// Returns the full donation history

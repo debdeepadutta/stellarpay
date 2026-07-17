@@ -28,7 +28,7 @@ fn setup_test(env: &Env) -> (Address, Address, Address, Address, token::Client, 
     
     // 5. Initialize All
     donation_client.initialize(&admin, &token_id, &logger_id, &vault_id);
-    logger_client.initialize(&donation_id);
+    logger_client.initialize(&donation_id, &admin);
     vault_client.initialize(&admin, &donation_id, &token_id);
     
     (admin, token_id, logger_id, vault_id, token_client, token_admin_client, donation_client, logger_client, vault_client)

@@ -20,6 +20,7 @@ import LiveDonationFeed from '../components/LiveDonationFeed';
 import WalletCard from '../components/WalletCard';
 import ReputationBadge from '../components/ReputationBadge';
 import MatchingPoolBanner from '../components/MatchingPoolBanner';
+import ComplianceBanner from '../components/ComplianceBanner';
 
 const CampaignDetails = ({ address, balance, isFetchingData, handleDonate, handleRegisterOnChain, isSending, txStatus, txHash, lastDonationAt, lastUpdated, fetchData }) => {
   const { id } = useParams();
@@ -305,6 +306,10 @@ const CampaignDetails = ({ address, balance, isFetchingData, handleDonate, handl
 
         {/* Right Column: Interaction */}
         <div className="lg:col-span-5 space-y-8">
+          <ComplianceBanner
+            loggerContractId={import.meta.env.VITE_LOGGER_CONTRACT_ID}
+            campaignId={campaign.contractCampaignId || campaign.id}
+          />
           <MatchingPoolBanner
             vaultContractId={import.meta.env.VITE_VAULT_CONTRACT_ID}
             campaignId={campaign.contractCampaignId || campaign.id}
