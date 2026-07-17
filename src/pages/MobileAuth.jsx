@@ -111,6 +111,14 @@ const MobileAuth = () => {
         const deployedAddress = scValToNative(txStatus.returnValue);
         console.log('[Mobile] Wallet deployed at:', deployedAddress);
 
+        // Fund the new wallet with Testnet XLM so the user can make donations!
+        try {
+          console.log('[Mobile] Funding newly deployed wallet with Friendbot...');
+          await fetch(`https://friendbot.stellar.org?addr=${deployedAddress}`);
+        } catch (e) {
+          console.warn('[Mobile] Friendbot funding failed:', e);
+        }
+
         // 3. Save user profile in Firestore
         await setDoc(doc(db, 'users', passkey.keyIdBase64), {
           username: session.username,

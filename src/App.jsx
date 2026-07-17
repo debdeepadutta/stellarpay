@@ -399,6 +399,14 @@ function AppContent() {
       const deployedAddress = scValToNative(txStatus.returnValue);
       console.log("[Client] Wallet deployed at:", deployedAddress);
 
+      // Fund the new wallet with Testnet XLM so the user can make donations!
+      try {
+        console.log("[Client] Funding newly deployed wallet with Friendbot...");
+        await fetch(`https://friendbot.stellar.org?addr=${deployedAddress}`);
+      } catch (e) {
+        console.warn("[Client] Friendbot funding failed:", e);
+      }
+
       // Save user profile in Firestore
       await setDoc(doc(db, 'users', passkey.keyIdBase64), {
         username,
