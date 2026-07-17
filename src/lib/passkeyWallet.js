@@ -222,8 +222,8 @@ export async function signSorobanAuthsWithPasskey(tx, keyIdBase64, walletAddress
     const credentials = entry.credentials();
     
     // Only sign address credentials matching our smart wallet address
-    if (credentials.type().name === 'sorobanCredentialsAddress' || credentials.type().name === 'sorobanCredentialsAddressV2') {
-      const addressVal = credentials.type().name === 'sorobanCredentialsAddress' 
+    if (credentials.switch().name === 'sorobanCredentialsAddress' || credentials.switch().name === 'sorobanCredentialsAddressV2') {
+      const addressVal = credentials.switch().name === 'sorobanCredentialsAddress' 
         ? credentials.address().address() 
         : credentials.addressV2().address();
         
@@ -244,7 +244,7 @@ export async function signSorobanAuthsWithPasskey(tx, keyIdBase64, walletAddress
         );
         
         // Set the signature on the credentials
-        if (credentials.type().name === 'sorobanCredentialsAddress') {
+        if (credentials.switch().name === 'sorobanCredentialsAddress') {
           credentials.address().signature(scValSig);
         } else {
           credentials.addressV2().signature(scValSig);
