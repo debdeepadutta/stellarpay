@@ -69,7 +69,12 @@ export async function registerPasskey(username) {
   }
 
   const challenge = window.crypto.getRandomValues(new Uint8Array(32));
-  const rpId = window.location.hostname; // e.g. localhost or yourdomain.com
+  // Use a STABLE rpId so passkeys survive Vercel re-deployments to new URLs.
+  // For localhost dev, use hostname. For production, use the stable Vercel project alias.
+  const hostname = window.location.hostname;
+  const rpId = hostname === 'localhost' || hostname === '127.0.0.1'
+    ? hostname
+    : 'stellarpay-debdeepa-duttas-projects.vercel.app';
 
   const options = {
     publicKey: {
@@ -137,7 +142,10 @@ export async function signChallenge(challengeBytes, keyIdBase64) {
     throw new Error("WebAuthn is not supported on this device/browser.");
   }
 
-  const rpId = window.location.hostname;
+  const hostname = window.location.hostname;
+  const rpId = hostname === 'localhost' || hostname === '127.0.0.1'
+    ? hostname
+    : 'stellarpay-debdeepa-duttas-projects.vercel.app';
   const allowCredentials = [];
   
   if (keyIdBase64) {
