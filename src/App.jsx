@@ -90,7 +90,7 @@ const rpcServer = new rpc.Server(import.meta.env.VITE_RPC_URL || "https://soroba
 const NETWORK_PASSPHRASE = import.meta.env.VITE_NETWORK_PASSPHRASE || Networks.TESTNET;
 const SPONSOR_PUBLIC_KEY = validatePublicKey(import.meta.env.VITE_SPONSOR_PUBLIC_KEY, "GDPJCT2XIVH7WSIT7FGV6XMKIGC5O6NEIONJW4AWLCLDUZRVPPNOL7NC");
 const RELAYER_URL = import.meta.env.VITE_SPONSOR_RELAYER_URL || "http://localhost:3001/api/sponsor-and-submit";
-const FACTORY_CONTRACT_ID = validateContractId(import.meta.env.VITE_SMART_WALLET_FACTORY_ID, "CD5L46P27AWPCDLDTXZN72LDR66UUT53SLVMLQCPBDRR5RWR57JAXWWS");
+const FACTORY_CONTRACT_ID = validateContractId(import.meta.env.VITE_SMART_WALLET_FACTORY_ID, "CDZL737THBVBCO443UXGXCFF4Z3JQNFAKRZXZNIPMF3FG4IDDTMDP6KP");
 
 const kit = new StellarWalletsKit({
   network: WalletNetwork.TESTNET,

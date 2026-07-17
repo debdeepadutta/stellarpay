@@ -57,7 +57,7 @@ const MobileAuth = () => {
         const rawFactoryId = import.meta.env.VITE_SMART_WALLET_FACTORY_ID;
         const factoryId = (rawFactoryId && rawFactoryId.length === 56 && rawFactoryId.startsWith('C'))
           ? rawFactoryId
-          : 'CD5L46P27AWPCDLDTXZN72LDR66UUT53SLVMLQCPBDRR5RWR57JAXWWS';
+          : 'CDZL737THBVBCO443UXGXCFF4Z3JQNFAKRZXZNIPMF3FG4IDDTMDP6KP';
 
         const relayerUrl = import.meta.env.VITE_SPONSOR_RELAYER_URL || 'http://localhost:3001/api/sponsor-and-submit';
         
