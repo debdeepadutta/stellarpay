@@ -76,8 +76,13 @@ const fromI128 = (v) => {
 const CONTRACT_ID = "CBGFHRSQ275OQRZGOZXLO7JABDVTI5UIZLD7ETSAGJVI5WMIWGBC2TK4";
 const VAULT_CONTRACT_ID = "CB7O4AJFIBTGQODDCOPQICCSHRA35WFTIA2ZZ5O6OUMKWV4ROZIE3BZD";
 const DUMMY_ACCOUNT = new Account("GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF", "0");
-const server = new Horizon.Server("https://horizon-testnet.stellar.org");
-const rpcServer = new rpc.Server("https://soroban-testnet.stellar.org");
+const server = new Horizon.Server(import.meta.env.VITE_HORIZON_URL || "https://horizon-testnet.stellar.org");
+const rpcServer = new rpc.Server(import.meta.env.VITE_RPC_URL || "https://soroban-testnet.stellar.org");
+
+const NETWORK_PASSPHRASE = import.meta.env.VITE_NETWORK_PASSPHRASE || Networks.TESTNET;
+const SPONSOR_PUBLIC_KEY = import.meta.env.VITE_SPONSOR_PUBLIC_KEY;
+const RELAYER_URL = import.meta.env.VITE_SPONSOR_RELAYER_URL || "http://localhost:3001/api/sponsor-and-submit";
+const FACTORY_CONTRACT_ID = import.meta.env.VITE_SMART_WALLET_FACTORY_ID;
 
 const kit = new StellarWalletsKit({
   network: WalletNetwork.TESTNET,
