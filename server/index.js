@@ -1,7 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import { Transaction, Keypair, Networks, rpc, TransactionBuilder } from '@stellar/stellar-sdk';
+import { Transaction, Keypair, Networks, rpc, TransactionBuilder, Horizon } from '@stellar/stellar-sdk';
 
 // Load environment variables from parent directory if present, otherwise local
 dotenv.config({ path: '../.env' });
@@ -48,10 +48,6 @@ app.post('/api/sponsor-and-submit', async (req, res) => {
 
     // 3. Fetch latest sequence number for sponsor account
     const sponsorKeypair = Keypair.fromSecret(SPONSOR_SECRET_KEY);
-    const horizonServer = new rpc.Server(RPC_URL); // reusing rpc server? No, we need horizon or rpc getAccount
-    // Actually, in Soroban RPC, we can use getTransaction or we can load the account via horizon.
-    // We can also just use Stellar SDK's native horizon client
-    const { Horizon } = await import('@stellar/stellar-sdk');
     const horizonUrl = process.env.VITE_HORIZON_URL || 'https://horizon-testnet.stellar.org';
     const server = new Horizon.Server(horizonUrl);
     
@@ -71,12 +67,12 @@ app.post('/api/sponsor-and-submit', async (req, res) => {
 
     tx.operations.forEach(op => builder.addOperation(op));
     
-    let newTx = builder.setTimeout(300).build();
-    
     // Copy soroban data if present (for smart wallet auths)
     if (tx.sorobanData) {
-      newTx.sorobanData = tx.sorobanData;
+      builder.setSorobanData(tx.sorobanData);
     }
+
+    let newTx = builder.setTimeout(300).build();
 
     // 5. Sign the rebuilt transaction
     newTx.sign(sponsorKeypair);
