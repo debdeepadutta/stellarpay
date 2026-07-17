@@ -107,7 +107,7 @@ app.post('/api/sponsor-and-submit', async (req, res) => {
       console.error('[Sponsor] Submission failed:', response.errorResultXdr || response);
       return res.status(400).json({ 
         error: 'Stellar RPC rejected transaction', 
-        details: response.errorResultXdr || response.status || "Unknown RPC error"
+        details: response.errorResultXdr || response
       });
     }
 
