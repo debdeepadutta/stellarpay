@@ -265,9 +265,27 @@ function AppContent() {
     if (!address) return;
     setIsFetchingData(true);
     try {
-      const account = await server.loadAccount(address);
-      const native = account.balances.find(b => b.asset_type === 'native');
-      setBalance(native ? parseFloat(native.balance).toFixed(2) : '0.00');
+      if (address.startsWith('C')) {
+        const NATIVE_CONTRACT = 'CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC';
+        const tx = new TransactionBuilder(DUMMY_ACCOUNT, { fee: '100', networkPassphrase: NETWORK_PASSPHRASE })
+          .addOperation(Operation.invokeContractFunction({
+            contract: NATIVE_CONTRACT,
+            function: 'balance',
+            args: [new Address(address).toScVal()]
+          })).setTimeout(30).build();
+        
+        const sim = await rpcServer.simulateTransaction(tx);
+        if (sim.result && sim.result.retval) {
+          const val = scValToNative(sim.result.retval);
+          setBalance((Number(val) / 10000000).toFixed(2));
+        } else {
+          setBalance('0.00');
+        }
+      } else {
+        const account = await server.loadAccount(address);
+        const native = account.balances.find(b => b.asset_type === 'native');
+        setBalance(native ? parseFloat(native.balance).toFixed(2) : '0.00');
+      }
 
       // Only aggregate stats from campaigns currently in YOUR Firestore
       const campaignTotals = allCampaigns.map(c => parseFloat(c.totalDonated || 0));
