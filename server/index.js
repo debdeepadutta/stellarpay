@@ -2,10 +2,25 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import { Transaction, Keypair, Networks, Operation, rpc, TransactionBuilder, Horizon, xdr } from '@stellar/stellar-sdk';
+import { initializeApp } from 'firebase/app';
+import { getFirestore, collection, addDoc, getDocs, updateDoc, doc, query, where } from 'firebase/firestore';
 
 // Load environment variables from parent directory if present, otherwise local
 dotenv.config({ path: '../.env' });
 dotenv.config();
+
+const firebaseConfig = {
+  apiKey: process.env.VITE_FIREBASE_API_KEY,
+  authDomain: process.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.VITE_FIREBASE_APP_ID,
+  measurementId: process.env.VITE_FIREBASE_MEASUREMENT_ID
+};
+
+const firebaseApp = initializeApp(firebaseConfig);
+const db = getFirestore(firebaseApp);
 
 const app = express();
 app.use(cors());
@@ -219,47 +234,69 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', network: NETWORK_PASSPHRASE, rpc: RPC_URL });
 });
 
-// Priority 7: Subscription / Recurring Donations
-const activeSubscriptions = [];
+// Priority 7: Subscription / Recurring Donations (Vercel Compatible)
 
 // Register a subscription for the cron job to track
-app.post('/api/register-subscription', (req, res) => {
+app.post('/api/register-subscription', async (req, res) => {
   const { contractId, campaignId, donor, interval } = req.body;
   if (!contractId || !campaignId || !donor || !interval) {
     return res.status(400).json({ error: 'Missing parameters' });
   }
   
-  // Store the next execution time based on the interval (in seconds)
-  activeSubscriptions.push({
-    contractId,
-    campaignId,
-    donor,
-    interval: parseInt(interval, 10),
-    nextExecution: Date.now() + (parseInt(interval, 10) * 1000)
-  });
-  
-  console.log(`[Cron] Registered subscription for donor ${donor} to campaign ${campaignId}`);
-  res.json({ success: true });
+  try {
+    const subscriptionsRef = collection(db, 'subscriptions');
+    await addDoc(subscriptionsRef, {
+      contractId,
+      campaignId,
+      donor,
+      interval: parseInt(interval, 10),
+      nextExecution: Date.now() + (parseInt(interval, 10) * 1000)
+    });
+    
+    console.log(`[Cron] Registered subscription for donor ${donor} to campaign ${campaignId} in Firestore`);
+    res.json({ success: true });
+  } catch (err) {
+    console.error('[Cron] Registration failed', err);
+    res.status(500).json({ error: 'Database error' });
+  }
 });
 
-// Run a background cron every 10 seconds to check for due subscriptions
-setInterval(async () => {
+// Vercel Cron Endpoint
+// Hits this endpoint periodically to process all due subscriptions
+app.get('/api/trigger-cron', async (req, res) => {
   const now = Date.now();
-  for (const sub of activeSubscriptions) {
-    if (now >= sub.nextExecution) {
+  console.log('[Cron] Checking subscriptions at', new Date(now).toISOString());
+  try {
+    const subscriptionsRef = collection(db, 'subscriptions');
+    const q = query(subscriptionsRef, where('nextExecution', '<=', now));
+    const snapshot = await getDocs(q);
+    
+    if (snapshot.empty) {
+      console.log('[Cron] No subscriptions due.');
+      return res.json({ success: true, message: 'No subscriptions due', processed: 0 });
+    }
+
+    const sdk = await import('@stellar/stellar-sdk');
+    const { Address, Keypair, TransactionBuilder, Operation } = sdk;
+    
+    let processed = 0;
+    
+    for (const subDoc of snapshot.docs) {
+      const sub = subDoc.data();
       console.log(`[Cron] Triggering subscription for ${sub.donor} to ${sub.campaignId}...`);
       
       try {
-        if (!SPONSOR_SECRET_KEY) continue;
+        if (!SPONSOR_SECRET_KEY) {
+          console.error('[Cron] Missing SPONSOR_SECRET_KEY');
+          continue;
+        }
         const sponsorKeypair = Keypair.fromSecret(SPONSOR_SECRET_KEY);
         
         const horizonUrl = process.env.VITE_HORIZON_URL || 'https://horizon-testnet.stellar.org';
-        const server = new Horizon.Server(horizonUrl);
-        const sponsorAccount = await server.loadAccount(sponsorKeypair.publicKey());
+        const hServer = new sdk.Horizon.Server(horizonUrl);
+        const sponsorAccount = await hServer.loadAccount(sponsorKeypair.publicKey());
         
         const builder = new TransactionBuilder(sponsorAccount, { fee: '200000', networkPassphrase: NETWORK_PASSPHRASE });
-        const sdk = await import('@stellar/stellar-sdk');
-        const { Address, nativeToScVal } = sdk;
         
         const campaignIdScVal = sdk.xdr.ScVal.scvSymbol(sub.campaignId);
         const donorScVal = new Address(sub.donor).toScVal();
@@ -273,10 +310,10 @@ setInterval(async () => {
         let tx = builder.build();
         const simResult = await rpcServer.simulateTransaction(tx);
         
-        if (rpc.Api.isSimulationError(simResult)) {
+        if (sdk.rpc.Api.isSimulationError(simResult)) {
           console.error(`[Cron] Simulation failed for subscription trigger:`, simResult.error);
         } else {
-          let prepared = rpc.assembleTransaction(tx, simResult).build();
+          let prepared = sdk.rpc.assembleTransaction(tx, simResult).build();
           prepared.sign(sponsorKeypair);
           
           const response = await rpcServer.sendTransaction(prepared);
@@ -284,17 +321,24 @@ setInterval(async () => {
              console.error(`[Cron] Subscription trigger failed:`, response.errorResultXdr);
           } else {
              console.log(`[Cron] Subscription triggered successfully! Hash: ${response.hash}`);
+             processed++;
+             
+             await updateDoc(doc(db, 'subscriptions', subDoc.id), {
+               nextExecution: now + (sub.interval * 1000)
+             });
           }
         }
       } catch (err) {
         console.error(`[Cron] Error triggering subscription:`, err.message);
       }
-      
-      // Update next execution
-      sub.nextExecution = now + (sub.interval * 1000);
     }
+    
+    res.json({ success: true, processed });
+  } catch (error) {
+    console.error('[Cron] Failed to process cron:', error);
+    res.status(500).json({ error: error.message });
   }
-}, 10000);
+});
 
 if (process.env.NODE_ENV !== 'production' || process.env.RUN_LOCAL === 'true') {
   app.listen(PORT, () => {

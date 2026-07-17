@@ -33,5 +33,15 @@ export default defineConfig(async () => {
     optimizeDeps: {
       include: ['@stellar/freighter-api'],
     },
+    build: {
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            'stellar-sdk': ['@stellar/stellar-sdk'],
+            'firebase': ['firebase/app', 'firebase/firestore']
+          }
+        }
+      }
+    }
   };
 });
