@@ -113,10 +113,14 @@ const MobileAuth = () => {
 
         // Fund the new wallet with Testnet XLM so the user can make donations!
         try {
-          console.log('[Mobile] Funding newly deployed wallet with Friendbot...');
-          await fetch(`https://friendbot.stellar.org?addr=${deployedAddress}`);
+          console.log('[Mobile] Funding newly deployed wallet from Relayer...');
+          await fetch(`${relayerUrl.replace('/sponsor-and-submit', '/fund-contract')}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ contractId: deployedAddress })
+          });
         } catch (e) {
-          console.warn('[Mobile] Friendbot funding failed:', e);
+          console.warn('[Mobile] Relayer funding failed:', e);
         }
 
         // 3. Save user profile in Firestore

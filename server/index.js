@@ -129,6 +129,93 @@ app.post('/api/sponsor-and-submit', async (req, res) => {
   }
 });
 
+// Relayer endpoint to fund new smart wallets with Testnet XLM
+app.post('/api/fund-contract', async (req, res) => {
+  const { contractId } = req.body;
+  
+  if (!contractId || contractId.length !== 56 || !contractId.startsWith('C')) {
+    return res.status(400).json({ error: 'Invalid Contract ID' });
+  }
+
+  try {
+    if (!SPONSOR_SECRET_KEY) {
+      throw new Error('Sponsor secret key is not configured.');
+    }
+
+    const sponsorKeypair = Keypair.fromSecret(SPONSOR_SECRET_KEY);
+    const horizonUrl = process.env.VITE_HORIZON_URL || 'https://horizon-testnet.stellar.org';
+    const server = new Horizon.Server(horizonUrl);
+    
+    let sponsorAccount;
+    try {
+      sponsorAccount = await server.loadAccount(sponsorKeypair.publicKey());
+    } catch (e) {
+      throw new Error(`Failed to load sponsor account: ${e.message}`);
+    }
+
+    // Check if sponsor account needs more XLM (Testnet only)
+    const nativeBal = sponsorAccount.balances.find(b => b.asset_type === 'native');
+    if (nativeBal && parseFloat(nativeBal.balance) < 2000) {
+      console.log('[Sponsor] Relayer balance low, hitting Friendbot...');
+      try {
+        await fetch(`https://friendbot.stellar.org?addr=${sponsorKeypair.publicKey()}`);
+        sponsorAccount = await server.loadAccount(sponsorKeypair.publicKey());
+      } catch (fbErr) {
+        console.warn('[Sponsor] Friendbot refill failed:', fbErr);
+      }
+    }
+
+    // Build the transfer transaction
+    const builder = new TransactionBuilder(sponsorAccount, { fee: '10000', networkPassphrase: NETWORK_PASSPHRASE });
+    const NATIVE_CONTRACT = 'CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC';
+    
+    const { Address, nativeToScVal } = require('@stellar/stellar-sdk');
+    const from = new Address(sponsorKeypair.publicKey()).toScVal();
+    const to = new Address(contractId).toScVal();
+    const amount = nativeToScVal(10000000000, { type: 'i128' }); // 1000 XLM
+
+    builder.addOperation(import('@stellar/stellar-sdk').then(sdk => sdk.Operation.invokeContractFunction({
+      contract: NATIVE_CONTRACT,
+      function: 'transfer',
+      args: [from, to, amount]
+    }))).setTimeout(120);
+    // Wait, import() is async, Operation is already imported at the top!
+    
+    // Re-writing this without the dynamic import bug:
+    builder.operations = []; // reset in case
+    builder.addOperation(Operation.invokeContractFunction({
+      contract: NATIVE_CONTRACT,
+      function: 'transfer',
+      args: [from, to, amount]
+    })).setTimeout(120);
+
+    let tx = builder.build();
+
+    console.log(`[Fund] Simulating funding for ${contractId}...`);
+    const simResult = await rpcServer.simulateTransaction(tx);
+    
+    if (rpc.Api.isSimulationError(simResult)) {
+      throw new Error(`Transaction simulation failed: ${simResult.error}`);
+    }
+    
+    let prepared = rpc.assembleTransaction(tx, simResult).build();
+    prepared.sign(sponsorKeypair);
+
+    console.log(`[Fund] Submitting funding transaction...`);
+    const response = await rpcServer.sendTransaction(prepared);
+    
+    if (response.status === 'ERROR') {
+      throw new Error(`Stellar RPC rejected transaction: ${response.errorResultXdr}`);
+    }
+
+    console.log(`[Fund] Funded successfully. Hash: ${response.hash}`);
+    return res.json({ success: true, hash: response.hash });
+  } catch (error) {
+    console.error('[Fund] Error funding contract:', error);
+    return res.status(500).json({ error: 'Failed to fund contract', details: error.message || error });
+  }
+});
+
 // Health check endpoint
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', network: NETWORK_PASSPHRASE, rpc: RPC_URL });

@@ -401,10 +401,14 @@ function AppContent() {
 
       // Fund the new wallet with Testnet XLM so the user can make donations!
       try {
-        console.log("[Client] Funding newly deployed wallet with Friendbot...");
-        await fetch(`https://friendbot.stellar.org?addr=${deployedAddress}`);
+        console.log("[Client] Funding newly deployed wallet from Relayer...");
+        await fetch(`${RELAYER_URL.replace('/sponsor-and-submit', '/fund-contract')}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ contractId: deployedAddress })
+        });
       } catch (e) {
-        console.warn("[Client] Friendbot funding failed:", e);
+        console.warn("[Client] Relayer funding failed:", e);
       }
 
       // Save user profile in Firestore
