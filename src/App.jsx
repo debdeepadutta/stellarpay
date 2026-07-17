@@ -43,6 +43,7 @@ import DonorMarketplace from './pages/DonorMarketplace';
 import CampaignDetails from './pages/CampaignDetails';
 import MobileAuth from './pages/MobileAuth';
 import ImpactReceipts from './pages/ImpactReceipts';
+import ImpactDashboard from './pages/ImpactDashboard';
 
 // Firebase
 import { db } from './firebase';
@@ -171,6 +172,7 @@ function AppContent() {
     contractId: CONTRACT_ID, 
     vaultContractId: VAULT_CONTRACT_ID,
     category: 'general',
+    region: 'Global',
     verifier: '',
     milestones: [25, 50, 75, 100]
   });
@@ -772,12 +774,13 @@ function AppContent() {
         vaultContractId: newCampaign.vaultContractId || VAULT_CONTRACT_ID,
         txHash: sendHash,
         category: newCampaign.category || 'general',
+        region: newCampaign.region || 'Global',
         verifier: newCampaign.verifier || address,
         milestones: newCampaign.milestones || [25, 50, 75, 100]
       });
 
       toast.success("Campaign created! Confirming on blockchain in background...", { duration: 5000 });
-      setNewCampaign({ name: '', description: '', goal: '', contractId: CONTRACT_ID, vaultContractId: VAULT_CONTRACT_ID, category: 'general', verifier: '', milestones: [25, 50, 75, 100] });
+      setNewCampaign({ name: '', description: '', goal: '', contractId: CONTRACT_ID, vaultContractId: VAULT_CONTRACT_ID, category: 'general', region: 'Global', verifier: '', milestones: [25, 50, 75, 100] });
       navigate('/admin');
 
       (async () => {
@@ -972,6 +975,7 @@ function AppContent() {
           <Route path="/receipts" element={
             <ImpactReceipts address={address} />
           } />
+          <Route path="/impact-dashboard" element={<ImpactDashboard campaigns={allCampaigns} />} />
         </Routes>
       </div>
 

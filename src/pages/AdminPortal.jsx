@@ -186,6 +186,24 @@ const AdminPortal = ({
                 </select>
               </div>
 
+              {/* Region */}
+              <div className="space-y-2">
+                <label className="text-xs font-black text-slate-500 uppercase tracking-widest">Region</label>
+                <select
+                  value={newCampaign.region || 'Global'}
+                  onChange={e => setNewCampaign({...newCampaign, region: e.target.value})}
+                  className="w-full bg-slate-950 border border-slate-800 p-4 rounded-xl text-white focus:border-amber-500 outline-none transition-all"
+                >
+                  <option value="Global">🌍 Global</option>
+                  <option value="North America">🦅 North America</option>
+                  <option value="South America">🦙 South America</option>
+                  <option value="Europe">🏰 Europe</option>
+                  <option value="Africa">🦁 Africa</option>
+                  <option value="Asia">🐼 Asia</option>
+                  <option value="Oceania">🦘 Oceania</option>
+                </select>
+              </div>
+
               <button 
                 disabled={isSending}
                 className="w-full py-4 bg-indigo-600 hover:bg-indigo-500 disabled:bg-indigo-600/50 text-white font-black rounded-2xl transition-all shadow-xl shadow-indigo-600/20"

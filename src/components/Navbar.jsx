@@ -57,6 +57,14 @@ const Navbar = ({ address, isConnected, onDisconnect, walletName, onConnect }) =
               🧾 Receipts
             </Link>
           )}
+          <Link
+            to="/impact-dashboard"
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold uppercase tracking-widest transition-all ${
+              location.pathname === '/impact-dashboard' ? 'bg-blue-500/20 text-blue-400' : 'text-slate-500 hover:text-white hover:bg-white/5'
+            }`}
+          >
+            📊 Dashboard
+          </Link>
         </div>
 
         <div className="flex items-center gap-4">
