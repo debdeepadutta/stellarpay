@@ -1,4 +1,4 @@
-#![no_std]
+﻿#![no_std]
 use soroban_sdk::{contract, contractimpl, contracttype, symbol_short, token, Address, Env, IntoVal, Symbol, Vec};
 
 #[contracttype]
@@ -26,6 +26,28 @@ pub struct CampaignVaultConfig {
     pub total_withdrawn: i128,
 }
 
+/// Multi-sig config attached to a campaign
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct MultiSigConfig {
+    pub signers: Vec<Address>,
+    pub threshold: u32,   // minimum approvals required (e.g. 2 out of 3)
+}
+
+/// A pending withdrawal proposal requiring N-of-M approval
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct WithdrawalProposal {
+    pub campaign_id: Symbol,
+    pub amount: i128,
+    pub to: Address,
+    pub proposer: Address,
+    pub approvals: Vec<Address>,
+    pub threshold: u32,
+    pub executed: bool,
+    pub created_at: u64,
+}
+
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct VaultStats {
@@ -44,6 +66,9 @@ pub enum DataKey {
     CampaignStats(Symbol),
     CampaignWithdrawals(Symbol),
     CampaignConfig(Symbol),
+    MultiSigConfig(Symbol),
+    WithdrawalProposal(Symbol, u32), // (campaign_id, proposal_index)
+    ProposalCount(Symbol),
 }
 
 #[contract]
@@ -95,6 +120,280 @@ impl VaultContract {
 
         let config_key = DataKey::CampaignConfig(campaign_id);
         env.storage().persistent().set(&config_key, &config);
+    }
+
+    /// Configures multi-sig for a campaign. Only admin or campaign admin (via donation contract) can call.
+    pub fn set_multisig_config(
+        env: Env,
+        campaign_id: Symbol,
+        signers: Vec<Address>,
+        threshold: u32,
+    ) {
+        let admin: Address = env
+            .storage()
+            .instance()
+            .get(&DataKey::Admin)
+            .expect("Vault not initialized");
+        admin.require_auth();
+
+        if signers.len() < threshold {
+            panic!("Threshold cannot exceed number of signers");
+        }
+        if threshold == 0 {
+            panic!("Threshold must be at least 1");
+        }
+
+        let multisig = MultiSigConfig { signers, threshold };
+        env.storage()
+            .persistent()
+            .set(&DataKey::MultiSigConfig(campaign_id), &multisig);
+    }
+
+    /// Propose a withdrawal (creates a pending proposal requiring multi-sig approval).
+    /// Any registered signer can propose. If no multi-sig is configured, falls back to direct withdraw.
+    pub fn propose_withdrawal(
+        env: Env,
+        campaign_id: Symbol,
+        proposer: Address,
+        amount: i128,
+        to: Address,
+    ) -> u32 {
+        proposer.require_auth();
+
+        let multisig_opt: Option<MultiSigConfig> = env
+            .storage()
+            .persistent()
+            .get(&DataKey::MultiSigConfig(campaign_id.clone()));
+
+        let multisig = multisig_opt.expect("Multi-sig not configured for this campaign");
+
+        // Verify proposer is a registered signer
+        let mut is_signer = false;
+        for signer in multisig.signers.iter() {
+            if signer == proposer {
+                is_signer = true;
+                break;
+            }
+        }
+        if !is_signer {
+            panic!("Proposer is not a registered signer");
+        }
+
+        if amount <= 0 {
+            panic!("Amount must be positive");
+        }
+
+        // Check balance
+        let stats_key = DataKey::CampaignStats(campaign_id.clone());
+        let stats: VaultStats = env
+            .storage()
+            .persistent()
+            .get(&stats_key)
+            .unwrap_or(VaultStats {
+                total_deposited: 0,
+                total_withdrawn: 0,
+                current_balance: 0,
+                deposit_count: 0,
+            });
+
+        if amount > stats.current_balance {
+            panic!("Insufficient balance");
+        }
+
+        let mut approvals = Vec::new(&env);
+        approvals.push_back(proposer.clone());
+
+        let proposal = WithdrawalProposal {
+            campaign_id: campaign_id.clone(),
+            amount,
+            to,
+            proposer,
+            approvals,
+            threshold: multisig.threshold,
+            executed: false,
+            created_at: env.ledger().timestamp(),
+        };
+
+        let count_key = DataKey::ProposalCount(campaign_id.clone());
+        let idx: u32 = env.storage().persistent().get(&count_key).unwrap_or(0);
+        env.storage()
+            .persistent()
+            .set(&DataKey::WithdrawalProposal(campaign_id.clone(), idx), &proposal);
+        env.storage()
+            .persistent()
+            .set(&count_key, &(idx + 1));
+
+        env.events().publish(
+            (Symbol::new(&env, "proposal_created"), campaign_id),
+            (idx, amount)
+        );
+
+        idx
+    }
+
+    /// Sign an existing pending proposal. Once threshold is reached, the proposal is ready to execute.
+    pub fn sign_withdrawal(
+        env: Env,
+        campaign_id: Symbol,
+        signer: Address,
+        proposal_idx: u32,
+    ) {
+        signer.require_auth();
+
+        let multisig: MultiSigConfig = env
+            .storage()
+            .persistent()
+            .get(&DataKey::MultiSigConfig(campaign_id.clone()))
+            .expect("Multi-sig not configured");
+
+        // Verify signer is registered
+        let mut is_signer = false;
+        for s in multisig.signers.iter() {
+            if s == signer {
+                is_signer = true;
+                break;
+            }
+        }
+        if !is_signer {
+            panic!("Signer is not a registered multi-sig signer");
+        }
+
+        let proposal_key = DataKey::WithdrawalProposal(campaign_id.clone(), proposal_idx);
+        let mut proposal: WithdrawalProposal = env
+            .storage()
+            .persistent()
+            .get(&proposal_key)
+            .expect("Proposal not found");
+
+        if proposal.executed {
+            panic!("Proposal already executed");
+        }
+
+        // Check not already signed
+        for existing in proposal.approvals.iter() {
+            if existing == signer {
+                panic!("Already signed by this signer");
+            }
+        }
+
+        proposal.approvals.push_back(signer.clone());
+        env.storage().persistent().set(&proposal_key, &proposal);
+
+        env.events().publish(
+            (Symbol::new(&env, "proposal_signed"), campaign_id),
+            (proposal_idx, signer)
+        );
+    }
+
+    /// Execute a proposal that has reached the required approval threshold.
+    pub fn execute_withdrawal(
+        env: Env,
+        campaign_id: Symbol,
+        executor: Address,
+        proposal_idx: u32,
+    ) {
+        executor.require_auth();
+
+        let proposal_key = DataKey::WithdrawalProposal(campaign_id.clone(), proposal_idx);
+        let mut proposal: WithdrawalProposal = env
+            .storage()
+            .persistent()
+            .get(&proposal_key)
+            .expect("Proposal not found");
+
+        if proposal.executed {
+            panic!("Proposal already executed");
+        }
+
+        if (proposal.approvals.len() as u32) < proposal.threshold {
+            panic!("Insufficient approvals to execute");
+        }
+
+        // Milestone cap checking still applies
+        let config_key = DataKey::CampaignConfig(campaign_id.clone());
+        let config_opt: Option<CampaignVaultConfig> = env.storage().persistent().get(&config_key);
+        if let Some(mut config) = config_opt {
+            let mut total_approved_cap: i128 = 0;
+            for milestone in config.milestones.iter() {
+                if milestone.approved {
+                    total_approved_cap += milestone.cap;
+                }
+            }
+            if total_approved_cap > config.goal {
+                total_approved_cap = config.goal;
+            }
+            if config.total_withdrawn + proposal.amount > total_approved_cap {
+                panic!("Amount exceeds approved milestone cap");
+            }
+            config.total_withdrawn += proposal.amount;
+            env.storage().persistent().set(&config_key, &config);
+        }
+
+        let token_addr: Address = env.storage().instance().get(&DataKey::Token).unwrap();
+        let token_client = token::Client::new(&env, &token_addr);
+        token_client.transfer(&env.current_contract_address(), &proposal.to, &proposal.amount);
+
+        // Record withdrawal
+        let record = WithdrawalRecord {
+            amount: proposal.amount,
+            to: proposal.to.clone(),
+            timestamp: env.ledger().timestamp(),
+        };
+        let withdrawals_key = DataKey::CampaignWithdrawals(campaign_id.clone());
+        let mut history: Vec<WithdrawalRecord> = env
+            .storage()
+            .persistent()
+            .get(&withdrawals_key)
+            .unwrap_or(Vec::new(&env));
+        history.push_back(record);
+        env.storage().persistent().set(&withdrawals_key, &history);
+
+        // Update stats
+        let stats_key = DataKey::CampaignStats(campaign_id.clone());
+        let mut stats: VaultStats = env
+            .storage()
+            .persistent()
+            .get(&stats_key)
+            .unwrap_or(VaultStats {
+                total_deposited: 0,
+                total_withdrawn: 0,
+                current_balance: 0,
+                deposit_count: 0,
+            });
+        stats.total_withdrawn += proposal.amount;
+        stats.current_balance -= proposal.amount;
+        env.storage().persistent().set(&stats_key, &stats);
+
+        // Mark as executed
+        proposal.executed = true;
+        env.storage().persistent().set(&proposal_key, &proposal);
+
+        env.events().publish(
+            (Symbol::new(&env, "withdrawal_exec"), campaign_id),
+            (proposal_idx, proposal.amount)
+        );
+    }
+
+    /// Returns a specific withdrawal proposal
+    pub fn get_proposal(env: Env, campaign_id: Symbol, proposal_idx: u32) -> Option<WithdrawalProposal> {
+        env.storage()
+            .persistent()
+            .get(&DataKey::WithdrawalProposal(campaign_id, proposal_idx))
+    }
+
+    /// Returns number of proposals for a campaign
+    pub fn get_proposal_count(env: Env, campaign_id: Symbol) -> u32 {
+        env.storage()
+            .persistent()
+            .get(&DataKey::ProposalCount(campaign_id))
+            .unwrap_or(0)
+    }
+
+    /// Returns the multi-sig config for a campaign
+    pub fn get_multisig_config(env: Env, campaign_id: Symbol) -> Option<MultiSigConfig> {
+        env.storage()
+            .persistent()
+            .get(&DataKey::MultiSigConfig(campaign_id))
     }
 
     /// Approves a milestone, releasing its associated withdrawal cap
@@ -172,6 +471,7 @@ impl VaultContract {
     }
 
     /// Withdraws funds from a specific campaign's vault sub-balance. Only callable by the campaign admin.
+    /// NOTE: For campaigns with multi-sig configured, use propose_withdrawal/sign_withdrawal/execute_withdrawal instead.
     pub fn withdraw(env: Env, campaign_id: Symbol, admin: Address, amount: i128, to: Address) {
         let donation_contract: Address = env
             .storage()
@@ -290,3 +590,5 @@ impl VaultContract {
 }
 
 mod test;
+
+

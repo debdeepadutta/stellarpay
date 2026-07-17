@@ -20,11 +20,13 @@ const AdminPanel = ({ contractId, vaultContractId, connectedWallet, networkPassp
   const [adminAddress, setAdminAddress] = useState(initialAdmin || "");
   const [vaultBalance, setVaultBalance] = useState(0);
   const [history, setHistory] = useState([]);
-  const [actionLoading, setActionLoading] = useState(null); // 'cap' or 'withdraw' or 'approve_M'
+  const [actionLoading, setActionLoading] = useState(null);
   const [lastUpdated, setLastUpdated] = useState(() => Date.now());
   const [withdrawAmount, setWithdrawAmount] = useState("");
   const [withdrawDest, setWithdrawDest] = useState("");
-  const [milestoneConfig, setMilestoneConfig] = useState(null); // { goal, milestones: [...], verifier, approved: [...] }
+  const [milestoneConfig, setMilestoneConfig] = useState(null);
+  const [multiSigConfig, setMultiSigConfig] = useState(null);
+  const [proposals, setProposals] = useState([]);
 
   const isAdmin = connectedWallet?.toString().trim().toUpperCase() === adminAddress?.toString().trim().toUpperCase();
 
@@ -79,10 +81,11 @@ const AdminPanel = ({ contractId, vaultContractId, connectedWallet, networkPassp
       if (connectedWallet && admin && connectedWallet.toString().toUpperCase() === admin.toString().toUpperCase()) {
         if (campaignSymbol) {
           // Multi-campaign: use campaign-specific vault queries
-          const [stats, logs, config] = await Promise.all([
+          const [stats, logs, config, msConfig] = await Promise.all([
             simulate(vaultContractId, "get_campaign_stats", [campaignSymbol]),
             simulate(vaultContractId, "get_campaign_withdrawal_history", [campaignSymbol]),
-            simulate(vaultContractId, "get_campaign_config", [campaignSymbol])
+            simulate(vaultContractId, "get_campaign_config", [campaignSymbol]),
+            simulate(vaultContractId, "get_multisig_config", [campaignSymbol])
           ]);
 
           if (stats !== null) {
@@ -100,6 +103,28 @@ const AdminPanel = ({ contractId, vaultContractId, connectedWallet, networkPassp
               verifier: config.verifier?.toString() || '',
               approved: config.approved || []
             });
+          }
+          if (msConfig !== null) {
+            setMultiSigConfig({
+              signers: (msConfig.signers || []).map(s => s.toString()),
+              threshold: msConfig.threshold
+            });
+            // Fetch pending proposals
+            const countRaw = await simulate(vaultContractId, "get_proposal_count", [campaignSymbol]);
+            const count = Number(countRaw || 0);
+            const proposalFetches = [];
+            for (let i = 0; i < count; i++) {
+              proposalFetches.push(simulate(vaultContractId, "get_proposal", [campaignSymbol, nativeToScVal(i, { type: 'u32' })]));
+            }
+            const rawProposals = await Promise.all(proposalFetches);
+            setProposals(rawProposals.filter(Boolean).map((p, i) => ({
+              idx: i,
+              amount: Number(BigInt(p.amount || 0)) / 10000000,
+              to: p.to?.toString() || '',
+              approvals: (p.approvals || []).map(a => a.toString()),
+              threshold: p.threshold,
+              executed: p.executed
+            })));
           }
         } else {
           // Legacy fallback for old campaigns
@@ -371,6 +396,129 @@ const AdminPanel = ({ contractId, vaultContractId, connectedWallet, networkPassp
                 </div>
               );
             })}
+          </div>
+        </div>
+      )}
+
+      {/* Multi-Sig Withdrawal Panel */}
+      {multiSigConfig && (
+        <div className="bg-slate-900 border border-indigo-900/30 rounded-3xl overflow-hidden">
+          <div className="p-6 border-b border-slate-800 flex justify-between items-center">
+            <div>
+              <h3 className="font-bold text-white flex items-center gap-2">
+                <span className="text-indigo-400">🔐</span>
+                Multi-Sig Withdrawals
+              </h3>
+              <p className="text-xs text-slate-500 mt-1">
+                Threshold: <span className="text-indigo-400 font-bold">{multiSigConfig.threshold}-of-{multiSigConfig.signers.length}</span> signatures required
+              </p>
+            </div>
+            <span className="text-[10px] font-mono text-indigo-400 bg-indigo-500/10 px-2 py-1 rounded-full">
+              {multiSigConfig.signers.length} Signers
+            </span>
+          </div>
+
+          {/* Pending Proposals */}
+          <div className="p-6 space-y-4">
+            {proposals.filter(p => !p.executed).length === 0 && (
+              <p className="text-center text-slate-600 italic text-sm py-4">No pending proposals</p>
+            )}
+            {proposals.filter(p => !p.executed).map((proposal) => {
+              const isSigner = multiSigConfig.signers.some(
+                s => s.toUpperCase() === connectedWallet?.toUpperCase()
+              );
+              const alreadySigned = proposal.approvals.some(
+                a => a.toUpperCase() === connectedWallet?.toUpperCase()
+              );
+              const hasThreshold = proposal.approvals.length >= proposal.threshold;
+              const sym = nativeToScVal(campaignId.substring(0, 32), { type: "symbol" });
+              return (
+                <div key={proposal.idx} className="bg-slate-800/60 border border-slate-700 rounded-2xl p-4 space-y-3">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <div className="text-emerald-400 font-black text-xl">{proposal.amount.toLocaleString()} XLM</div>
+                      <div className="text-xs text-slate-500 font-mono mt-1">→ {proposal.to.slice(0,8)}...{proposal.to.slice(-6)}</div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-xs font-bold text-indigo-400">{proposal.approvals.length}/{proposal.threshold} Signatures</div>
+                      <div className="flex gap-1 mt-1 justify-end">
+                        {Array.from({length: proposal.threshold}).map((_, i) => (
+                          <div key={i} className={`w-2 h-2 rounded-full ${i < proposal.approvals.length ? 'bg-emerald-500' : 'bg-slate-600'}`}/>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    {isSigner && !alreadySigned && !hasThreshold && (
+                      <button
+                        onClick={() => handleAction(`sign_${proposal.idx}`, 'sign_withdrawal', vaultContractId,
+                          [sym, Address.fromString(connectedWallet).toScVal(), nativeToScVal(proposal.idx, { type: 'u32' })]
+                        )}
+                        disabled={!!actionLoading}
+                        className="flex-1 text-xs font-bold bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white rounded-xl py-2 transition-all"
+                      >
+                        {actionLoading === `sign_${proposal.idx}` ? '...' : '✍ Sign'}
+                      </button>
+                    )}
+                    {isSigner && hasThreshold && (
+                      <button
+                        onClick={() => handleAction(`exec_${proposal.idx}`, 'execute_withdrawal', vaultContractId,
+                          [sym, Address.fromString(connectedWallet).toScVal(), nativeToScVal(proposal.idx, { type: 'u32' })]
+                        )}
+                        disabled={!!actionLoading}
+                        className="flex-1 text-xs font-bold bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white rounded-xl py-2 transition-all"
+                      >
+                        {actionLoading === `exec_${proposal.idx}` ? '...' : '⚡ Execute'}
+                      </button>
+                    )}
+                    {alreadySigned && !hasThreshold && (
+                      <span className="text-xs text-emerald-500 font-bold flex items-center gap-1">✓ Signed — waiting for others</span>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+
+            {/* New Proposal Form — only for registered signers */}
+            {multiSigConfig.signers.some(s => s.toUpperCase() === connectedWallet?.toUpperCase()) && (
+              <div className="border-t border-slate-800 pt-4 space-y-3">
+                <div className="text-xs font-black text-slate-500 uppercase tracking-widest">Propose New Withdrawal</div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-[10px] text-slate-500 uppercase">Amount (XLM)</label>
+                    <input
+                      type="number"
+                      value={withdrawAmount}
+                      onChange={e => setWithdrawAmount(e.target.value)}
+                      placeholder="0.00"
+                      className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white text-sm focus:outline-none focus:border-indigo-500"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] text-slate-500 uppercase">Destination</label>
+                    <input
+                      type="text"
+                      value={withdrawDest}
+                      onChange={e => setWithdrawDest(e.target.value)}
+                      placeholder="G..."
+                      className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white text-sm focus:outline-none focus:border-indigo-500 font-mono"
+                    />
+                  </div>
+                </div>
+                <button
+                  onClick={() => {
+                    const sym = nativeToScVal(campaignId.substring(0, 32), { type: "symbol" });
+                    handleAction('propose', 'propose_withdrawal', vaultContractId,
+                      [sym, Address.fromString(connectedWallet).toScVal(), toI128(withdrawAmount), Address.fromString(withdrawDest).toScVal()]
+                    );
+                  }}
+                  disabled={!!actionLoading || !withdrawAmount || !withdrawDest}
+                  className="w-full py-2 text-sm font-bold bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white rounded-xl transition-all"
+                >
+                  {actionLoading === 'propose' ? 'Processing...' : 'Create Proposal'}
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}

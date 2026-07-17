@@ -234,3 +234,149 @@ fn test_milestone_fund_release_exceed_cap_fails() {
     // Should panic because 300 exceeds 25% (250)
     client.withdraw(&campaign_id, &admin, &300, &receiver);
 }
+
+// ── P2: Multi-Sig Tests ────────────────────────────────────────────────────
+
+#[test]
+fn test_multisig_full_flow() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let admin = Address::generate(&env);
+    let donation_contract = env.register_contract(None, MockDonationContract);
+    let donation_client = MockDonationContractClient::new(&env, &donation_contract);
+    donation_client.initialize(&admin);
+
+    let token_admin = Address::generate(&env);
+    let token_id = env.register_stellar_asset_contract_v2(token_admin).address();
+    let token_admin_client = token::StellarAssetClient::new(&env, &token_id);
+    let token_client = token::Client::new(&env, &token_id);
+
+    let contract_id = env.register_contract(None, VaultContract);
+    let client = VaultContractClient::new(&env, &contract_id);
+    client.initialize(&admin, &donation_contract, &token_id);
+
+    let campaign_id = Symbol::new(&env, "camp_ms");
+
+    // Set up multi-sig: 3 signers, threshold=2
+    let signer1 = Address::generate(&env);
+    let signer2 = Address::generate(&env);
+    let signer3 = Address::generate(&env);
+    let mut signers = soroban_sdk::Vec::new(&env);
+    signers.push_back(signer1.clone());
+    signers.push_back(signer2.clone());
+    signers.push_back(signer3.clone());
+
+    client.set_multisig_config(&campaign_id, &signers, &2);
+
+    // Deposit tokens
+    token_admin_client.mint(&donation_contract, &1000);
+    token_client.transfer(&donation_contract, &contract_id, &1000);
+    client.deposit(&campaign_id, &donation_contract, &1000);
+
+    // Set milestone config so withdrawal is not gated (no milestone config → bypass gating)
+    // (campaign has no CampaignVaultConfig, so milestone check is skipped in execute_withdrawal)
+
+    let receiver = Address::generate(&env);
+
+    // Signer1 proposes withdrawal of 500
+    let proposal_idx = client.propose_withdrawal(&campaign_id, &signer1, &500, &receiver);
+    assert_eq!(proposal_idx, 0);
+
+    // Signer2 co-signs
+    client.sign_withdrawal(&campaign_id, &signer2, &proposal_idx);
+
+    // Threshold reached (2 of 2 needed) — execute
+    client.execute_withdrawal(&campaign_id, &signer1, &proposal_idx);
+
+    // Verify funds moved
+    assert_eq!(token_client.balance(&receiver), 500);
+
+    // Verify proposal is marked executed
+    let proposal = client.get_proposal(&campaign_id, &proposal_idx).unwrap();
+    assert!(proposal.executed);
+
+    // Verify stats updated
+    let stats = client.get_campaign_stats(&campaign_id);
+    assert_eq!(stats.current_balance, 500);
+    assert_eq!(stats.total_withdrawn, 500);
+}
+
+#[test]
+#[should_panic(expected = "Insufficient approvals to execute")]
+fn test_multisig_insufficient_approvals_fails() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let admin = Address::generate(&env);
+    let donation_contract = env.register_contract(None, MockDonationContract);
+    let donation_client = MockDonationContractClient::new(&env, &donation_contract);
+    donation_client.initialize(&admin);
+
+    let token_admin = Address::generate(&env);
+    let token_id = env.register_stellar_asset_contract_v2(token_admin).address();
+    let token_admin_client = token::StellarAssetClient::new(&env, &token_id);
+    let token_client = token::Client::new(&env, &token_id);
+
+    let contract_id = env.register_contract(None, VaultContract);
+    let client = VaultContractClient::new(&env, &contract_id);
+    client.initialize(&admin, &donation_contract, &token_id);
+
+    let campaign_id = Symbol::new(&env, "camp_ms2");
+
+    let signer1 = Address::generate(&env);
+    let signer2 = Address::generate(&env);
+    let mut signers = soroban_sdk::Vec::new(&env);
+    signers.push_back(signer1.clone());
+    signers.push_back(signer2.clone());
+
+    client.set_multisig_config(&campaign_id, &signers, &2);
+
+    token_admin_client.mint(&donation_contract, &500);
+    token_client.transfer(&donation_contract, &contract_id, &500);
+    client.deposit(&campaign_id, &donation_contract, &500);
+
+    let receiver = Address::generate(&env);
+    let proposal_idx = client.propose_withdrawal(&campaign_id, &signer1, &300, &receiver);
+    // Should panic: only 1 approval, threshold is 2
+    client.execute_withdrawal(&campaign_id, &signer1, &proposal_idx);
+}
+
+#[test]
+#[should_panic(expected = "Proposer is not a registered signer")]
+fn test_multisig_non_signer_propose_fails() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let admin = Address::generate(&env);
+    let donation_contract = env.register_contract(None, MockDonationContract);
+    let donation_client = MockDonationContractClient::new(&env, &donation_contract);
+    donation_client.initialize(&admin);
+
+    let token_admin = Address::generate(&env);
+    let token_id = env.register_stellar_asset_contract_v2(token_admin).address();
+    let token_admin_client = token::StellarAssetClient::new(&env, &token_id);
+    let token_client = token::Client::new(&env, &token_id);
+
+    let contract_id = env.register_contract(None, VaultContract);
+    let client = VaultContractClient::new(&env, &contract_id);
+    client.initialize(&admin, &donation_contract, &token_id);
+
+    let campaign_id = Symbol::new(&env, "camp_ms3");
+
+    let signer1 = Address::generate(&env);
+    let mut signers = soroban_sdk::Vec::new(&env);
+    signers.push_back(signer1.clone());
+
+    client.set_multisig_config(&campaign_id, &signers, &1);
+
+    token_admin_client.mint(&donation_contract, &500);
+    token_client.transfer(&donation_contract, &contract_id, &500);
+    client.deposit(&campaign_id, &donation_contract, &500);
+
+    let attacker = Address::generate(&env);
+    let receiver = Address::generate(&env);
+    // Should panic: attacker is not a registered signer
+    client.propose_withdrawal(&campaign_id, &attacker, &300, &receiver);
+}
+
