@@ -249,7 +249,7 @@ export async function signSorobanAuthsWithPasskey(tx, keyIdBase64, walletAddress
         ? credentials.address().address() 
         : credentials.addressV2().address();
         
-      const entryAddr = Address.fromScVal(addressVal).toString();
+      const entryAddr = Address.fromScAddress(addressVal).toString();
       if (entryAddr === walletAddressHex) {
         // Generate the 32-byte signature payload hash from the preimage
         // buildAuthorizationEntryPreimage was removed in stellar-sdk v15, we build it manually
