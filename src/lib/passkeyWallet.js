@@ -106,8 +106,8 @@ export async function registerPasskey(username) {
     throw new Error(`Invalid public key format extracted. Expected 65-byte SEC-1 uncompressed key, got ${rawPublicKey.length} bytes.`);
   }
 
-  // base64url encode rawKeyId for storage
-  const keyIdBase64 = Buffer.from(credential.rawId).toString('base64');
+  // base64url encode rawKeyId for storage (avoids Firestore path issues with '/')
+  const keyIdBase64 = Buffer.from(credential.rawId).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
 
   return {
     keyId: credential.id,
@@ -127,9 +127,11 @@ export async function signChallenge(challengeBytes, keyIdBase64) {
   const allowCredentials = [];
   
   if (keyIdBase64) {
+    // Revert base64url to standard base64 for Buffer parsing
+    const standardBase64 = keyIdBase64.replace(/-/g, '+').replace(/_/g, '/');
     allowCredentials.push({
       type: "public-key",
-      id: new Uint8Array(Buffer.from(keyIdBase64, 'base64')),
+      id: new Uint8Array(Buffer.from(standardBase64, 'base64')),
     });
   }
 
@@ -158,7 +160,7 @@ export async function signChallenge(challengeBytes, keyIdBase64) {
     authenticatorData: new Uint8Array(assertion.response.authenticatorData),
     clientDataJSON: new Uint8Array(assertion.response.clientDataJSON),
     signature: compactSig,
-    keyIdBase64: Buffer.from(assertion.rawId).toString('base64'),
+    keyIdBase64: Buffer.from(assertion.rawId).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, ''),
   };
 }
 

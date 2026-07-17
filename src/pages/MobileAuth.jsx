@@ -143,7 +143,7 @@ const MobileAuth = () => {
         const dummyChallenge = window.crypto.getRandomValues(new Uint8Array(32));
         const webauthnSig = await signChallenge(dummyChallenge, null); // null keyId lets browser pick
         
-        const keyIdBase64 = Buffer.from(webauthnSig.authenticatorData).toString('base64'); // wait, the credential ID is what we want!
+        const keyIdBase64 = Buffer.from(webauthnSig.authenticatorData).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, ''); // wait, the credential ID is what we want!
         // WebAuthn signature response doesn't directly contain keyId unless we save the one selected
         // Actually, navigator.credentials.get returns the credential object, which has the credential ID!
         // Let's modify signChallenge to return keyId!
@@ -151,7 +151,7 @@ const MobileAuth = () => {
         // Wait, signChallenge returns webauthnSig. We need the keyId of the authenticated credential.
         // Let's check how we can get keyId inside signChallenge. In signChallenge:
         // const assertion = await navigator.credentials.get(options);
-        // We can return { ... webauthnSig, keyIdBase64: Buffer.from(assertion.rawId).toString('base64') }!
+        // We can return { ... webauthnSig, keyIdBase64: Buffer.from(assertion.rawId).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '') }!
         // Yes, let's write a lookup in Firestore!
         
         // Wait, since we need keyIdBase64, we can look up the user profile.
@@ -265,7 +265,7 @@ const MobileAuth = () => {
                       const assertion = await navigator.credentials.get(options);
                       if (!assertion) throw new Error("Verification cancelled.");
                       
-                      const keyIdBase64 = Buffer.from(assertion.rawId).toString('base64');
+                      const keyIdBase64 = Buffer.from(assertion.rawId).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
                       console.log('[Mobile] Authenticated credential ID:', keyIdBase64);
                       
                       const userDoc = await getDoc(doc(db, 'users', keyIdBase64));
