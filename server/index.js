@@ -62,7 +62,16 @@ app.post('/api/sponsor-and-submit', async (req, res) => {
     // We parse the raw XDR envelope to bypass the immutable Transaction wrapper
     const envelope = xdr.TransactionEnvelope.fromXDR(txXdr, 'base64');
     const txXdrObj = envelope.v1().tx();
+    
+    // Override sequence number
     txXdrObj.seqNum(new xdr.SequenceNumber(sponsorAccount.sequenceNumber()));
+    
+    // Override timebounds (add 5 minutes from relayer's local time) to prevent txTooLate errors
+    const currentUnix = Math.floor(Date.now() / 1000);
+    txXdrObj.cond(xdr.Preconditions.precondTime(new xdr.TimeBounds({
+      minTime: new xdr.TimePoint(0),
+      maxTime: new xdr.TimePoint(currentUnix + 300)
+    })));
     
     const newEnvelope = new xdr.TransactionEnvelope.envelopeTypeTx(
       new xdr.TransactionV1Envelope({
