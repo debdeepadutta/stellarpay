@@ -1,7 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import { Transaction, Keypair, Networks, rpc, TransactionBuilder, Horizon, xdr } from '@stellar/stellar-sdk';
+import { Transaction, Keypair, Networks, Operation, rpc, TransactionBuilder, Horizon, xdr } from '@stellar/stellar-sdk';
 
 // Load environment variables from parent directory if present, otherwise local
 dotenv.config({ path: '../.env' });
