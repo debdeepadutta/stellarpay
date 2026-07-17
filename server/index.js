@@ -1,7 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import { Transaction, Keypair, Networks, rpc, TransactionBuilder, Horizon } from '@stellar/stellar-sdk';
+import { Transaction, Keypair, Networks, rpc, TransactionBuilder, Horizon, xdr } from '@stellar/stellar-sdk';
 
 // Load environment variables from parent directory if present, otherwise local
 dotenv.config({ path: '../.env' });
@@ -58,37 +58,47 @@ app.post('/api/sponsor-and-submit', async (req, res) => {
       throw new Error(`Failed to load sponsor account from network: ${e.message}`);
     }
 
-    // 4. Rebuild transaction with correct sequence number
-    // We extract operations and sorobanData from the original tx
-    const builder = new TransactionBuilder(sponsorAccount, {
-      fee: '100000', // Set a safe fee, or copy from tx
-      networkPassphrase: NETWORK_PASSPHRASE
-    });
-
-    tx.operations.forEach(op => builder.addOperation(op));
+    // 4. Rebuild transaction with correct sequence number using XDR mutation
+    // We parse the raw XDR envelope to bypass the immutable Transaction wrapper
+    const envelope = xdr.TransactionEnvelope.fromXDR(txXdr, 'base64');
+    const txXdrObj = envelope.v1().tx();
+    txXdrObj.seqNum(new xdr.SequenceNumber(sponsorAccount.sequenceNumber()));
     
-    // Copy soroban data if present (for smart wallet auths)
-    if (tx.sorobanData) {
-      builder.setSorobanData(tx.sorobanData);
+    const newEnvelope = new xdr.TransactionEnvelope.envelopeTypeTx(
+      new xdr.TransactionV1Envelope({
+        tx: txXdrObj,
+        signatures: [] // Clear any existing signatures since we modified the tx
+      })
+    );
+
+    // 5. Simulate the transaction to populate Soroban data (resource footprints)
+    let mutableTx = new Transaction(newEnvelope.toXDR('base64'), NETWORK_PASSPHRASE);
+    
+    console.log(`[Sponsor] Simulating transaction to fetch Soroban Data footprints...`);
+    const simResult = await rpcServer.simulateTransaction(mutableTx);
+    
+    if (rpc.Api.isSimulationError(simResult)) {
+      throw new Error(`Transaction simulation failed: ${simResult.error}`);
     }
+    
+    // Assemble the final transaction with the simulated data and required fees
+    mutableTx = rpc.assembleTransaction(mutableTx, NETWORK_PASSPHRASE, simResult).build();
 
-    let newTx = builder.setTimeout(300).build();
+    // 6. Sign the rebuilt transaction
+    mutableTx.sign(sponsorKeypair);
 
-    // 5. Sign the rebuilt transaction
-    newTx.sign(sponsorKeypair);
-
-    const signedXdr = newTx.toXDR();
+    const signedXdr = mutableTx.toXDR();
     console.log(`[Sponsor] Sponsoring transaction with source ${sponsorKeypair.publicKey()}, seq ${sponsorAccount.sequenceNumber()}`);
 
-    // 6. Submit to Soroban RPC
+    // 7. Submit to Soroban RPC
     console.log(`[Sponsor] Submitting to RPC: ${RPC_URL}`);
-    const response = await rpcServer.sendTransaction(newTx);
+    const response = await rpcServer.sendTransaction(mutableTx);
     
     if (response.status === 'ERROR') {
       console.error('[Sponsor] Submission failed:', response.errorResultXdr || response);
       return res.status(400).json({ 
         error: 'Stellar RPC rejected transaction', 
-        details: response.errorResultXdr || response.errorResult || response 
+        details: response.errorResultXdr || response.status || "Unknown RPC error"
       });
     }
 
