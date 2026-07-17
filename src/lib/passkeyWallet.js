@@ -101,10 +101,11 @@ export async function registerPasskey(username) {
 
   const challenge = window.crypto.getRandomValues(new Uint8Array(32));
   const hostname = window.location.hostname;
+  const targetStableId = 'stellarpay-debdeepa-duttas-projects.vercel.app';
   const rpId = import.meta.env.VITE_PASSKEY_RP_ID || 
-    (hostname === 'localhost' || hostname === '127.0.0.1'
-      ? hostname
-      : 'stellarpay-debdeepa-duttas-projects.vercel.app');
+    (hostname === targetStableId || hostname.endsWith('.' + targetStableId)
+      ? targetStableId
+      : hostname);
 
   const options = {
     publicKey: {
@@ -173,10 +174,11 @@ export async function signChallenge(challengeBytes, keyIdBase64) {
   }
 
   const hostname = window.location.hostname;
+  const targetStableId = 'stellarpay-debdeepa-duttas-projects.vercel.app';
   const rpId = import.meta.env.VITE_PASSKEY_RP_ID || 
-    (hostname === 'localhost' || hostname === '127.0.0.1'
-      ? hostname
-      : 'stellarpay-debdeepa-duttas-projects.vercel.app');
+    (hostname === targetStableId || hostname.endsWith('.' + targetStableId)
+      ? targetStableId
+      : hostname);
   const allowCredentials = [];
   
   if (keyIdBase64) {
