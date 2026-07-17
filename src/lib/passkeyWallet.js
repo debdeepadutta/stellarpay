@@ -2,10 +2,24 @@ import {
   xdr, 
   Address, 
   hash, 
-  buildAuthorizationEntryPreimage, 
-  Transaction, 
   Networks 
 } from '@stellar/stellar-sdk';
+
+// buildAuthorizationEntryPreimage was removed in stellar-sdk v15.
+// We rebuild it manually using the raw XDR types.
+function buildAuthPreimage(entry, networkPassphrase) {
+  const networkId = hash(Buffer.from(networkPassphrase));
+  const addrCreds = entry.credentials().address();
+  const preimage = xdr.HashIdPreimage.envelopeTypeSorobanAuthorization(
+    new xdr.HashIdPreimageSorobanAuthorization({
+      networkId,
+      nonce: addrCreds.nonce(),
+      signatureExpirationLedger: addrCreds.signatureExpirationLedger(),
+      invocation: entry.rootInvocation(),
+    })
+  );
+  return preimage.toXDR();
+}
 import { Buffer } from 'buffer';
 
 // Helper to convert DER signature to compact 64-byte format (R || S)
@@ -230,8 +244,9 @@ export async function signSorobanAuthsWithPasskey(tx, keyIdBase64, walletAddress
       const entryAddr = Address.fromScVal(addressVal).toString();
       if (entryAddr === walletAddressHex) {
         // Generate the 32-byte signature payload hash from the preimage
-        const preimage = buildAuthorizationEntryPreimage(entry);
-        const challengeHash = hash(preimage); // 32-byte SHA-256 Buffer
+        // buildAuthorizationEntryPreimage was removed in stellar-sdk v15, we build it manually
+        const preimageXdr = buildAuthPreimage(entry, Networks.TESTNET);
+        const challengeHash = hash(preimageXdr); // 32-byte SHA-256 Buffer
         
         // Request WebAuthn signature
         const webauthnSig = await signChallenge(challengeHash, keyIdBase64);
