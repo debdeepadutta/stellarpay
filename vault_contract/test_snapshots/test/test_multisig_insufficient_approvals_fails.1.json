@@ -1830,7 +1830,7 @@
             "data": {
               "vec": [
                 {
-                  "string": "caught panic 'Insufficient approvals to execute' from contract function 'Symbol(obj#397)'"
+                  "string": "caught panic 'Insufficient approvals to execute' from contract function 'Symbol(obj#401)'"
                 },
                 {
                   "symbol": "camp_ms2"

@@ -19,6 +19,7 @@ import DonorLeaderboard from '../components/DonorLeaderboard';
 import LiveDonationFeed from '../components/LiveDonationFeed';
 import WalletCard from '../components/WalletCard';
 import ReputationBadge from '../components/ReputationBadge';
+import MatchingPoolBanner from '../components/MatchingPoolBanner';
 
 const CampaignDetails = ({ address, balance, isFetchingData, handleDonate, handleRegisterOnChain, isSending, txStatus, txHash, lastDonationAt, lastUpdated, fetchData }) => {
   const { id } = useParams();
@@ -304,6 +305,11 @@ const CampaignDetails = ({ address, balance, isFetchingData, handleDonate, handl
 
         {/* Right Column: Interaction */}
         <div className="lg:col-span-5 space-y-8">
+          <MatchingPoolBanner
+            vaultContractId={import.meta.env.VITE_VAULT_CONTRACT_ID}
+            campaignId={campaign.contractCampaignId || campaign.id}
+            lastDonationAt={lastDonationAt}
+          />
            <DonateXLMForm 
             address={address} 
             onDonate={(r, a) => handleDonate(campaign.id, campaign.donationContractId || campaign.contractId, a)} 

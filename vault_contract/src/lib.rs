@@ -1,4 +1,4 @@
-﻿#![no_std]
+#![no_std]
 use soroban_sdk::{contract, contractimpl, contracttype, symbol_short, token, Address, Env, IntoVal, Symbol, Vec};
 
 #[contracttype]
@@ -24,6 +24,17 @@ pub struct CampaignVaultConfig {
     pub verifier: Address,
     pub milestones: Vec<Milestone>,
     pub total_withdrawn: i128,
+}
+
+/// A matching pool funded by a matcher for a specific campaign.
+/// On every donation, up to min(donation, remaining) is auto-matched 1:1.
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct MatchingPool {
+    pub funder: Address,
+    pub total: i128,    // total pledged by matcher (in token's base units)
+    pub used: i128,     // how much has been matched so far
+    pub active: bool,   // funder can deactivate to stop future matching
 }
 
 /// Multi-sig config attached to a campaign
@@ -69,6 +80,7 @@ pub enum DataKey {
     MultiSigConfig(Symbol),
     WithdrawalProposal(Symbol, u32), // (campaign_id, proposal_index)
     ProposalCount(Symbol),
+    MatchingPool(Symbol),            // matching pool per campaign
 }
 
 #[contract]
@@ -461,6 +473,25 @@ impl VaultContract {
         stats.total_deposited += amount;
         stats.current_balance += amount;
         stats.deposit_count += 1;
+        // Auto-apply matching pool if active
+        let pool_key = DataKey::MatchingPool(campaign_id.clone());
+        if let Some(mut pool) = env.storage().persistent().get::<_, MatchingPool>(&pool_key) {
+            if pool.active && pool.used < pool.total {
+                let remaining = pool.total - pool.used;
+                let matched = if amount < remaining { amount } else { remaining };
+                pool.used += matched;
+                // Credit the matched amount as additional deposit (tokens already held by vault)
+                stats.total_deposited += matched;
+                stats.current_balance += matched;
+                env.storage().persistent().set(&pool_key, &pool);
+                // Emit matching event
+                env.events().publish(
+                    (symbol_short!("matched"), campaign_id.clone(), from.clone()),
+                    matched
+                );
+            }
+        }
+
         env.storage().persistent().set(&stats_key, &stats);
 
         // Emit event
@@ -586,6 +617,61 @@ impl VaultContract {
     pub fn get_campaign_config(env: Env, campaign_id: Symbol) -> Option<CampaignVaultConfig> {
         let config_key = DataKey::CampaignConfig(campaign_id);
         env.storage().persistent().get(&config_key)
+    }
+
+    /// Fund a matching pool for a campaign. Anyone can be a matcher.
+    /// The matcher transfers tokens to the vault; those tokens will be
+    /// automatically applied 1:1 on future donations up to `amount`.
+    pub fn fund_matching_pool(env: Env, campaign_id: Symbol, funder: Address, amount: i128) {
+        funder.require_auth();
+
+        if amount <= 0 {
+            panic!("Matching pool amount must be positive");
+        }
+
+        let token_addr: Address = env.storage().instance().get(&DataKey::Token).unwrap();
+        let token_client = token::Client::new(&env, &token_addr);
+        // Transfer matching funds from funder into the vault
+        token_client.transfer(&funder, &env.current_contract_address(), &amount);
+
+        let pool_key = DataKey::MatchingPool(campaign_id.clone());
+        // If a pool already exists and is still active, extend it; otherwise create new
+        let pool = if let Some(mut existing) = env.storage().persistent().get::<_, MatchingPool>(&pool_key) {
+            existing.total += amount;
+            existing.active = true;
+            existing
+        } else {
+            MatchingPool { funder: funder.clone(), total: amount, used: 0, active: true }
+        };
+        env.storage().persistent().set(&pool_key, &pool);
+
+        env.events().publish(
+            (symbol_short!("pool_add"), campaign_id),
+            (funder, amount)
+        );
+    }
+
+    /// Get the current state of a matching pool for a campaign.
+    pub fn get_matching_pool(env: Env, campaign_id: Symbol) -> Option<MatchingPool> {
+        env.storage().persistent().get(&DataKey::MatchingPool(campaign_id))
+    }
+
+    /// Deactivate a matching pool. Only the original funder or admin can do this.
+    pub fn deactivate_matching_pool(env: Env, campaign_id: Symbol, caller: Address) {
+        caller.require_auth();
+        let pool_key = DataKey::MatchingPool(campaign_id.clone());
+        let mut pool: MatchingPool = env
+            .storage()
+            .persistent()
+            .get(&pool_key)
+            .expect("No matching pool for this campaign");
+
+        let admin: Address = env.storage().instance().get(&DataKey::Admin).unwrap();
+        if caller != pool.funder && caller != admin {
+            panic!("Only funder or admin can deactivate");
+        }
+        pool.active = false;
+        env.storage().persistent().set(&pool_key, &pool);
     }
 }
 

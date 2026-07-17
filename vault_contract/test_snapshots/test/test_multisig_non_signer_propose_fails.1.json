@@ -1497,7 +1497,7 @@
             "data": {
               "vec": [
                 {
-                  "string": "caught panic 'Proposer is not a registered signer' from contract function 'Symbol(obj#331)'"
+                  "string": "caught panic 'Proposer is not a registered signer' from contract function 'Symbol(obj#335)'"
                 },
                 {
                   "symbol": "camp_ms3"

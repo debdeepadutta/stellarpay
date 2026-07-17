@@ -380,3 +380,74 @@ fn test_multisig_non_signer_propose_fails() {
     client.propose_withdrawal(&campaign_id, &attacker, &300, &receiver);
 }
 
+#[test]
+fn test_matching_pool() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let admin = Address::generate(&env);
+    let donation_contract = env.register_contract(None, MockDonationContract);
+    let donation_client = MockDonationContractClient::new(&env, &donation_contract);
+    donation_client.initialize(&admin);
+
+    let token_admin = Address::generate(&env);
+    let token_id = env.register_stellar_asset_contract_v2(token_admin).address();
+    let token_admin_client = token::StellarAssetClient::new(&env, &token_id);
+    let token_client = token::Client::new(&env, &token_id);
+
+    let contract_id = env.register_contract(None, VaultContract);
+    let client = VaultContractClient::new(&env, &contract_id);
+    client.initialize(&admin, &donation_contract, &token_id);
+
+    let campaign_id = Symbol::new(&env, "camp_match");
+    let matcher = Address::generate(&env);
+
+    // Fund the matcher and create a 500-token matching pool
+    token_admin_client.mint(&matcher, &500);
+    client.fund_matching_pool(&campaign_id, &matcher, &500);
+
+    // Verify pool state
+    let pool = client.get_matching_pool(&campaign_id).unwrap();
+    assert_eq!(pool.total, 500);
+    assert_eq!(pool.used, 0);
+    assert!(pool.active);
+    // Vault should now hold the 500 matching tokens
+    assert_eq!(token_client.balance(&contract_id), 500);
+
+    // Donor makes a 200-token donation (already transferred to vault externally)
+    token_admin_client.mint(&donation_contract, &200);
+    token_client.transfer(&donation_contract, &contract_id, &200);
+    client.deposit(&campaign_id, &donation_contract, &200);
+
+    // Balance should be 200 (deposit) + 200 (matched) = 400
+    assert_eq!(client.get_campaign_balance(&campaign_id), 400);
+    let stats = client.get_campaign_stats(&campaign_id);
+    assert_eq!(stats.total_deposited, 400); // 200 donated + 200 matched
+    assert_eq!(stats.deposit_count, 1);
+
+    // Pool used should be 200
+    let pool2 = client.get_matching_pool(&campaign_id).unwrap();
+    assert_eq!(pool2.used, 200);
+    assert_eq!(pool2.total, 500);
+
+    // Second donation: 400 tokens — only 300 remaining in pool
+    token_admin_client.mint(&donation_contract, &400);
+    token_client.transfer(&donation_contract, &contract_id, &400);
+    client.deposit(&campaign_id, &donation_contract, &400);
+
+    // Matched: min(400, 300) = 300
+    let pool3 = client.get_matching_pool(&campaign_id).unwrap();
+    assert_eq!(pool3.used, 500); // pool exhausted
+    assert_eq!(client.get_campaign_balance(&campaign_id), 400 + 400 + 300); // 1100
+
+    // Pool is now exhausted but still "active" — future deposits get 0 match
+    token_admin_client.mint(&donation_contract, &100);
+    token_client.transfer(&donation_contract, &contract_id, &100);
+    client.deposit(&campaign_id, &donation_contract, &100);
+    assert_eq!(client.get_campaign_balance(&campaign_id), 1200); // no new matching
+
+    // Admin can deactivate pool
+    client.deactivate_matching_pool(&campaign_id, &admin);
+    let pool4 = client.get_matching_pool(&campaign_id).unwrap();
+    assert!(!pool4.active);
+}
