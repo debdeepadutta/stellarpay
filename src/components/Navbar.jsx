@@ -29,6 +29,35 @@ const Navbar = ({ address, isConnected, onDisconnect, walletName, onConnect }) =
           </div>
         </div>
 
+        {/* Nav Links */}
+        <div className="hidden md:flex items-center gap-1">
+          <Link
+            to="/donor"
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold uppercase tracking-widest transition-all ${
+              isDonorPath ? 'bg-indigo-500/20 text-indigo-400' : 'text-slate-500 hover:text-white hover:bg-white/5'
+            }`}
+          >
+            Marketplace
+          </Link>
+          <Link
+            to="/admin"
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold uppercase tracking-widest transition-all ${
+              isAdminPath ? 'bg-red-500/20 text-red-400' : 'text-slate-500 hover:text-white hover:bg-white/5'
+            }`}
+          >
+            Admin
+          </Link>
+          {isConnected && (
+            <Link
+              to="/receipts"
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold uppercase tracking-widest transition-all ${
+                location.pathname === '/receipts' ? 'bg-emerald-500/20 text-emerald-400' : 'text-slate-500 hover:text-white hover:bg-white/5'
+              }`}
+            >
+              🧾 Receipts
+            </Link>
+          )}
+        </div>
 
         <div className="flex items-center gap-4">
           {isConnected ? (

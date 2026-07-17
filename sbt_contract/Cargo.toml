@@ -1,5 +1,5 @@
 [package]
-name = "donation_contract"
+name = "sbt_contract"
 version = "0.1.0"
 edition = "2021"
 
@@ -11,9 +11,6 @@ soroban-sdk = "21.7.7"
 
 [dev-dependencies]
 soroban-sdk = { version = "21.7.7", features = ["testutils"] }
-logger_contract = { path = "../logger_contract" }
-vault_contract = { path = "../vault_contract" }
-sbt_contract = { path = "../sbt_contract" }
 
 [profile.release]
 opt-level = "z"

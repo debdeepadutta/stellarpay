@@ -42,6 +42,7 @@ import AdminPortal from './pages/AdminPortal';
 import DonorMarketplace from './pages/DonorMarketplace';
 import CampaignDetails from './pages/CampaignDetails';
 import MobileAuth from './pages/MobileAuth';
+import ImpactReceipts from './pages/ImpactReceipts';
 
 // Firebase
 import { db } from './firebase';
@@ -79,6 +80,8 @@ const NETWORK_PASSPHRASE = import.meta.env.VITE_NETWORK_PASSPHRASE || Networks.T
 const SPONSOR_PUBLIC_KEY = validatePublicKey(import.meta.env.VITE_SPONSOR_PUBLIC_KEY, "GDPJCT2XIVH7WSIT7FGV6XMKIGC5O6NEIONJW4AWLCLDUZRVPPNOL7NC");
 const RELAYER_URL = import.meta.env.VITE_SPONSOR_RELAYER_URL || "http://localhost:3001/api/sponsor-and-submit";
 const FACTORY_CONTRACT_ID = validateContractId(import.meta.env.VITE_SMART_WALLET_FACTORY_ID, "CDZL737THBVBCO443UXGXCFF4Z3JQNFAKRZXZNIPMF3FG4IDDTMDP6KP");
+const SBT_CONTRACT_ID = validateContractId(import.meta.env.VITE_SBT_CONTRACT_ID, "");
+
 
 const kit = new StellarWalletsKit({
   network: WalletNetwork.TESTNET,
@@ -966,6 +969,9 @@ function AppContent() {
             />
           } />
           <Route path="/mobile-auth" element={<MobileAuth />} />
+          <Route path="/receipts" element={
+            <ImpactReceipts address={address} />
+          } />
         </Routes>
       </div>
 

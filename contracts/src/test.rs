@@ -130,3 +130,44 @@ fn test_top_donors() {
     assert_eq!(top.get(3).unwrap().1, 300);
     assert_eq!(top.get(4).unwrap().1, 100);
 }
+
+#[test]
+fn test_sbt_integration_flow() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let (admin, token_id, logger, vault, token_client, token_admin_client, client) = setup_test(&env);
+    client.initialize(&admin, &token_id, &logger, &vault);
+
+    // Deploy and initialize SBT contract
+    let sbt_id = env.register_contract(None, sbt_contract::SbtContract);
+    let sbt_client = sbt_contract::SbtContractClient::new(&env, &sbt_id);
+    // SBT contract minter is the donation contract
+    sbt_client.initialize(&client.address);
+
+    // Register SBT contract in Donation contract
+    client.set_sbt_contract(&sbt_id);
+
+    let campaign_id = Symbol::new(&env, "camp_sbt");
+    let verifier = Address::generate(&env);
+    let mut milestones = Vec::new(&env);
+    milestones.push_back(50);
+    let category = Symbol::new(&env, "environment");
+    client.create_campaign(&campaign_id, &admin, &1000, &milestones, &verifier, &category);
+
+    // Make a donation
+    let donor = Address::generate(&env);
+    token_admin_client.mint(&donor, &500);
+    client.donate(&campaign_id, &donor, &500);
+
+    // Verify SBT receipt was minted!
+    let receipts = sbt_client.get_donor_receipts(&donor);
+    assert_eq!(receipts.len(), 1);
+    let receipt_id = receipts.get(0).unwrap();
+    let receipt = sbt_client.get_receipt(&receipt_id).unwrap();
+    assert_eq!(receipt.donor, donor);
+    assert_eq!(receipt.campaign_id, campaign_id);
+    assert_eq!(receipt.amount, 500);
+    assert_eq!(receipt.category, category);
+}
+

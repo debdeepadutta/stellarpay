@@ -54,6 +54,7 @@ pub enum DataKey {
     TopDonors,
     DonorReputation(Address),
     DonorCampaignSeen(Address, Symbol), // whether donor has donated to this campaign before
+    Sbt,                                // SBT contract address for impact receipts
 }
 
 #[contract]
@@ -80,6 +81,13 @@ impl DonationContract {
         
         let empty_top: Vec<(Address, i128)> = Vec::new(&env);
         env.storage().instance().set(&DataKey::TopDonors, &empty_top);
+    }
+
+    /// Set the SBT contract address. Only callable by admin.
+    pub fn set_sbt_contract(env: Env, sbt: Address) {
+        let admin: Address = env.storage().instance().get(&DataKey::Admin).expect("Not initialized");
+        admin.require_auth();
+        env.storage().instance().set(&DataKey::Sbt, &sbt);
     }
 
     /// Create a new campaign on-chain with milestones, verifier and category
@@ -175,6 +183,16 @@ impl DonationContract {
             &symbol_short!("deposit"),
             (campaign_id.clone(), donor.clone(), amount).into_val(&env),
         );
+
+        // 5b. Mint SBT Receipt if contract is configured
+        let sbt_opt: Option<Address> = env.storage().instance().get(&DataKey::Sbt);
+        if let Some(sbt_addr) = sbt_opt {
+            env.invoke_contract::<u64>(
+                &sbt_addr,
+                &Symbol::new(&env, "mint"),
+                (donor.clone(), campaign_id.clone(), amount, campaign.category.clone()).into_val(&env),
+            );
+        }
 
         // 6. Cross-contract call to Logger (global history)
         let logger_addr: Address = env.storage().instance().get(&DataKey::Logger).expect("Logger not set");
