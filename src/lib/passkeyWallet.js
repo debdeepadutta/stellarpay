@@ -22,7 +22,28 @@ function buildAuthPreimage(entry, networkPassphrase) {
 }
 import { Buffer } from 'buffer';
 
+// secp256r1 (P-256) curve order n
+// Used to normalize S to low form: if s > n/2, s = n - s
+const P256_N = BigInt('0xffffffff00000000ffffffffffffffffbce6faada7179e84f3b9cac2fc632551');
+const P256_N_OVER_2 = P256_N >> 1n;
+
+function bufToBigInt(buf) {
+  let hex = '';
+  for (const b of buf) hex += b.toString(16).padStart(2, '0');
+  return BigInt('0x' + hex);
+}
+
+function bigIntToBuf32(n) {
+  let hex = n.toString(16).padStart(64, '0');
+  const buf = Buffer.alloc(32);
+  for (let i = 0; i < 32; i++) {
+    buf[i] = parseInt(hex.slice(i * 2, i * 2 + 2), 16);
+  }
+  return buf;
+}
+
 // Helper to convert DER signature to compact 64-byte format (R || S)
+// Normalizes S to low form as required by Stellar's verify_sig_ecdsa_secp256r1.
 export function convertEcdsaSignatureAsnToCompact(asn1Signature) {
   const sig = Buffer.isBuffer(asn1Signature) ? asn1Signature : Buffer.from(asn1Signature);
   if (sig[0] !== 0x30) throw new Error("Invalid signature format");
@@ -49,11 +70,18 @@ export function convertEcdsaSignatureAsnToCompact(asn1Signature) {
     sStart++;
     sLen--;
   }
-  const s = sig.subarray(sStart, sStart + sLen);
+  let sBytes = sig.subarray(sStart, sStart + sLen);
+
+  // Normalize S to low form (s <= n/2) — required by Stellar's secp256r1 verifier
+  let sBig = bufToBigInt(sBytes);
+  if (sBig > P256_N_OVER_2) {
+    sBig = P256_N - sBig;
+    sBytes = bigIntToBuf32(sBig);
+  }
   
   const compact = Buffer.alloc(64);
   r.copy(compact, 32 - r.length);
-  s.copy(compact, 64 - s.length);
+  sBytes.copy(compact, 64 - sBytes.length);
   return compact;
 }
 
