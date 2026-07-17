@@ -73,6 +73,14 @@ const fromI128 = (v) => {
   return Number(val) / 10000000;
 };
 
+const validateContractId = (val, fallback) => {
+  return (val && val.length === 56 && val.startsWith('C')) ? val : fallback;
+};
+
+const validatePublicKey = (val, fallback) => {
+  return (val && val.length === 56 && val.startsWith('G')) ? val : fallback;
+};
+
 const CONTRACT_ID = "CBGFHRSQ275OQRZGOZXLO7JABDVTI5UIZLD7ETSAGJVI5WMIWGBC2TK4";
 const VAULT_CONTRACT_ID = "CB7O4AJFIBTGQODDCOPQICCSHRA35WFTIA2ZZ5O6OUMKWV4ROZIE3BZD";
 const DUMMY_ACCOUNT = new Account("GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF", "0");
@@ -80,9 +88,9 @@ const server = new Horizon.Server(import.meta.env.VITE_HORIZON_URL || "https://h
 const rpcServer = new rpc.Server(import.meta.env.VITE_RPC_URL || "https://soroban-testnet.stellar.org");
 
 const NETWORK_PASSPHRASE = import.meta.env.VITE_NETWORK_PASSPHRASE || Networks.TESTNET;
-const SPONSOR_PUBLIC_KEY = import.meta.env.VITE_SPONSOR_PUBLIC_KEY;
+const SPONSOR_PUBLIC_KEY = validatePublicKey(import.meta.env.VITE_SPONSOR_PUBLIC_KEY, "GDPJCT2XIVH7WSIT7FGV6XMKIGC5O6NEIONJW4AWLCLDUZRVPPNOL7NC");
 const RELAYER_URL = import.meta.env.VITE_SPONSOR_RELAYER_URL || "http://localhost:3001/api/sponsor-and-submit";
-const FACTORY_CONTRACT_ID = import.meta.env.VITE_SMART_WALLET_FACTORY_ID;
+const FACTORY_CONTRACT_ID = validateContractId(import.meta.env.VITE_SMART_WALLET_FACTORY_ID, "CD5L46P27AWPCDLDTXZN72LDR66UUT53SLVMLQCPBDRR5RWR57JAXWWS");
 
 const kit = new StellarWalletsKit({
   network: WalletNetwork.TESTNET,

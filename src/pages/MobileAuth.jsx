@@ -54,9 +54,17 @@ const MobileAuth = () => {
         const passkey = await registerPasskey(session.username);
         
         // 2. Deploy the smart wallet via factory contract
-        const factoryId = import.meta.env.VITE_SMART_WALLET_FACTORY_ID || 'CD5L46P27AWPCDLDTXZN72LDR66UUT53SLVMLQCPBDRR5RWR57JAXWWS';
+        const rawFactoryId = import.meta.env.VITE_SMART_WALLET_FACTORY_ID;
+        const factoryId = (rawFactoryId && rawFactoryId.length === 56 && rawFactoryId.startsWith('C'))
+          ? rawFactoryId
+          : 'CD5L46P27AWPCDLDTXZN72LDR66UUT53SLVMLQCPBDRR5RWR57JAXWWS';
+
         const relayerUrl = import.meta.env.VITE_SPONSOR_RELAYER_URL || 'http://localhost:3001/api/sponsor-and-submit';
-        const sponsorPublicKey = import.meta.env.VITE_SPONSOR_PUBLIC_KEY || 'GCYYHFAIGQJEDJVV4R3Z6SFTMVD23HCNPQ3IZTLRDRQ4VT25XLDFTTZH';
+        
+        const rawSponsorPk = import.meta.env.VITE_SPONSOR_PUBLIC_KEY;
+        const sponsorPublicKey = (rawSponsorPk && rawSponsorPk.length === 56 && rawSponsorPk.startsWith('G'))
+          ? rawSponsorPk
+          : 'GDPJCT2XIVH7WSIT7FGV6XMKIGC5O6NEIONJW4AWLCLDUZRVPPNOL7NC';
         
         // Compute deterministic salt from keyIdBase64
         // To be safe, we build the deterministic salt as a 32-byte hex or byte array
