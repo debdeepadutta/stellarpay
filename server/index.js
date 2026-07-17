@@ -36,17 +36,12 @@ app.post('/api/sponsor-and-submit', async (req, res) => {
     }
 
     // 1. Restore the transaction envelope from XDR
-    const tx = new Transaction(txXdr, NETWORK_PASSPHRASE);
+    // NOTE: We do NOT check the fee here — the fee in the incoming XDR is just a
+    // client-side placeholder (e.g. 10000 stroops). The REAL fee is computed by
+    // rpc.assembleTransaction below, after simulation adds the Soroban resource fees.
+    // Soroban donation transactions can legitimately require 20M+ stroops.
 
-    // 2. Validate transaction fee to prevent fee drain attacks (max 0.1 XLM = 1,000,000 stroops)
-    const MAX_FEE = 1000000;
-    if (parseInt(tx.fee, 10) > MAX_FEE) {
-      return res.status(400).json({ 
-        error: `Transaction fee (${tx.fee} stroops) exceeds max sponsor allowance of ${MAX_FEE} stroops.` 
-      });
-    }
-
-    // 3. Fetch latest sequence number for sponsor account
+    // 2. Fetch latest sequence number for sponsor account
     const sponsorKeypair = Keypair.fromSecret(SPONSOR_SECRET_KEY);
     const horizonUrl = process.env.VITE_HORIZON_URL || 'https://horizon-testnet.stellar.org';
     const server = new Horizon.Server(horizonUrl);
@@ -58,7 +53,7 @@ app.post('/api/sponsor-and-submit', async (req, res) => {
       throw new Error(`Failed to load sponsor account from network: ${e.message}`);
     }
 
-    // 4. Rebuild transaction with correct sequence number using XDR mutation
+    // 3. Rebuild transaction with correct sequence number using XDR mutation
     // We parse the raw XDR envelope to bypass the immutable Transaction wrapper
     const envelope = xdr.TransactionEnvelope.fromXDR(txXdr, 'base64');
     const txXdrObj = envelope.v1().tx();
@@ -81,7 +76,7 @@ app.post('/api/sponsor-and-submit', async (req, res) => {
       })
     );
 
-    // 5. Simulate the transaction to populate Soroban data (resource footprints)
+    // 4. Simulate the transaction to populate Soroban data (resource footprints)
     let mutableTx = new Transaction(newEnvelope.toXDR('base64'), NETWORK_PASSPHRASE);
     
     console.log(`[Sponsor] Simulating transaction to fetch Soroban Data footprints...`);
@@ -91,8 +86,19 @@ app.post('/api/sponsor-and-submit', async (req, res) => {
       throw new Error(`Transaction simulation failed: ${simResult.error}`);
     }
     
-    // Assemble the final transaction with the simulated data and required fees
+    // 5. Assemble the final transaction with the simulated data and required fees.
+    // assembleTransaction calculates the real Soroban resource fee automatically.
+    // For testnet we allow up to 100 XLM (100,000,000 stroops) as a safety ceiling.
+    const MAX_SPONSOR_FEE = 100_000_000; // 100 XLM in stroops
     mutableTx = rpc.assembleTransaction(mutableTx, simResult).build();
+    
+    const assembledFee = parseInt(mutableTx.fee, 10);
+    console.log(`[Sponsor] Assembled transaction fee: ${assembledFee} stroops`);
+    if (assembledFee > MAX_SPONSOR_FEE) {
+      return res.status(400).json({
+        error: `Assembled transaction fee (${assembledFee} stroops) exceeds safety limit of ${MAX_SPONSOR_FEE} stroops. Contact support.`
+      });
+    }
 
     // 6. Sign the rebuilt transaction
     mutableTx.sign(sponsorKeypair);
