@@ -246,7 +246,11 @@ export async function sponsorAndSubmit(txXdr, relayerUrl) {
   const data = await response.json();
   
   if (!response.ok || !data.success) {
-    throw new Error(data.error || data.details || "Relayer transaction submission failed.");
+    let errorMsg = data.error || "Relayer transaction submission failed.";
+    if (data.details) {
+      errorMsg += ` | Details: ${typeof data.details === 'string' ? data.details : JSON.stringify(data.details)}`;
+    }
+    throw new Error(errorMsg);
   }
 
   return data;
