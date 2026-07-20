@@ -88,15 +88,15 @@ const AdminPanel = ({ contractId, vaultContractId, connectedWallet, networkPassp
             simulate(vaultContractId, "get_multisig_config", [campaignSymbol])
           ]);
 
-          if (stats !== null) {
+          if (stats) {
             const balance = Number(BigInt(stats.current_balance || 0)) / 10000000;
             setVaultBalance(balance);
           }
-          if (logs !== null) setHistory(logs.map(log => ({
+          if (logs) setHistory(logs.map(log => ({
             ...log,
             amount: Number(BigInt(log.amount)) / 10000000
           })));
-          if (config !== null) {
+          if (config) {
             setMilestoneConfig({
               goal: Number(BigInt(config.goal || 0)) / 10000000,
               milestones: config.milestones || [],
@@ -104,7 +104,7 @@ const AdminPanel = ({ contractId, vaultContractId, connectedWallet, networkPassp
               approved: config.approved || []
             });
           }
-          if (msConfig !== null) {
+          if (msConfig) {
             setMultiSigConfig({
               signers: (msConfig.signers || []).map(s => s.toString()),
               threshold: msConfig.threshold

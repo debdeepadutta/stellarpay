@@ -224,7 +224,7 @@ const AdminPortal = ({
                 <div className="flex justify-between items-start">
                   <div>
                     <h4 className="text-xl font-bold text-white">{campaign.name}</h4>
-                    <p className="text-slate-500 text-xs mt-1">{campaign.description.slice(0, 100)}...</p>
+                    <p className="text-slate-500 text-xs mt-1">{(campaign.description || '').slice(0, 100)}...</p>
                   </div>
                   <div className="flex gap-2">
                     <button 
