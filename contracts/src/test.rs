@@ -9,9 +9,13 @@ pub struct MockLogger;
 
 #[contractimpl]
 impl MockLogger {
-    pub fn log_donation(env: Env, _donor: Address, _amount: i128, _timestamp: u64) {
+    pub fn log_donation(env: Env, _donor: Address, _amount: i128, _admin: Address, _timestamp: u64) {
         // Just emit an event to verify it was called
         env.events().publish((Symbol::new(&env, "logger_called"),), ());
+    }
+
+    pub fn log_campaign_creation(env: Env, _admin: Address) {
+        env.events().publish((Symbol::new(&env, "logger_called_creation"),), ());
     }
 }
 
@@ -230,3 +234,50 @@ fn test_subscription_too_early() {
     // Trigger immediately (should panic because 1000 < 4600)
     client.trigger_subscription_donation(&campaign_id, &donor);
 }
+
+#[test]
+fn test_deactivate_campaign() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let (admin, _token_id, _logger, vault, _token_client, _token_admin_client, client) = setup_test(&env);
+    client.initialize(&admin, &_token_id, &_logger, &vault);
+
+    let campaign_id = Symbol::new(&env, "camp_deact");
+    let verifier = Address::generate(&env);
+    let mut milestones = Vec::new(&env);
+    milestones.push_back(100);
+    client.create_campaign(&campaign_id, &admin, &1000, &milestones, &verifier, &Symbol::new(&env, "tech"));
+
+    // Deactivate it
+    client.deactivate_campaign(&campaign_id, &admin);
+
+    // Verify it is inactive
+    let info = client.get_campaign_info(&campaign_id).unwrap();
+    assert_eq!(info.status, Symbol::new(&env, "inactive"));
+}
+
+#[test]
+#[should_panic(expected = "Campaign is inactive")]
+fn test_donate_to_inactive_campaign_fails() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let (admin, _token_id, _logger, vault, _token_client, token_admin_client, client) = setup_test(&env);
+    client.initialize(&admin, &_token_id, &_logger, &vault);
+
+    let campaign_id = Symbol::new(&env, "camp_deact2");
+    let verifier = Address::generate(&env);
+    let mut milestones = Vec::new(&env);
+    milestones.push_back(100);
+    client.create_campaign(&campaign_id, &admin, &1000, &milestones, &verifier, &Symbol::new(&env, "tech"));
+
+    // Deactivate it
+    client.deactivate_campaign(&campaign_id, &admin);
+
+    // Try to donate (should panic)
+    let donor = Address::generate(&env);
+    token_admin_client.mint(&donor, &500);
+    client.donate(&campaign_id, &donor, &500);
+}
+

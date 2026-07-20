@@ -36,9 +36,13 @@ export default defineConfig(async () => {
     build: {
       rollupOptions: {
         output: {
-          manualChunks: {
-            'stellar-sdk': ['@stellar/stellar-sdk'],
-            'firebase': ['firebase/app', 'firebase/firestore']
+          manualChunks(id) {
+            if (id.includes('@stellar/stellar-sdk')) {
+              return 'stellar-sdk';
+            }
+            if (id.includes('firebase/app') || id.includes('firebase/firestore')) {
+              return 'firebase';
+            }
           }
         }
       }

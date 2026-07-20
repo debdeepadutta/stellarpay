@@ -142,8 +142,16 @@ impl DonationContract {
 
         // Emit campaign creation event
         env.events().publish(
-            (symbol_short!("created"), campaign_id),
-            (admin, goal)
+            (symbol_short!("created"), campaign_id.clone()),
+            (admin.clone(), goal)
+        );
+
+        // Cross-contract call to Logger
+        let logger_addr: Address = env.storage().instance().get(&DataKey::Logger).expect("Logger not set");
+        env.invoke_contract::<()>(
+            &logger_addr,
+            &Symbol::new(&env, "log_campaign_creation"),
+            (admin,).into_val(&env),
         );
     }
 
@@ -166,6 +174,10 @@ impl DonationContract {
             .persistent()
             .get(&campaign_key)
             .expect("Campaign not found");
+
+        if campaign.status != Symbol::new(&env, "active") {
+            panic!("Campaign is inactive");
+        }
 
         // 1. Update Donor Total for this campaign (Persistent Storage)
         let donor_total_key = DataKey::CampaignDonorTotal(campaign_id.clone(), donor.clone());
@@ -218,7 +230,7 @@ impl DonationContract {
         env.invoke_contract::<()>(
             &logger_addr,
             &Symbol::new(&env, "log_donation"),
-            (donor.clone(), amount, env.ledger().timestamp()).into_val(&env),
+            (donor.clone(), amount, campaign.admin.clone(), env.ledger().timestamp()).into_val(&env),
         );
 
         // 8. Update global donor reputation
@@ -254,6 +266,11 @@ impl DonationContract {
         env.storage().instance().get(&DataKey::Total).unwrap_or(0)
     }
 
+    /// Return logger contract address
+    pub fn get_logger(env: Env) -> Address {
+        env.storage().instance().get(&DataKey::Logger).expect("Logger not set")
+    }
+
     /// Return total donations for a specific campaign
     pub fn get_campaign_total(env: Env, campaign_id: Symbol) -> i128 {
         let key = DataKey::Campaign(campaign_id);
@@ -281,6 +298,30 @@ impl DonationContract {
     pub fn get_campaign_donor_total(env: Env, campaign_id: Symbol, donor: Address) -> i128 {
         let key = DataKey::CampaignDonorTotal(campaign_id, donor);
         env.storage().persistent().get(&key).unwrap_or(0)
+    }
+
+    /// Deactivate a campaign. Only the campaign admin can do this.
+    pub fn deactivate_campaign(env: Env, campaign_id: Symbol, admin: Address) {
+        admin.require_auth();
+
+        let campaign_key = DataKey::Campaign(campaign_id.clone());
+        let mut campaign: CampaignInfo = env
+            .storage()
+            .persistent()
+            .get(&campaign_key)
+            .expect("Campaign not found");
+
+        if campaign.admin != admin {
+            panic!("Only campaign admin can deactivate");
+        }
+
+        campaign.status = Symbol::new(&env, "inactive");
+        env.storage().persistent().set(&campaign_key, &campaign);
+
+        env.events().publish(
+            (symbol_short!("inactive"), campaign_id),
+            admin
+        );
     }
 
     /// Return top 5 donors for a specific campaign

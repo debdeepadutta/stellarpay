@@ -28,7 +28,7 @@ fn setup_test(env: &Env) -> (Address, Address, Address, Address, token::Client, 
     
     // 5. Initialize All
     donation_client.initialize(&admin, &token_id, &logger_id, &vault_id);
-    logger_client.initialize(&donation_id, &admin);
+    logger_client.initialize(&donation_id, &vault_id, &admin);
     vault_client.initialize(&admin, &donation_id, &token_id);
     
     (admin, token_id, logger_id, vault_id, token_client, token_admin_client, donation_client, logger_client, vault_client)
@@ -90,8 +90,9 @@ fn test_edge_case_unauthorized_logger_call() {
     let (_admin, _token_id, _, _, _, _, _, logger_client, _) = setup_test(&env);
     
     let attacker = Address::generate(&env);
+    let dummy_admin = Address::generate(&env);
     // Prove: Random address cannot log directly
-    logger_client.log_donation(&attacker, &100, &0);
+    logger_client.log_donation(&attacker, &100, &dummy_admin, &0);
 }
 
 #[test]

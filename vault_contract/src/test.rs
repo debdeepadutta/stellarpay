@@ -1,6 +1,17 @@
-#![cfg(test)]
+﻿#![cfg(test)]
 use super::*;
 use soroban_sdk::{testutils::Address as _, Address, Env, Symbol, token};
+
+// Mock Logger Contract (receives calls from vault)
+#[contract]
+pub struct MockLogger;
+
+#[contractimpl]
+impl MockLogger {
+    pub fn log_campaign_withdrawal(_env: Env, _admin: Address, _amount: i128) {
+        // No-op in tests
+    }
+}
 
 // Mock Donation Contract
 #[contract]
@@ -8,12 +19,17 @@ pub struct MockDonationContract;
 
 #[contractimpl]
 impl MockDonationContract {
-    pub fn initialize(env: Env, admin: Address) {
+    pub fn initialize(env: Env, admin: Address, logger: Address) {
         env.storage().instance().set(&Symbol::new(&env, "admin"), &admin);
+        env.storage().instance().set(&Symbol::new(&env, "logger"), &logger);
     }
     
     pub fn get_campaign_admin(env: Env, _campaign_id: Symbol) -> Address {
         env.storage().instance().get(&Symbol::new(&env, "admin")).unwrap()
+    }
+
+    pub fn get_logger(env: Env) -> Address {
+        env.storage().instance().get(&Symbol::new(&env, "logger")).unwrap()
     }
 }
 
@@ -25,9 +41,10 @@ fn test_vault_full_flow() {
     let admin = Address::generate(&env);
     
     // Register Mock Donation Contract
+    let logger_mock = env.register_contract(None, MockLogger);
     let donation_contract = env.register_contract(None, MockDonationContract);
     let donation_client = MockDonationContractClient::new(&env, &donation_contract);
-    donation_client.initialize(&admin);
+    donation_client.initialize(&admin, &logger_mock);
     
     // Register Token
     let token_admin = Address::generate(&env);
@@ -80,9 +97,10 @@ fn test_withdraw_insufficient_funds() {
     env.mock_all_auths();
 
     let admin = Address::generate(&env);
+    let logger_mock = env.register_contract(None, MockLogger);
     let donation_contract = env.register_contract(None, MockDonationContract);
     let donation_client = MockDonationContractClient::new(&env, &donation_contract);
-    donation_client.initialize(&admin);
+    donation_client.initialize(&admin, &logger_mock);
 
     let token_id = env.register_stellar_asset_contract_v2(Address::generate(&env)).address();
     
@@ -117,9 +135,10 @@ fn test_milestone_fund_release_success() {
     env.mock_all_auths();
 
     let admin = Address::generate(&env);
+    let logger_mock = env.register_contract(None, MockLogger);
     let donation_contract = env.register_contract(None, MockDonationContract);
     let donation_client = MockDonationContractClient::new(&env, &donation_contract);
-    donation_client.initialize(&admin);
+    donation_client.initialize(&admin, &logger_mock);
 
     let token_admin = Address::generate(&env);
     let token_id = env.register_stellar_asset_contract_v2(token_admin).address();
@@ -165,9 +184,10 @@ fn test_milestone_fund_release_no_approval_fails() {
     env.mock_all_auths();
 
     let admin = Address::generate(&env);
+    let logger_mock = env.register_contract(None, MockLogger);
     let donation_contract = env.register_contract(None, MockDonationContract);
     let donation_client = MockDonationContractClient::new(&env, &donation_contract);
-    donation_client.initialize(&admin);
+    donation_client.initialize(&admin, &logger_mock);
 
     let token_admin = Address::generate(&env);
     let token_id = env.register_stellar_asset_contract_v2(token_admin).address();
@@ -203,9 +223,10 @@ fn test_milestone_fund_release_exceed_cap_fails() {
     env.mock_all_auths();
 
     let admin = Address::generate(&env);
+    let logger_mock = env.register_contract(None, MockLogger);
     let donation_contract = env.register_contract(None, MockDonationContract);
     let donation_client = MockDonationContractClient::new(&env, &donation_contract);
-    donation_client.initialize(&admin);
+    donation_client.initialize(&admin, &logger_mock);
 
     let token_admin = Address::generate(&env);
     let token_id = env.register_stellar_asset_contract_v2(token_admin).address();
@@ -235,7 +256,7 @@ fn test_milestone_fund_release_exceed_cap_fails() {
     client.withdraw(&campaign_id, &admin, &300, &receiver);
 }
 
-// ── P2: Multi-Sig Tests ────────────────────────────────────────────────────
+// â”€â”€ P2: Multi-Sig Tests â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 #[test]
 fn test_multisig_full_flow() {
@@ -243,9 +264,10 @@ fn test_multisig_full_flow() {
     env.mock_all_auths();
 
     let admin = Address::generate(&env);
+    let logger_mock = env.register_contract(None, MockLogger);
     let donation_contract = env.register_contract(None, MockDonationContract);
     let donation_client = MockDonationContractClient::new(&env, &donation_contract);
-    donation_client.initialize(&admin);
+    donation_client.initialize(&admin, &logger_mock);
 
     let token_admin = Address::generate(&env);
     let token_id = env.register_stellar_asset_contract_v2(token_admin).address();
@@ -274,7 +296,7 @@ fn test_multisig_full_flow() {
     token_client.transfer(&donation_contract, &contract_id, &1000);
     client.deposit(&campaign_id, &donation_contract, &1000);
 
-    // Set milestone config so withdrawal is not gated (no milestone config → bypass gating)
+    // Set milestone config so withdrawal is not gated (no milestone config â†’ bypass gating)
     // (campaign has no CampaignVaultConfig, so milestone check is skipped in execute_withdrawal)
 
     let receiver = Address::generate(&env);
@@ -286,7 +308,7 @@ fn test_multisig_full_flow() {
     // Signer2 co-signs
     client.sign_withdrawal(&campaign_id, &signer2, &proposal_idx);
 
-    // Threshold reached (2 of 2 needed) — execute
+    // Threshold reached (2 of 2 needed) â€” execute
     client.execute_withdrawal(&campaign_id, &signer1, &proposal_idx);
 
     // Verify funds moved
@@ -309,9 +331,10 @@ fn test_multisig_insufficient_approvals_fails() {
     env.mock_all_auths();
 
     let admin = Address::generate(&env);
+    let logger_mock = env.register_contract(None, MockLogger);
     let donation_contract = env.register_contract(None, MockDonationContract);
     let donation_client = MockDonationContractClient::new(&env, &donation_contract);
-    donation_client.initialize(&admin);
+    donation_client.initialize(&admin, &logger_mock);
 
     let token_admin = Address::generate(&env);
     let token_id = env.register_stellar_asset_contract_v2(token_admin).address();
@@ -349,9 +372,10 @@ fn test_multisig_non_signer_propose_fails() {
     env.mock_all_auths();
 
     let admin = Address::generate(&env);
+    let logger_mock = env.register_contract(None, MockLogger);
     let donation_contract = env.register_contract(None, MockDonationContract);
     let donation_client = MockDonationContractClient::new(&env, &donation_contract);
-    donation_client.initialize(&admin);
+    donation_client.initialize(&admin, &logger_mock);
 
     let token_admin = Address::generate(&env);
     let token_id = env.register_stellar_asset_contract_v2(token_admin).address();
@@ -386,9 +410,10 @@ fn test_matching_pool() {
     env.mock_all_auths();
 
     let admin = Address::generate(&env);
+    let logger_mock = env.register_contract(None, MockLogger);
     let donation_contract = env.register_contract(None, MockDonationContract);
     let donation_client = MockDonationContractClient::new(&env, &donation_contract);
-    donation_client.initialize(&admin);
+    donation_client.initialize(&admin, &logger_mock);
 
     let token_admin = Address::generate(&env);
     let token_id = env.register_stellar_asset_contract_v2(token_admin).address();
@@ -430,7 +455,7 @@ fn test_matching_pool() {
     assert_eq!(pool2.used, 200);
     assert_eq!(pool2.total, 500);
 
-    // Second donation: 400 tokens — only 300 remaining in pool
+    // Second donation: 400 tokens â€” only 300 remaining in pool
     token_admin_client.mint(&donation_contract, &400);
     token_client.transfer(&donation_contract, &contract_id, &400);
     client.deposit(&campaign_id, &donation_contract, &400);
@@ -440,7 +465,7 @@ fn test_matching_pool() {
     assert_eq!(pool3.used, 500); // pool exhausted
     assert_eq!(client.get_campaign_balance(&campaign_id), 400 + 400 + 300); // 1100
 
-    // Pool is now exhausted but still "active" — future deposits get 0 match
+    // Pool is now exhausted but still "active" â€” future deposits get 0 match
     token_admin_client.mint(&donation_contract, &100);
     token_client.transfer(&donation_contract, &contract_id, &100);
     client.deposit(&campaign_id, &donation_contract, &100);
@@ -451,3 +476,4 @@ fn test_matching_pool() {
     let pool4 = client.get_matching_pool(&campaign_id).unwrap();
     assert!(!pool4.active);
 }
+

@@ -21,13 +21,23 @@ pub struct FlagRecord {
 }
 
 #[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct AdminReputation {
+    pub campaigns_created: u32,
+    pub total_funds_raised: i128,
+    pub total_funds_withdrawn: i128,
+}
+
+#[contracttype]
 #[derive(Clone)]
 pub enum DataKey {
     History,
     DonationContract,
+    VaultContract,           // authorized vault contract
     Admin,                   // platform admin who can flag/resolve
     CampaignFlags(Symbol),   // Vec<FlagRecord> per campaign
     FlagCount,               // global flag count for quick access
+    AdminRep(Address),       // AdminReputation per admin
 }
 
 #[contract]
@@ -35,12 +45,13 @@ pub struct LoggerContract;
 
 #[contractimpl]
 impl LoggerContract {
-    /// Initialize the logger with the authorized donation contract address and platform admin.
-    pub fn initialize(env: Env, donation_contract: Address, admin: Address) {
+    /// Initialize the logger with the authorized donation contract, vault contract, and platform admin.
+    pub fn initialize(env: Env, donation_contract: Address, vault_contract: Address, admin: Address) {
         if env.storage().instance().has(&DataKey::DonationContract) {
             panic!("Already initialized");
         }
         env.storage().instance().set(&DataKey::DonationContract, &donation_contract);
+        env.storage().instance().set(&DataKey::VaultContract, &vault_contract);
         env.storage().instance().set(&DataKey::Admin, &admin);
         env.storage().instance().set(&DataKey::FlagCount, &0u32);
         
@@ -48,8 +59,28 @@ impl LoggerContract {
         env.storage().persistent().set(&DataKey::History, &empty_history);
     }
 
+    /// Log the creation of a new campaign by an admin
+    pub fn log_campaign_creation(env: Env, admin: Address) {
+        let authorized_contract: Address = env
+            .storage()
+            .instance()
+            .get(&DataKey::DonationContract)
+            .expect("Logger not initialized");
+        authorized_contract.require_auth();
+
+        let key = DataKey::AdminRep(admin.clone());
+        let mut rep: AdminReputation = env.storage().persistent().get(&key).unwrap_or(AdminReputation {
+            campaigns_created: 0,
+            total_funds_raised: 0,
+            total_funds_withdrawn: 0,
+        });
+
+        rep.campaigns_created += 1;
+        env.storage().persistent().set(&key, &rep);
+    }
+
     /// Logs a donation. Only callable by the authorized donation contract.
-    pub fn log_donation(env: Env, donor: Address, amount: i128, timestamp: u64) {
+    pub fn log_donation(env: Env, donor: Address, amount: i128, admin: Address, timestamp: u64) {
         let authorized_contract: Address = env
             .storage()
             .instance()
@@ -62,6 +93,16 @@ impl LoggerContract {
         if amount <= 0 {
             panic!("Amount must be positive");
         }
+
+        // Update admin reputation
+        let rep_key = DataKey::AdminRep(admin.clone());
+        let mut rep: AdminReputation = env.storage().persistent().get(&rep_key).unwrap_or(AdminReputation {
+            campaigns_created: 0,
+            total_funds_raised: 0,
+            total_funds_withdrawn: 0,
+        });
+        rep.total_funds_raised += amount;
+        env.storage().persistent().set(&rep_key, &rep);
 
         let record = DonationRecord {
             donor: donor.clone(),
@@ -236,6 +277,38 @@ impl LoggerContract {
             recent.push_back(history.get(i).unwrap());
         }
         recent
+    }
+
+    /// Logs a successful withdrawal. Only callable by the authorized vault contract.
+    pub fn log_campaign_withdrawal(env: Env, admin: Address, amount: i128) {
+        let vault_contract: Address = env
+            .storage()
+            .instance()
+            .get(&DataKey::VaultContract)
+            .expect("Vault contract not configured in logger");
+        vault_contract.require_auth();
+
+        if amount <= 0 {
+            panic!("Amount must be positive");
+        }
+
+        let rep_key = DataKey::AdminRep(admin.clone());
+        let mut rep: AdminReputation = env.storage().persistent().get(&rep_key).unwrap_or(AdminReputation {
+            campaigns_created: 0,
+            total_funds_raised: 0,
+            total_funds_withdrawn: 0,
+        });
+        rep.total_funds_withdrawn += amount;
+        env.storage().persistent().set(&rep_key, &rep);
+    }
+
+    /// Returns the reputation statistics for an admin.
+    pub fn get_admin_reputation(env: Env, admin: Address) -> AdminReputation {
+        env.storage().persistent().get(&DataKey::AdminRep(admin)).unwrap_or(AdminReputation {
+            campaigns_created: 0,
+            total_funds_raised: 0,
+            total_funds_withdrawn: 0,
+        })
     }
 }
 

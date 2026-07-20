@@ -380,6 +380,24 @@ impl VaultContract {
         proposal.executed = true;
         env.storage().persistent().set(&proposal_key, &proposal);
 
+        // Fetch logger from donation contract and log withdrawal
+        let donation_contract: Address = env.storage().instance().get(&DataKey::DonationContract).unwrap();
+        let campaign_admin: Address = env.invoke_contract(
+            &donation_contract,
+            &Symbol::new(&env, "get_campaign_admin"),
+            (campaign_id.clone(),).into_val(&env)
+        );
+        let logger_addr: Address = env.invoke_contract(
+            &donation_contract,
+            &Symbol::new(&env, "get_logger"),
+            ().into_val(&env)
+        );
+        env.invoke_contract::<()>(
+            &logger_addr,
+            &Symbol::new(&env, "log_campaign_withdrawal"),
+            (campaign_admin, proposal.amount).into_val(&env)
+        );
+
         env.events().publish(
             (Symbol::new(&env, "withdrawal_exec"), campaign_id),
             (proposal_idx, proposal.amount)
@@ -576,6 +594,18 @@ impl VaultContract {
         stats.total_withdrawn += amount;
         stats.current_balance -= amount;
         env.storage().persistent().set(&stats_key, &stats);
+
+        // Fetch logger from donation contract and log withdrawal
+        let logger_addr: Address = env.invoke_contract(
+            &donation_contract,
+            &Symbol::new(&env, "get_logger"),
+            ().into_val(&env)
+        );
+        env.invoke_contract::<()>(
+            &logger_addr,
+            &Symbol::new(&env, "log_campaign_withdrawal"),
+            (campaign_admin, amount).into_val(&env)
+        );
 
         // Emit event
         env.events().publish(

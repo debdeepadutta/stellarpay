@@ -11,16 +11,19 @@ fn test_logger_full_flow() {
     let client = LoggerContractClient::new(&env, &contract_id);
 
     let donation_contract = Address::generate(&env);
+    let vault_contract = Address::generate(&env);
     let admin = Address::generate(&env);
-    client.initialize(&donation_contract, &admin);
+    client.initialize(&donation_contract, &vault_contract, &admin);
 
     let d1 = Address::generate(&env);
     let d2 = Address::generate(&env);
 
+    let admin1 = Address::generate(&env);
+
     // 1. Log donations (authorized as donation_contract)
-    client.log_donation(&d1, &100, &1000);
-    client.log_donation(&d2, &200, &2000);
-    client.log_donation(&d1, &300, &3000);
+    client.log_donation(&d1, &100, &admin1, &1000);
+    client.log_donation(&d2, &200, &admin1, &2000);
+    client.log_donation(&d1, &300, &admin1, &3000);
 
     // 2. Check count
     assert_eq!(client.get_donation_count(), 3);
@@ -37,11 +40,18 @@ fn test_logger_full_flow() {
     assert_eq!(d1_history.get(0).unwrap().amount, 100);
     assert_eq!(d1_history.get(1).unwrap().amount, 300);
 
-    // 5. Check recent donations
     let recent = client.get_recent_donations(&2);
     assert_eq!(recent.len(), 2);
     assert_eq!(recent.get(0).unwrap().amount, 200);
     assert_eq!(recent.get(1).unwrap().amount, 300);
+
+    // 6. Test Admin Reputation
+    let rep = client.get_admin_reputation(&admin1);
+    assert_eq!(rep.total_funds_raised, 600);
+    
+    client.log_campaign_creation(&admin1);
+    let rep2 = client.get_admin_reputation(&admin1);
+    assert_eq!(rep2.campaigns_created, 1);
 }
 
 #[test]
@@ -53,8 +63,9 @@ fn test_flag_and_resolve_campaign() {
     let client = LoggerContractClient::new(&env, &contract_id);
 
     let donation_contract = Address::generate(&env);
+    let vault_contract = Address::generate(&env);
     let admin = Address::generate(&env);
-    client.initialize(&donation_contract, &admin);
+    client.initialize(&donation_contract, &vault_contract, &admin);
 
     let campaign_id = soroban_sdk::Symbol::new(&env, "camp1");
     let reason = String::from_str(&env, "Suspicious activity: rapid repeated micro-donations");
@@ -86,9 +97,10 @@ fn test_already_initialized() {
     let client = LoggerContractClient::new(&env, &contract_id);
 
     let donation_contract = Address::generate(&env);
+    let vault_contract = Address::generate(&env);
     let admin = Address::generate(&env);
-    client.initialize(&donation_contract, &admin);
-    client.initialize(&donation_contract, &admin);
+    client.initialize(&donation_contract, &vault_contract, &admin);
+    client.initialize(&donation_contract, &vault_contract, &admin);
 }
 
 #[test]
@@ -99,9 +111,11 @@ fn test_unauthorized_log() {
     let client = LoggerContractClient::new(&env, &contract_id);
 
     let donation_contract = Address::generate(&env);
+    let vault_contract = Address::generate(&env);
     let admin = Address::generate(&env);
-    client.initialize(&donation_contract, &admin);
+    client.initialize(&donation_contract, &vault_contract, &admin);
 
     let attacker = Address::generate(&env);
-    client.log_donation(&attacker, &100, &1000);
+    let campaign_admin = Address::generate(&env);
+    client.log_donation(&attacker, &100, &campaign_admin, &1000);
 }

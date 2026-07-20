@@ -906,10 +906,86 @@ function AppContent() {
 
   const deleteCampaign = async (id) => {
     try {
+      const camp = allCampaigns.find(c => c.id === id) || campaigns.find(c => c.id === id);
+      const isOnChain = camp?.isOnChain || false;
+      const contractId = camp?.donationContractId || camp?.contractId;
+
+      if (isOnChain && contractId) {
+        toast.loading("Deactivating campaign on-chain...", { id: "deactivate" });
+        const campaignSymbol = nativeToScVal(id.substring(0, 32), { type: "symbol" });
+
+        let sendHash;
+        if (isPasskeyWallet) {
+          const dummyAccount = new Account(SPONSOR_PUBLIC_KEY, '0');
+          const builder = new TransactionBuilder(dummyAccount, {
+            fee: '10000',
+            networkPassphrase: NETWORK_PASSPHRASE
+          });
+          const tx = builder.addOperation(Operation.invokeContractFunction({
+            contract: contractId,
+            function: "deactivate_campaign",
+            args: [campaignSymbol, Address.fromString(address).toScVal()]
+          })).setTimeout(60).build();
+
+          const sim = await rpcServer.simulateTransaction(tx);
+          if (rpc.Api.isSimulationError(sim)) {
+            throw new Error("Failed to simulate on-chain: " + (sim.error || "Unknown error"));
+          }
+
+          let prepared = rpc.assembleTransaction(tx, sim).build();
+          prepared = await signSorobanAuthsWithPasskey(prepared, passkeyKeyId, address);
+
+          const result = await sponsorAndSubmit(prepared.toXDR(), RELAYER_URL);
+          sendHash = result.hash;
+        } else {
+          let account;
+          try {
+            account = await server.loadAccount(address);
+          } catch {
+            account = new Account(address, "0");
+          }
+          const builder = new TransactionBuilder(account, { fee: "10000", networkPassphrase: NETWORK_PASSPHRASE });
+          const tx = builder.addOperation(Operation.invokeContractFunction({
+            contract: contractId,
+            function: "deactivate_campaign",
+            args: [campaignSymbol, Address.fromString(address).toScVal()]
+          })).setTimeout(60).build();
+
+          const sim = await rpcServer.simulateTransaction(tx);
+          if (rpc.Api.isSimulationError(sim)) {
+            throw new Error("Failed to simulate on-chain: " + (sim.error || "Unknown error"));
+          }
+
+          const prepared = rpc.assembleTransaction(tx, sim).build();
+          const { signedTxXdr } = await kit.signTransaction(prepared.toXDR(), { networkPassphrase: NETWORK_PASSPHRASE });
+          const send = await rpcServer.sendTransaction(TransactionBuilder.fromXDR(signedTxXdr, NETWORK_PASSPHRASE));
+          if (send.status === "ERROR") {
+            throw new Error(`On-chain deactivation rejected: ${send.errorResultXdr || "Unknown"}`);
+          }
+          sendHash = send.hash;
+        }
+
+        let res = await rpcServer.getTransaction(sendHash);
+        let attempts = 0;
+        while ((res.status === "NOT_FOUND" || res.status === "PENDING") && attempts < 25) {
+          await new Promise(r => setTimeout(r, 2000));
+          res = await rpcServer.getTransaction(sendHash);
+          attempts++;
+        }
+
+        if (res.status !== rpc.Api.GetTransactionStatus.SUCCESS) {
+          throw new Error("Transaction failed on-chain");
+        }
+        toast.dismiss("deactivate");
+      }
+
       await updateDoc(doc(db, "campaigns", id), { isActive: false });
       toast.success("Campaign deactivated");
-    } catch {
-      toast.error("Failed to deactivate");
+      fetchData();
+    } catch (err) {
+      console.error(err);
+      toast.dismiss("deactivate");
+      toast.error("Failed to deactivate: " + (err.message || err));
     }
   };
 
@@ -963,6 +1039,7 @@ function AppContent() {
               isFetchingData={isFetchingData}
               handleDonate={handleDonate}
               handleRegisterOnChain={handleRegisterOnChain}
+              deleteCampaign={deleteCampaign}
               isSending={isSending}
               txStatus={txStatus}
               txHash={txHash}

@@ -21,12 +21,14 @@ import WalletCard from '../components/WalletCard';
 import ReputationBadge from '../components/ReputationBadge';
 import MatchingPoolBanner from '../components/MatchingPoolBanner';
 import ComplianceBanner from '../components/ComplianceBanner';
+import AdminProfile from '../components/AdminProfile';
 
-const CampaignDetails = ({ address, balance, isFetchingData, handleDonate, handleRegisterOnChain, isSending, txStatus, txHash, lastDonationAt, lastUpdated, fetchData }) => {
+const CampaignDetails = ({ address, balance, isFetchingData, handleDonate, handleRegisterOnChain, deleteCampaign, isSending, txStatus, txHash, lastDonationAt, lastUpdated, fetchData }) => {
   const { id } = useParams();
   const [campaign, setCampaign] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isRegistering, setIsRegistering] = useState(false);
+  const [isDeactivating, setIsDeactivating] = useState(false);
   const [reputation, setReputation] = useState(null);
 
   useEffect(() => {
@@ -207,8 +209,65 @@ const CampaignDetails = ({ address, balance, isFetchingData, handleDonate, handl
         Back to Marketplace
       </Link>
 
+      {/* Deactivated Status Banner */}
+      {!campaign.isActive && (
+        <div className="bg-red-500/10 border border-red-500/20 rounded-[30px] p-6 sm:p-8 flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8 text-red-200 animate-fadeIn">
+          <div className="flex gap-4">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-red-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+            </svg>
+            <div>
+              <h4 className="font-bold text-white text-lg">Campaign Inactive</h4>
+              <p className="text-slate-400 text-sm mt-1 leading-relaxed">
+                This campaign has been inactivated by the administrator. Donations are disabled.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Admin Control Banner */}
+      {campaign.isActive && address && address.toLowerCase() === campaign.adminWallet?.toLowerCase() && (
+        <div className="bg-slate-900 border border-slate-800 rounded-[30px] p-6 sm:p-8 flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8 animate-fadeIn">
+          <div className="flex gap-4">
+            <div className="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center text-lg">⚙️</div>
+            <div>
+              <h4 className="font-bold text-white text-lg">Admin Controls</h4>
+              <p className="text-slate-400 text-sm mt-1 leading-relaxed">
+                You are the administrator. You can deactivate this campaign to stop accepting donations.
+              </p>
+            </div>
+          </div>
+          <button 
+            onClick={async () => {
+              if (window.confirm("Are you sure you want to deactivate this campaign? This will permanently prevent any future donations both on-chain and off-chain.")) {
+                setIsDeactivating(true);
+                await deleteCampaign(campaign.id);
+                setIsDeactivating(false);
+              }
+            }}
+            disabled={isDeactivating}
+            className="px-6 py-3 bg-red-600 hover:bg-red-500 disabled:bg-slate-800 text-white font-bold rounded-xl transition-all shadow-lg shrink-0 flex items-center gap-2 active:scale-95 disabled:pointer-events-none self-start md:self-auto cursor-pointer"
+          >
+            {isDeactivating ? (
+              <>
+                <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
+                Deactivating...
+              </>
+            ) : (
+              <>
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                </svg>
+                Inactivate Campaign
+              </>
+            )}
+          </button>
+        </div>
+      )}
+
       {/* On-Chain Registration Status Banner */}
-      {!campaign.isOnChain && (
+      {!campaign.isOnChain && campaign.isActive && (
         <div className="bg-amber-500/10 border border-amber-500/20 rounded-[30px] p-6 sm:p-8 flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8 text-amber-200 animate-fadeIn">
           <div className="flex gap-4">
             <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-amber-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -321,7 +380,7 @@ const CampaignDetails = ({ address, balance, isFetchingData, handleDonate, handl
             isSending={isSending} 
             txStatus={txStatus} 
             txHash={txHash} 
-            disabled={!campaign.isOnChain}
+            disabled={!campaign.isOnChain || !campaign.isActive}
           />
           <DonorLeaderboard 
             contractId={campaign.donationContractId || campaign.contractId} 
@@ -341,6 +400,14 @@ const CampaignDetails = ({ address, balance, isFetchingData, handleDonate, handl
               score={Number(BigInt(reputation.score || 0))}
               totalDonated={reputation.total_donated}
               campaignCount={Number(reputation.campaign_count || 0)}
+            />
+          )}
+          {campaign.adminWallet && (
+            <AdminProfile
+              adminAddress={campaign.adminWallet}
+              donationContractId={campaign.donationContractId || campaign.contractId}
+              networkPassphrase={Networks.TESTNET}
+              rpcUrl="https://soroban-testnet.stellar.org"
             />
           )}
         </div>
