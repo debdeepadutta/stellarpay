@@ -1,62 +1,127 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 const Landing = () => {
   const navigate = useNavigate();
+  const [receiptTorn, setReceiptTorn] = useState(false);
 
   return (
-    <div className="min-h-[80vh] flex flex-col items-center justify-center space-y-12 px-6">
-      <div className="text-center space-y-4">
-        <h1 className="text-5xl md:text-7xl font-black text-white italic tracking-tighter">
-          Stellar <span className="text-indigo-500">Philanthropy</span>
-        </h1>
-        <p className="text-slate-500 max-w-xl mx-auto">
-          A decentralized donation ecosystem powered by Soroban smart contracts. 
-          Transparent, secure, and globally accessible.
-        </p>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full max-w-4xl">
-        {/* Admin Card */}
-        <div 
-          onClick={() => navigate('/admin')}
-          className="group relative p-1 rounded-[40px] bg-gradient-to-br from-indigo-500/20 to-transparent hover:from-indigo-500 transition-all cursor-pointer overflow-hidden shadow-2xl"
-        >
-          <div className="bg-slate-900 rounded-[39px] p-12 h-full flex flex-col items-center text-center space-y-6">
-            <div className="w-20 h-20 bg-indigo-500/10 rounded-3xl flex items-center justify-center text-4xl group-hover:scale-110 transition-transform">
-              🏛️
-            </div>
-            <div>
-              <h3 className="text-2xl font-bold text-white mb-2">Campaign Admin</h3>
-              <p className="text-slate-500 text-sm">Launch, manage, and monitor your charitable initiatives on-chain.</p>
-            </div>
-            <div className="pt-4">
-              <span className="px-6 py-2 bg-indigo-500/10 text-indigo-400 rounded-full text-xs font-bold uppercase tracking-widest group-hover:bg-indigo-500 group-hover:text-white transition-all">
-                Enter Terminal
-              </span>
-            </div>
+    <div className="min-h-[85vh] flex flex-col lg:flex-row items-center justify-between gap-16 px-6 max-w-6xl mx-auto py-12">
+      {/* Editorial Branding Section */}
+      <div className="flex-1 space-y-8 text-left">
+        <div className="space-y-4">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-steel-horizon/30 bg-carbon-ink/40 text-xs font-bold text-parchment-wheat uppercase tracking-widest font-display">
+            <span className="w-1.5 h-1.5 bg-forest-moss rounded-full animate-pulse"></span>
+            Stellar Soroban Mainframe
           </div>
+          <h1 className="text-5xl md:text-7xl font-bold text-archival-chalk font-display tracking-tight leading-none">
+            STELLAR <span className="text-parchment-wheat font-normal italic">PHILANTHROPY</span>
+          </h1>
+          <p className="text-steel-horizon max-w-lg text-sm md:text-base leading-relaxed">
+            A public, verifiable charity register powered by the Stellar network. No intermediaries, no hidden fees—just cryptographic proof of every dollar matching a real-world milestone.
+          </p>
         </div>
 
-        {/* Donor Card */}
+        {/* Tactile Controls */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-md pt-4">
+          <button 
+            onClick={() => navigate('/donor')}
+            className="group flex flex-col items-start p-6 rounded-2xl border border-steel-horizon/20 bg-carbon-ink hover:border-parchment-wheat/40 transition-all text-left"
+          >
+            <span className="text-[10px] uppercase tracking-widest text-steel-horizon font-bold mb-3">Philanthropist</span>
+            <span className="text-lg font-bold text-archival-chalk font-display group-hover:text-parchment-wheat transition-colors">View Marketplace →</span>
+            <span className="text-xs text-steel-horizon/80 mt-1">Fund verified campaigns and track impact receipts.</span>
+          </button>
+
+          <button 
+            onClick={() => navigate('/admin')}
+            className="group flex flex-col items-start p-6 rounded-2xl border border-steel-horizon/20 bg-carbon-ink hover:border-parchment-wheat/40 transition-all text-left"
+          >
+            <span className="text-[10px] uppercase tracking-widest text-steel-horizon font-bold mb-3">Campaign Admin</span>
+            <span className="text-lg font-bold text-archival-chalk font-display group-hover:text-parchment-wheat transition-colors">Enter Terminal →</span>
+            <span className="text-xs text-steel-horizon/80 mt-1">Initialize, manage, and verify milestone gates.</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Signature Element: Interactive Perforated Receipt */}
+      <div className="w-full max-w-sm flex-shrink-0 relative">
+        {/* Receipt Slot Frame */}
+        <div className="absolute top-[-10px] left-1/2 -translate-x-1/2 w-4/5 h-[8px] bg-[#07090D] border-x border-t border-steel-horizon/30 rounded-t-lg z-10"></div>
+        
+        {/* The Receipt Paper Card */}
         <div 
-          onClick={() => navigate('/donor')}
-          className="group relative p-1 rounded-[40px] bg-gradient-to-br from-emerald-500/20 to-transparent hover:from-emerald-500 transition-all cursor-pointer overflow-hidden shadow-2xl"
+          className={`relative transition-all duration-700 ease-out transform ${
+            receiptTorn 
+              ? 'translate-y-[20px] rotate-2 opacity-95 shadow-md' 
+              : 'translate-y-0 shadow-2xl hover:translate-y-[8px]'
+          } bg-[#F5F4F0] text-[#1E2022] p-8 border border-[#D5D3C8] rounded-b-[4px] font-mono text-xs select-none`}
         >
-          <div className="bg-slate-900 rounded-[39px] p-12 h-full flex flex-col items-center text-center space-y-6">
-            <div className="w-20 h-20 bg-emerald-500/10 rounded-3xl flex items-center justify-center text-4xl group-hover:scale-110 transition-transform">
-              💙
+          {/* Header */}
+          <div className="text-center space-y-1 mb-6">
+            <div className="font-bold text-[10px] uppercase tracking-widest text-[#6E7175]">Stellar Philanthropy Ledger</div>
+            <div className="text-[9px] text-[#A1A4A8]">RECORD NO: REG-008492</div>
+            <div className="border-b border-dashed border-[#C5C3B8] pt-2"></div>
+          </div>
+
+          {/* Details */}
+          <div className="space-y-4">
+            <div className="flex justify-between">
+              <span className="text-[#6E7175]">METRIC:</span>
+              <span className="font-bold">LIVE PLATFORM STATUS</span>
             </div>
-            <div>
-              <h3 className="text-2xl font-bold text-white mb-2">Philanthropist</h3>
-              <p className="text-slate-500 text-sm">Discover verified causes and contribute directly via Stellar.</p>
+            <div className="flex justify-between">
+              <span className="text-[#6E7175]">NETWORK:</span>
+              <span className="font-bold">STELLAR TESTNET</span>
             </div>
-            <div className="pt-4">
-              <span className="px-6 py-2 bg-emerald-500/10 text-emerald-400 rounded-full text-xs font-bold uppercase tracking-widest group-hover:bg-emerald-500 group-hover:text-white transition-all">
-                View Marketplace
-              </span>
+            <div className="flex justify-between">
+              <span className="text-[#6E7175]">FUNDS:</span>
+              <span className="font-bold">VERIFIABLE VAULTS</span>
+            </div>
+            
+            <div className="border-b border-dashed border-[#C5C3B8] my-2"></div>
+
+            <div className="space-y-2">
+              <div className="flex justify-between text-[10px] font-bold">
+                <span>ON-CHAIN TRUST METRIC</span>
+                <span className="text-[#2C5E43]">✓ ENFORCED</span>
+              </div>
+              <div className="bg-[#EAE8DD] p-3 rounded font-mono text-[10px] space-y-1 text-[#2E3135]">
+                <div>[x] MILESTONE VAULT GATES</div>
+                <div>[x] SOUL-BOUND RECEIPTS</div>
+                <div>[x] PUBLIC LOGGER HISTORY</div>
+              </div>
+            </div>
+
+            <div className="border-b border-dashed border-[#C5C3B8] my-2"></div>
+
+            <div className="space-y-1 text-center">
+              <div className="text-[9px] text-[#8E9195] uppercase">Scan Cryptographic Proof</div>
+              <div className="text-[10px] font-bold tracking-tight text-[#1E2022] truncate font-mono">
+                CDBBFKGIDPUV65CYN7...
+              </div>
             </div>
           </div>
+
+          {/* Perforated Edge Bottom */}
+          <div className="absolute bottom-[-6px] left-0 w-full h-[6px] perforated-edge"></div>
+
+          {/* Tactile Tear Off Button */}
+          {!receiptTorn ? (
+            <button 
+              onClick={() => {
+                setReceiptTorn(true);
+                setTimeout(() => setReceiptTorn(false), 5000); // resets after 5s
+              }}
+              className="mt-6 w-full py-2 bg-[#1E2022] hover:bg-[#2E3135] text-[#F5F4F0] text-[10px] font-bold uppercase tracking-wider rounded transition-colors text-center cursor-pointer"
+            >
+              ✂ Tear Off Receipt
+            </button>
+          ) : (
+            <div className="mt-6 text-center text-[#2C5E43] font-bold text-[10px] uppercase tracking-wider py-2">
+              ✓ Receipt Collected
+            </div>
+          )}
         </div>
       </div>
     </div>

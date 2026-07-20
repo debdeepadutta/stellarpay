@@ -41,7 +41,7 @@ const CampaignDetails = ({ address, balance, isFetchingData, handleDonate, handl
           
           let chainTotal = data.totalDonated || 0;
           let isOnChain = false;
-          // Query on-chain campaign status if we have a valid contract ID
+          
           if (cid && cid.length === 56 && cid.startsWith('C')) {
             try {
               const rpcServer = new rpc.Server("https://soroban-testnet.stellar.org");
@@ -51,7 +51,6 @@ const CampaignDetails = ({ address, balance, isFetchingData, handleDonate, handl
                 networkPassphrase: Networks.TESTNET 
               });
               
-              // Query get_campaign_info to verify on-chain existence
               const txInfo = builder.addOperation(Operation.invokeContractFunction({ 
                 contract: cid, 
                 function: "get_campaign_info", 
@@ -64,7 +63,6 @@ const CampaignDetails = ({ address, balance, isFetchingData, handleDonate, handl
                 if (infoVal !== null && infoVal !== undefined) {
                   isOnChain = true;
                   
-                  // Now get the total — must use a fresh builder since the previous one was consumed by .build()
                   const builder2 = new TransactionBuilder(new Account("GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF", "0"), { 
                     fee: "100", 
                     networkPassphrase: Networks.TESTNET 
@@ -77,7 +75,7 @@ const CampaignDetails = ({ address, balance, isFetchingData, handleDonate, handl
                   const resTotal = await rpcServer.simulateTransaction(txTotal);
                   if (rpc.Api.isSimulationSuccess(resTotal)) {
                     const val = scValToNative(resTotal.result.retval);
-                    const onChainTotal = Number(BigInt(val)) / 10000000; // Convert stroops to XLM
+                    const onChainTotal = Number(BigInt(val)) / 10000000;
                     if (onChainTotal >= 0) {
                       chainTotal = onChainTotal;
                     }
@@ -106,7 +104,6 @@ const CampaignDetails = ({ address, balance, isFetchingData, handleDonate, handl
     return () => unsubscribe();
   }, [id, lastDonationAt]);
 
-  // Fetch donor reputation on-chain whenever address or lastDonationAt changes
   useEffect(() => {
     if (!address || !campaign?.donationContractId) return;
     const fetchRep = async () => {
@@ -151,19 +148,19 @@ const CampaignDetails = ({ address, balance, isFetchingData, handleDonate, handl
   const copyLink = () => {
     const url = window.location.href;
     navigator.clipboard.writeText(url);
-    toast.success("Link copied! Share to get more donors", {
+    toast.success("Link copied to clipboard", {
         icon: '🔗',
         style: {
-          borderRadius: '10px',
-          background: '#1e293b',
-          color: '#fff',
-          border: '1px solid #334155'
+          borderRadius: '8px',
+          background: '#0A0D13',
+          color: '#E2E8F0',
+          border: '1px solid rgba(96, 115, 134, 0.2)'
         },
     });
   };
 
   const shareOnX = () => {
-    const text = `I just supported ${campaign.name} on Stellar Philanthropy! Join me in making a difference:`;
+    const text = `I just supported ${campaign.name} on Stellar Philanthropy! Join me:`;
     const url = window.location.href;
     window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`, '_blank');
   };
@@ -176,16 +173,16 @@ const CampaignDetails = ({ address, balance, isFetchingData, handleDonate, handl
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="w-12 h-12 border-4 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin"></div>
+        <div className="w-10 h-10 border-4 border-steel-horizon/20 border-t-parchment-wheat rounded-full animate-spin"></div>
       </div>
     );
   }
 
   if (!campaign) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center space-y-4">
-        <h2 className="text-2xl font-bold text-white">Campaign not found</h2>
-        <Link to="/donor" className="text-indigo-400 hover:underline">Return to Marketplace</Link>
+      <div className="min-h-[60vh] flex flex-col items-center justify-center space-y-4">
+        <h2 className="text-xl font-bold text-archival-chalk font-display">Campaign not found</h2>
+        <Link to="/donor" className="text-parchment-wheat hover:underline text-sm">Return to Marketplace</Link>
       </div>
     );
   }
@@ -196,164 +193,129 @@ const CampaignDetails = ({ address, balance, isFetchingData, handleDonate, handl
   return (
     <div className="max-w-7xl mx-auto px-6 py-12">
       <Helmet>
-        <title>{campaign.name} | Stellar Philanthropy</title>
+        <title>{campaign.name} | StellarPay</title>
         <meta property="og:title" content={campaign.name} />
         <meta property="og:description" content={campaign.description} />
-        <meta property="og:url" content={window.location.href} />
       </Helmet>
 
-      <Link to="/donor" className="inline-flex items-center gap-2 text-slate-500 hover:text-indigo-400 transition-colors mb-8 group">
+      <Link to="/donor" className="inline-flex items-center gap-2 text-steel-horizon hover:text-parchment-wheat transition-colors mb-8 group text-xs font-bold font-mono">
         <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 group-hover:-translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
         </svg>
-        Back to Marketplace
+        RETURN TO PUBLIC REGISTER
       </Link>
 
-      {/* Deactivated Status Banner */}
+      {/* Deactivated Banner */}
       {!campaign.isActive && (
-        <div className="bg-red-500/10 border border-red-500/20 rounded-[30px] p-6 sm:p-8 flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8 text-red-200 animate-fadeIn">
-          <div className="flex gap-4">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-red-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
-            </svg>
-            <div>
-              <h4 className="font-bold text-white text-lg">Campaign Inactive</h4>
-              <p className="text-slate-400 text-sm mt-1 leading-relaxed">
-                This campaign has been inactivated by the administrator. Donations are disabled.
-              </p>
-            </div>
+        <div className="bg-red-500/10 border border-red-500/20 rounded-2xl p-6 flex gap-4 mb-8 text-red-200">
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-red-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+          </svg>
+          <div>
+            <h4 className="font-bold text-white text-sm">Campaign Deactivated</h4>
+            <p className="text-steel-horizon text-xs mt-1">This campaign has been deactivated. No further donations can be received on-chain.</p>
           </div>
         </div>
       )}
 
-      {/* Admin Control Banner */}
+      {/* Admin Panel controls banner */}
       {campaign.isActive && address && address.toLowerCase() === campaign.adminWallet?.toLowerCase() && (
-        <div className="bg-slate-900 border border-slate-800 rounded-[30px] p-6 sm:p-8 flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8 animate-fadeIn">
+        <div className="bg-carbon-ink border border-steel-horizon/30 rounded-2xl p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-6 mb-8">
           <div className="flex gap-4">
-            <div className="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center text-lg">⚙️</div>
+            <div className="w-10 h-10 rounded-xl bg-sage-slate border border-steel-horizon/20 flex items-center justify-center text-sm">⚙️</div>
             <div>
-              <h4 className="font-bold text-white text-lg">Admin Controls</h4>
-              <p className="text-slate-400 text-sm mt-1 leading-relaxed">
-                You are the administrator. You can deactivate this campaign to stop accepting donations.
-              </p>
+              <h4 className="font-bold text-archival-chalk text-sm">Administrative Authority</h4>
+              <p className="text-steel-horizon text-xs mt-1">You own this campaign. You may deactivate it permanently to block donations.</p>
             </div>
           </div>
           <button 
             onClick={async () => {
-              if (window.confirm("Are you sure you want to deactivate this campaign? This will permanently prevent any future donations both on-chain and off-chain.")) {
+              if (window.confirm("Deactivate this campaign? This blocks all donations on-chain permanently.")) {
                 setIsDeactivating(true);
                 await deleteCampaign(campaign.id);
                 setIsDeactivating(false);
               }
             }}
             disabled={isDeactivating}
-            className="px-6 py-3 bg-red-600 hover:bg-red-500 disabled:bg-slate-800 text-white font-bold rounded-xl transition-all shadow-lg shrink-0 flex items-center gap-2 active:scale-95 disabled:pointer-events-none self-start md:self-auto cursor-pointer"
+            className="px-4 py-2 bg-red-950 hover:bg-red-900 border border-red-500/20 text-red-300 font-bold rounded-lg text-xs transition-all shrink-0 cursor-pointer"
           >
-            {isDeactivating ? (
-              <>
-                <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
-                Deactivating...
-              </>
-            ) : (
-              <>
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
-                </svg>
-                Inactivate Campaign
-              </>
-            )}
+            {isDeactivating ? 'Deactivating...' : 'Deactivate Campaign'}
           </button>
         </div>
       )}
 
-      {/* On-Chain Registration Status Banner */}
+      {/* On-Chain Registration Banner */}
       {!campaign.isOnChain && campaign.isActive && (
-        <div className="bg-amber-500/10 border border-amber-500/20 rounded-[30px] p-6 sm:p-8 flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8 text-amber-200 animate-fadeIn">
+        <div className="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-6 mb-8 text-amber-200">
           <div className="flex gap-4">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-amber-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-amber-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
             </svg>
             <div>
-              <h4 className="font-bold text-white text-lg">Campaign Not Registered On-Chain</h4>
-              <p className="text-slate-400 text-sm mt-1 leading-relaxed">
-                This campaign exists in the database but has not been successfully registered on the Stellar blockchain. Donations are disabled.
-              </p>
+              <h4 className="font-bold text-white text-sm">Registration Missing on Stellar Ledger</h4>
+              <p className="text-steel-horizon text-xs mt-1">This entry is local only and requires on-chain registration before donations can be accepted.</p>
             </div>
           </div>
           {address && address.toLowerCase() === campaign.adminWallet?.toLowerCase() && (
             <button 
               onClick={handleRegister}
               disabled={isRegistering}
-              className="px-6 py-3 bg-amber-600 hover:bg-amber-500 disabled:bg-slate-800 text-white font-bold rounded-xl transition-all shadow-lg shrink-0 flex items-center gap-2 active:scale-95 disabled:pointer-events-none self-start md:self-auto"
+              className="px-4 py-2 bg-amber-950 hover:bg-amber-900 border border-amber-500/20 text-amber-300 font-bold rounded-lg text-xs transition-all shrink-0 cursor-pointer"
             >
-              {isRegistering ? (
-                <>
-                  <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
-                  Registering...
-                </>
-              ) : (
-                <>
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                  </svg>
-                  Register On-Chain
-                </>
-              )}
+              {isRegistering ? 'Registering...' : 'Register On-Chain'}
             </button>
           )}
         </div>
       )}
 
+      {/* Main layout grid */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
-        {/* Left Column: Details & Feed */}
+        {/* Left Side: Campaign descriptions, metrics */}
         <div className="lg:col-span-7 space-y-12">
-          <div className="space-y-6">
-            <div className="flex justify-between items-start">
-              <h1 className="text-4xl md:text-5xl font-black text-white italic tracking-tighter uppercase">{campaign.name}</h1>
-              <div className="flex gap-2">
-                <button onClick={copyLink} className="p-3 bg-slate-900 border border-slate-800 rounded-xl hover:border-indigo-500 transition-all text-slate-400 hover:text-indigo-400" title="Copy Link">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
-                  </svg>
-                </button>
-                <button onClick={shareOnX} className="p-3 bg-slate-900 border border-slate-800 rounded-xl hover:border-sky-500 transition-all text-slate-400 hover:text-sky-400" title="Share on X">
-                  <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
-                </button>
-                <button onClick={shareOnLinkedIn} className="p-3 bg-slate-900 border border-slate-800 rounded-xl hover:border-blue-500 transition-all text-slate-400 hover:text-blue-400" title="Share on LinkedIn">
-                  <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451c.981 0 1.778-.773 1.778-1.729V1.729C24 .774 23.206 0 22.225 0z"/></svg>
-                </button>
-              </div>
+          <div className="space-y-4">
+            <div className="inline-flex items-center gap-2">
+              <span className="text-[9px] font-bold text-parchment-wheat font-mono border border-parchment-wheat/30 px-2 py-0.5 rounded uppercase">
+                {campaign.category || 'general'}
+              </span>
+              <span className="text-[9px] font-bold text-steel-horizon font-mono border border-steel-horizon/30 px-2 py-0.5 rounded uppercase">
+                {campaign.region || 'Global'}
+              </span>
             </div>
-            <p className="text-slate-400 text-lg leading-relaxed">{campaign.description}</p>
+            
+            <h1 className="text-4xl md:text-5xl font-bold text-archival-chalk font-display uppercase tracking-tight">
+              {campaign.name}
+            </h1>
+            <p className="text-steel-horizon text-sm leading-relaxed whitespace-pre-line">
+              {campaign.description}
+            </p>
           </div>
 
-          <div className="bg-slate-900/50 border border-slate-800 p-8 rounded-[40px] space-y-6">
-            
-            <div className="space-y-2">
-              <div className="flex justify-between text-xs font-bold text-slate-500 uppercase tracking-widest">
-                <span>Progress</span>
-                <span className="text-indigo-400">{progress.toFixed(1)}%</span>
-              </div>
-              <div className="w-full h-3 bg-slate-950 rounded-full overflow-hidden border border-white/5">
-                <div 
-                  className="h-full bg-gradient-to-r from-indigo-500 to-emerald-400 transition-all duration-1000" 
-                  style={{ width: `${progress}%` }}
-                ></div>
-              </div>
+          {/* Ledger Board: Progress & Balance details */}
+          <div className="border border-steel-horizon/20 bg-carbon-ink rounded-2xl p-6 space-y-6">
+            <div className="flex justify-between items-center text-xs font-mono text-steel-horizon">
+              <span>FUNDING PROGRESS</span>
+              <span className="text-parchment-wheat">{progress.toFixed(1)}%</span>
             </div>
 
-            <div className="grid grid-cols-3 items-center bg-slate-950/50 p-6 rounded-3xl border border-white/5 gap-4">
-              <div className="space-y-1 text-left">
-                <span className="text-[10px] md:text-xs font-bold text-slate-500 uppercase tracking-widest text-indigo-400">Target Goal</span>
-                <div className="text-lg md:text-2xl font-black text-white">{campaign.goal.toLocaleString()} XLM</div>
+            <div className="w-full h-1.5 bg-sage-slate rounded-full overflow-hidden">
+              <div 
+                className="h-full bg-forest-moss transition-all duration-700" 
+                style={{ width: `${progress}%` }}
+              ></div>
+            </div>
+
+            <div className="grid grid-cols-3 gap-4 border-t border-steel-horizon/10 pt-6 font-mono">
+              <div>
+                <span className="text-[9px] uppercase tracking-wider text-steel-horizon">Target Goal</span>
+                <div className="text-base sm:text-lg font-bold text-archival-chalk mt-1">{campaign.goal.toLocaleString()} XLM</div>
               </div>
-              <div className="space-y-1 text-center border-x border-slate-800 px-2">
-                <span className="text-[10px] md:text-xs font-bold text-slate-500 uppercase tracking-widest text-indigo-400">Total Raised</span>
-                <div className="text-lg md:text-2xl font-black text-white">{chainTotal.toLocaleString()} XLM</div>
+              <div className="border-x border-steel-horizon/10 px-4">
+                <span className="text-[9px] uppercase tracking-wider text-steel-horizon">Total Raised</span>
+                <div className="text-base sm:text-lg font-bold text-archival-chalk mt-1">{chainTotal.toLocaleString()} XLM</div>
               </div>
-              <div className="space-y-1 text-right">
-                <span className="text-[10px] md:text-xs font-bold text-slate-500 uppercase tracking-widest text-emerald-400">Remaining</span>
-                <div className="text-lg md:text-2xl font-black text-emerald-400">
+              <div className="text-right">
+                <span className="text-[9px] uppercase tracking-wider text-steel-horizon text-forest-moss">Remaining</span>
+                <div className="text-base sm:text-lg font-bold text-forest-moss mt-1">
                   {Math.max(campaign.goal - chainTotal, 0).toLocaleString()} XLM
                 </div>
               </div>
@@ -363,18 +325,20 @@ const CampaignDetails = ({ address, balance, isFetchingData, handleDonate, handl
           <LiveDonationFeed contractId={campaign.donationContractId || campaign.contractId} />
         </div>
 
-        {/* Right Column: Interaction */}
+        {/* Right Side: Action Panel */}
         <div className="lg:col-span-5 space-y-8">
           <ComplianceBanner
             loggerContractId={import.meta.env.VITE_LOGGER_CONTRACT_ID}
             campaignId={campaign.contractCampaignId || campaign.id}
           />
+          
           <MatchingPoolBanner
             vaultContractId={import.meta.env.VITE_VAULT_CONTRACT_ID}
             campaignId={campaign.contractCampaignId || campaign.id}
             lastDonationAt={lastDonationAt}
           />
-           <DonateXLMForm 
+
+          <DonateXLMForm 
             address={address} 
             onDonate={(r, a) => handleDonate(campaign.id, campaign.donationContractId || campaign.contractId, a)} 
             isSending={isSending} 
@@ -382,12 +346,14 @@ const CampaignDetails = ({ address, balance, isFetchingData, handleDonate, handl
             txHash={txHash} 
             disabled={!campaign.isOnChain || !campaign.isActive}
           />
+
           <DonorLeaderboard 
             contractId={campaign.donationContractId || campaign.contractId} 
             connectedWallet={address} 
             lastDonationAt={lastDonationAt}
             campaignId={campaign.id}
           />
+
           <WalletCard 
             address={address} 
             balance={balance} 
@@ -395,6 +361,7 @@ const CampaignDetails = ({ address, balance, isFetchingData, handleDonate, handl
             lastUpdated={lastUpdated.wallet}
             onBalanceRefresh={fetchData}
           />
+
           {reputation && (
             <ReputationBadge
               score={Number(BigInt(reputation.score || 0))}
@@ -402,6 +369,7 @@ const CampaignDetails = ({ address, balance, isFetchingData, handleDonate, handl
               campaignCount={Number(reputation.campaign_count || 0)}
             />
           )}
+
           {campaign.adminWallet && (
             <AdminProfile
               adminAddress={campaign.adminWallet}

@@ -53,18 +53,15 @@ const AdminPanel = ({ contractId, vaultContractId, connectedWallet, networkPassp
         }
       };
 
-      // Build campaign Symbol for on-chain queries
       const campaignSymbol = campaignId 
         ? nativeToScVal(campaignId.substring(0, 32), { type: "symbol" }) 
         : null;
 
-      // Fetch campaign admin from on-chain registry
       let admin = null;
       if (campaignSymbol) {
         admin = await simulate(contractId, "get_campaign_admin", [campaignSymbol]);
       }
       if (!admin) {
-        // Fallback: try legacy get_admin
         admin = await simulate(contractId, "get_admin");
       }
       
@@ -77,10 +74,8 @@ const AdminPanel = ({ contractId, vaultContractId, connectedWallet, networkPassp
         console.error(`Could not fetch admin from blockchain or database for contract: ${contractId}`);
       }
 
-      // Only fetch restricted data if connected wallet is admin
       if (connectedWallet && admin && connectedWallet.toString().toUpperCase() === admin.toString().toUpperCase()) {
         if (campaignSymbol) {
-          // Multi-campaign: use campaign-specific vault queries
           const [stats, logs, config, msConfig] = await Promise.all([
             simulate(vaultContractId, "get_campaign_stats", [campaignSymbol]),
             simulate(vaultContractId, "get_campaign_withdrawal_history", [campaignSymbol]),
@@ -109,7 +104,6 @@ const AdminPanel = ({ contractId, vaultContractId, connectedWallet, networkPassp
               signers: (msConfig.signers || []).map(s => s.toString()),
               threshold: msConfig.threshold
             });
-            // Fetch pending proposals
             const countRaw = await simulate(vaultContractId, "get_proposal_count", [campaignSymbol]);
             const count = Number(countRaw || 0);
             const proposalFetches = [];
@@ -127,7 +121,6 @@ const AdminPanel = ({ contractId, vaultContractId, connectedWallet, networkPassp
             })));
           }
         } else {
-          // Legacy fallback for old campaigns
           const [balance, logs] = await Promise.all([
             simulate(vaultContractId, "get_balance"),
             simulate(vaultContractId, "get_withdrawal_history")
@@ -157,7 +150,6 @@ const AdminPanel = ({ contractId, vaultContractId, connectedWallet, networkPassp
     return () => clearInterval(interval);
   }, [fetchData]);
 
-  // Update "seconds ago" every second
   const [secondsAgo, setSecondsAgo] = useState(0);
   useEffect(() => {
     const timer = setInterval(() => {
@@ -166,21 +158,19 @@ const AdminPanel = ({ contractId, vaultContractId, connectedWallet, networkPassp
     return () => clearInterval(timer);
   }, [lastUpdated]);
 
-
   const handleAction = async (type, fn, cid, args) => {
     setActionLoading(type);
     try {
       const rpcServer = new rpc.Server("https://soroban-testnet.stellar.org");
       
-      // Construct transaction
       let account;
       try {
         const horizonServer = new Horizon.Server("https://horizon-testnet.stellar.org");
         account = await horizonServer.loadAccount(connectedWallet);
-        } catch (err) {
-          if (err?.response?.status === 404) {
-            throw new Error("Your account does not exist on Testnet. Please fund it using Friendbot first.", { cause: err });
-          }
+      } catch (err) {
+        if (err?.response?.status === 404) {
+          throw new Error("Your account does not exist on Testnet. Please fund it using Friendbot first.", { cause: err });
+        }
         console.warn("Could not load account from Horizon, using fallback:", err);
         account = new Account(connectedWallet, "0");
       }
@@ -239,7 +229,7 @@ const AdminPanel = ({ contractId, vaultContractId, connectedWallet, networkPassp
           loading: 'Processing transaction...',
           success: (hash) => (
             <span>
-              Success! <a href={`https://stellar.expert/explorer/testnet/tx/${hash}`} target="_blank" rel="noreferrer" className="underline">View Hash</a>
+              Success! <a href={`https://stellar.expert/explorer/testnet/tx/${hash}`} target="_blank" rel="noreferrer" className="underline font-mono">View Hash</a>
             </span>
           ),
           error: 'Transaction failed',
@@ -257,68 +247,61 @@ const AdminPanel = ({ contractId, vaultContractId, connectedWallet, networkPassp
 
   if (adminAddress === "") {
     return (
-      <div className="w-full bg-slate-950/20 border border-slate-800/50 rounded-2xl p-4 flex items-center justify-center gap-3">
-        <div className="w-4 h-4 border-2 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin"></div>
-        <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Verifying Authority...</span>
+      <div className="w-full bg-[#0A0D13] border border-steel-horizon/20 rounded-xl p-4 flex items-center justify-center gap-3">
+        <div className="w-4 h-4 border-2 border-steel-horizon/20 border-t-parchment-wheat rounded-full animate-spin"></div>
+        <span className="text-[10px] font-bold text-steel-horizon uppercase tracking-widest font-mono">Verifying Authority...</span>
       </div>
     );
   }
 
   return (
-    <div className="w-full max-w-4xl mx-auto space-y-8">
-      <div className="flex items-center justify-between">
-        <h2 className="text-3xl font-black text-white flex items-center gap-3 italic tracking-tighter uppercase">
-          <span className="p-2 bg-red-500 rounded-lg shadow-lg shadow-red-500/20">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-            </svg>
-          </span>
+    <div className="w-full max-w-4xl mx-auto space-y-6">
+      <div className="flex items-center justify-between border-b border-steel-horizon/10 pb-4">
+        <h2 className="text-xl font-bold text-archival-chalk flex items-center gap-2 font-display uppercase tracking-tight">
           Admin Console
         </h2>
         <div className="flex items-center gap-4">
           <div className="text-right">
-            <div className="text-[10px] text-slate-500 uppercase font-bold tracking-widest flex items-center gap-2">
-              <span className="w-1 h-1 bg-green-500 rounded-full animate-pulse"></span>
+            <div className="text-[9px] text-steel-horizon uppercase font-bold tracking-widest flex items-center gap-1 font-mono">
+              <span className="w-1 h-1 bg-forest-moss rounded-full animate-pulse"></span>
               {secondsAgo === 0 ? 'Just now' : `${secondsAgo}s ago`}
               <span className="mx-1">|</span>
               Vault Reserve
             </div>
-            <div className="text-xl font-black text-emerald-400">{vaultBalance.toLocaleString()} XLM</div>
+            <div className="text-lg font-bold text-parchment-wheat font-display">{vaultBalance.toLocaleString()} XLM</div>
           </div>
         </div>
-
       </div>
 
-      <div className="grid grid-cols-1 gap-8">
+      <div className="grid grid-cols-1 gap-6">
         {isAdmin ? (
-          <div className="bg-slate-900 border-2 border-red-900/20 rounded-3xl p-8 space-y-6">
-            <h3 className="text-lg font-bold text-red-500 flex items-center gap-2">
-              <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
+          <div className="bg-carbon-ink border border-red-500/20 rounded-xl p-6 space-y-4">
+            <h3 className="text-sm font-bold text-red-400 uppercase tracking-wider font-mono flex items-center gap-2">
+              <span className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse"></span>
               Vault Withdrawal
             </h3>
-            <p className="text-sm text-slate-500">Transfer funds from the secure vault to an external destination.</p>
+            <p className="text-xs text-steel-horizon leading-relaxed">Transfer funds from the campaign's on-chain escrow to an external wallet.</p>
             
-            <div className="space-y-4">
-              <div className="grid grid-cols-1 gap-4">
-                <div className="space-y-2">
-                  <label className="text-xs font-bold text-slate-400 uppercase tracking-tighter">Amount (XLM)</label>
+            <div className="space-y-4 text-xs font-mono">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-[10px] text-steel-horizon uppercase font-bold">Amount (XLM)</label>
                   <input 
                     type="number"
                     value={withdrawAmount}
                     onChange={(e) => setWithdrawAmount(e.target.value)}
                     placeholder="0.00"
-                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-red-500 transition-colors"
+                    className="w-full bg-sage-slate border border-steel-horizon/20 rounded-lg p-3 text-archival-chalk focus:outline-none focus:border-red-500 transition-colors"
                   />
                 </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-bold text-slate-400 uppercase tracking-tighter">Destination Address</label>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] text-steel-horizon uppercase font-bold">Destination Wallet Address</label>
                   <input 
                     type="text"
                     value={withdrawDest}
                     onChange={(e) => setWithdrawDest(e.target.value)}
                     placeholder="G..."
-                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-red-500 transition-colors"
+                    className="w-full bg-sage-slate border border-steel-horizon/20 rounded-lg p-3 text-archival-chalk focus:outline-none focus:border-red-500 transition-colors"
                   />
                 </div>
               </div>
@@ -333,21 +316,21 @@ const AdminPanel = ({ contractId, vaultContractId, connectedWallet, networkPassp
                   handleAction('withdraw', 'withdraw', vaultContractId, args);
                 }}
                 disabled={actionLoading === 'withdraw' || !withdrawAmount || !withdrawDest}
-                className="w-full bg-red-600 hover:bg-red-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-3 rounded-xl transition-all shadow-lg shadow-red-600/20"
+                className="w-full bg-red-950 hover:bg-red-900 border border-red-500/20 text-red-300 font-bold py-3 rounded-lg transition-all cursor-pointer uppercase tracking-wider text-[10px]"
               >
                 {actionLoading === 'withdraw' ? 'Processing...' : 'Authorize Withdrawal'}
               </button>
             </div>
           </div>
         ) : (
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-8 text-center space-y-4">
-            <span className="text-4xl">🛡️</span>
-            <h3 className="text-lg font-bold text-slate-400">Withdrawal Panel Restricted</h3>
-            <p className="text-sm text-slate-500 max-w-md mx-auto">
-              Only the campaign creator (Admin) holds the authority to withdraw funds from the vault.
+          <div className="bg-carbon-ink border border-steel-horizon/20 rounded-xl p-6 text-center space-y-3">
+            <span className="text-2xl">🛡️</span>
+            <h3 className="text-sm font-bold text-steel-horizon uppercase tracking-wider font-mono">Withdrawal Panel Restricted</h3>
+            <p className="text-xs text-steel-horizon max-w-sm mx-auto">
+              Only the registered campaign creator is authorized to trigger vault withdrawals.
             </p>
-            <div className="text-xs text-slate-600 font-mono select-all">
-              Authorized Admin: {adminAddress}
+            <div className="text-[9px] text-steel-horizon/80 font-mono select-all truncate bg-sage-slate p-2 rounded">
+              AUTHORIZED: {adminAddress}
             </div>
           </div>
         )}
@@ -355,21 +338,20 @@ const AdminPanel = ({ contractId, vaultContractId, connectedWallet, networkPassp
 
       {/* Milestone Status Panel */}
       {milestoneConfig && (
-        <div className="bg-slate-900 border border-emerald-900/30 rounded-3xl overflow-hidden">
-          <div className="p-6 border-b border-slate-800 flex justify-between items-center">
+        <div className="bg-carbon-ink border border-steel-horizon/20 rounded-xl overflow-hidden text-xs">
+          <div className="p-4 border-b border-steel-horizon/10 flex justify-between items-center bg-sage-slate/20">
             <div>
-              <h3 className="font-bold text-white flex items-center gap-2">
-                <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
+              <h3 className="font-bold text-archival-chalk font-mono uppercase tracking-wider">
                 Milestone Fund Gates
               </h3>
-              <p className="text-xs text-slate-500 mt-1">
+              <p className="text-[10px] text-steel-horizon mt-0.5 font-mono">
                 Goal: {milestoneConfig.goal.toLocaleString()} XLM &nbsp;·&nbsp;
-                Verifier: <span className="font-mono text-emerald-400">{milestoneConfig.verifier?.slice(0,8)}...{milestoneConfig.verifier?.slice(-6)}</span>
+                Verifier: <span className="font-mono text-parchment-wheat">{milestoneConfig.verifier?.slice(0,8)}...{milestoneConfig.verifier?.slice(-6)}</span>
               </p>
             </div>
-            <span className="text-[10px] font-mono text-emerald-500 bg-emerald-500/10 px-2 py-1 rounded-full">On-Chain Enforced</span>
+            <span className="text-[8px] font-mono text-forest-moss bg-forest-moss/10 px-2 py-0.5 rounded border border-forest-moss/20">ON-CHAIN GATED</span>
           </div>
-          <div className="p-6 grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <div className="p-4 grid grid-cols-2 sm:grid-cols-4 gap-4 font-mono">
             {(milestoneConfig.milestones || []).map((m, i) => {
               const pct = typeof m === 'object' ? m.percentage : m;
               const isApproved = typeof m === 'object' ? m.approved : (milestoneConfig.approved || []).includes(pct);
@@ -380,11 +362,11 @@ const AdminPanel = ({ contractId, vaultContractId, connectedWallet, networkPassp
               return (
                 <div
                   key={i}
-                  className={`rounded-2xl p-4 text-center space-y-2 border ${isApproved ? 'border-emerald-500/40 bg-emerald-500/5' : 'border-slate-700 bg-slate-800/50'}`}
+                  className={`rounded-lg p-3 text-center space-y-1.5 border ${isApproved ? 'border-forest-moss/30 bg-forest-moss/5' : 'border-steel-horizon/20 bg-sage-slate/20'}`}
                 >
-                  <div className={`text-2xl font-black ${isApproved ? 'text-emerald-400' : 'text-slate-500'}`}>{pct}%</div>
-                  <div className="text-[10px] text-slate-500">{capXlm} XLM cap</div>
-                  <div className={`text-[10px] font-bold uppercase tracking-widest ${isApproved ? 'text-emerald-500' : 'text-slate-600'}`}>
+                  <div className={`text-xl font-bold font-display ${isApproved ? 'text-forest-moss' : 'text-steel-horizon'}`}>{pct}%</div>
+                  <div className="text-[9px] text-steel-horizon">{capXlm} XLM cap</div>
+                  <div className={`text-[8px] font-bold uppercase tracking-wider ${isApproved ? 'text-forest-moss' : 'text-steel-horizon/60'}`}>
                     {isApproved ? '✓ Approved' : 'Pending'}
                   </div>
                   {!isApproved && isVerifier && (
@@ -395,7 +377,7 @@ const AdminPanel = ({ contractId, vaultContractId, connectedWallet, networkPassp
                         handleAction(`approve_${pct}`, 'approve_milestone', vaultContractId, [sym, Address.fromString(connectedWallet).toScVal(), pctVal]);
                       }}
                       disabled={!!actionLoading}
-                      className="w-full text-[10px] font-bold bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white rounded-lg py-1 transition-all"
+                      className="w-full text-[9px] font-bold bg-forest-moss hover:bg-emerald-800 disabled:opacity-50 text-white rounded py-1 transition-all uppercase tracking-wider font-mono cursor-pointer"
                     >
                       {actionLoading === `approve_${pct}` ? '...' : 'Approve'}
                     </button>
@@ -407,28 +389,26 @@ const AdminPanel = ({ contractId, vaultContractId, connectedWallet, networkPassp
         </div>
       )}
 
-      {/* Multi-Sig Withdrawal Panel */}
+      {/* Multi-Sig Panel */}
       {multiSigConfig && (
-        <div className="bg-slate-900 border border-indigo-900/30 rounded-3xl overflow-hidden">
-          <div className="p-6 border-b border-slate-800 flex justify-between items-center">
+        <div className="bg-carbon-ink border border-steel-horizon/20 rounded-xl overflow-hidden text-xs">
+          <div className="p-4 border-b border-steel-horizon/10 flex justify-between items-center bg-sage-slate/20">
             <div>
-              <h3 className="font-bold text-white flex items-center gap-2">
-                <span className="text-indigo-400">🔐</span>
-                Multi-Sig Withdrawals
+              <h3 className="font-bold text-archival-chalk font-mono uppercase tracking-wider">
+                Multi-Sig Configurations
               </h3>
-              <p className="text-xs text-slate-500 mt-1">
-                Threshold: <span className="text-indigo-400 font-bold">{multiSigConfig.threshold}-of-{multiSigConfig.signers.length}</span> signatures required
+              <p className="text-[10px] text-steel-horizon mt-0.5 font-mono">
+                Threshold: <span className="text-parchment-wheat font-bold">{multiSigConfig.threshold}-of-{multiSigConfig.signers.length}</span> signatures required
               </p>
             </div>
-            <span className="text-[10px] font-mono text-indigo-400 bg-indigo-500/10 px-2 py-1 rounded-full">
+            <span className="text-[8px] font-mono text-steel-horizon bg-sage-slate border border-steel-horizon/20 px-2 py-0.5 rounded">
               {multiSigConfig.signers.length} Signers
             </span>
           </div>
 
-          {/* Pending Proposals */}
-          <div className="p-6 space-y-4">
+          <div className="p-4 space-y-4">
             {proposals.filter(p => !p.executed).length === 0 && (
-              <p className="text-center text-slate-600 italic text-sm py-4">No pending proposals</p>
+              <p className="text-center text-steel-horizon italic text-xs py-2 font-mono">No pending withdrawal proposals</p>
             )}
             {proposals.filter(p => !p.executed).map((proposal) => {
               const isSigner = multiSigConfig.signers.some(
@@ -440,17 +420,17 @@ const AdminPanel = ({ contractId, vaultContractId, connectedWallet, networkPassp
               const hasThreshold = proposal.approvals.length >= proposal.threshold;
               const sym = nativeToScVal(campaignId.substring(0, 32), { type: "symbol" });
               return (
-                <div key={proposal.idx} className="bg-slate-800/60 border border-slate-700 rounded-2xl p-4 space-y-3">
+                <div key={proposal.idx} className="bg-sage-slate border border-steel-horizon/20 rounded-lg p-4 space-y-3 font-mono">
                   <div className="flex justify-between items-start">
                     <div>
-                      <div className="text-emerald-400 font-black text-xl">{proposal.amount.toLocaleString()} XLM</div>
-                      <div className="text-xs text-slate-500 font-mono mt-1">→ {proposal.to.slice(0,8)}...{proposal.to.slice(-6)}</div>
+                      <div className="text-parchment-wheat font-bold text-lg">{proposal.amount.toLocaleString()} XLM</div>
+                      <div className="text-[9px] text-steel-horizon mt-1 truncate max-w-[200px]">→ {proposal.to}</div>
                     </div>
                     <div className="text-right">
-                      <div className="text-xs font-bold text-indigo-400">{proposal.approvals.length}/{proposal.threshold} Signatures</div>
+                      <div className="text-[10px] font-bold text-steel-horizon">{proposal.approvals.length}/{proposal.threshold} Approved</div>
                       <div className="flex gap-1 mt-1 justify-end">
                         {Array.from({length: proposal.threshold}).map((_, i) => (
-                          <div key={i} className={`w-2 h-2 rounded-full ${i < proposal.approvals.length ? 'bg-emerald-500' : 'bg-slate-600'}`}/>
+                          <div key={i} className={`w-1.5 h-1.5 rounded-full ${i < proposal.approvals.length ? 'bg-forest-moss' : 'bg-steel-horizon/30'}`}/>
                         ))}
                       </div>
                     </div>
@@ -462,9 +442,9 @@ const AdminPanel = ({ contractId, vaultContractId, connectedWallet, networkPassp
                           [sym, Address.fromString(connectedWallet).toScVal(), nativeToScVal(proposal.idx, { type: 'u32' })]
                         )}
                         disabled={!!actionLoading}
-                        className="flex-1 text-xs font-bold bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white rounded-xl py-2 transition-all"
+                        className="flex-1 text-[9px] font-bold bg-steel-horizon hover:bg-slate-600 disabled:opacity-50 text-white rounded py-1.5 transition-all cursor-pointer uppercase tracking-wider"
                       >
-                        {actionLoading === `sign_${proposal.idx}` ? '...' : '✍ Sign'}
+                        {actionLoading === `sign_${proposal.idx}` ? 'Signing...' : '✍ Sign'}
                       </button>
                     )}
                     {isSigner && hasThreshold && (
@@ -473,42 +453,42 @@ const AdminPanel = ({ contractId, vaultContractId, connectedWallet, networkPassp
                           [sym, Address.fromString(connectedWallet).toScVal(), nativeToScVal(proposal.idx, { type: 'u32' })]
                         )}
                         disabled={!!actionLoading}
-                        className="flex-1 text-xs font-bold bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white rounded-xl py-2 transition-all"
+                        className="flex-1 text-[9px] font-bold bg-forest-moss hover:bg-emerald-800 disabled:opacity-50 text-white rounded py-1.5 transition-all cursor-pointer uppercase tracking-wider"
                       >
-                        {actionLoading === `exec_${proposal.idx}` ? '...' : '⚡ Execute'}
+                        {actionLoading === `exec_${proposal.idx}` ? 'Executing...' : '⚡ Execute'}
                       </button>
                     )}
                     {alreadySigned && !hasThreshold && (
-                      <span className="text-xs text-emerald-500 font-bold flex items-center gap-1">✓ Signed — waiting for others</span>
+                      <span className="text-[9px] text-forest-moss font-bold flex items-center gap-1 font-mono">✓ Signed (Waiting for other signers)</span>
                     )}
                   </div>
                 </div>
               );
             })}
 
-            {/* New Proposal Form — only for registered signers */}
+            {/* Proposal Form */}
             {multiSigConfig.signers.some(s => s.toUpperCase() === connectedWallet?.toUpperCase()) && (
-              <div className="border-t border-slate-800 pt-4 space-y-3">
-                <div className="text-xs font-black text-slate-500 uppercase tracking-widest">Propose New Withdrawal</div>
+              <div className="border-t border-steel-horizon/10 pt-4 space-y-3 font-mono text-xs">
+                <div className="text-[10px] font-bold text-steel-horizon uppercase tracking-wider">Propose New Withdrawal</div>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1">
-                    <label className="text-[10px] text-slate-500 uppercase">Amount (XLM)</label>
+                    <label className="text-[9px] text-steel-horizon uppercase">Amount (XLM)</label>
                     <input
                       type="number"
                       value={withdrawAmount}
                       onChange={e => setWithdrawAmount(e.target.value)}
                       placeholder="0.00"
-                      className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white text-sm focus:outline-none focus:border-indigo-500"
+                      className="w-full bg-sage-slate border border-steel-horizon/20 rounded-lg px-3 py-2 text-archival-chalk text-xs focus:outline-none focus:border-steel-horizon"
                     />
                   </div>
                   <div className="space-y-1">
-                    <label className="text-[10px] text-slate-500 uppercase">Destination</label>
+                    <label className="text-[9px] text-steel-horizon uppercase">Destination</label>
                     <input
                       type="text"
                       value={withdrawDest}
                       onChange={e => setWithdrawDest(e.target.value)}
                       placeholder="G..."
-                      className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white text-sm focus:outline-none focus:border-indigo-500 font-mono"
+                      className="w-full bg-sage-slate border border-steel-horizon/20 rounded-lg px-3 py-2 text-archival-chalk text-xs focus:outline-none focus:border-steel-horizon font-mono"
                     />
                   </div>
                 </div>
@@ -520,9 +500,9 @@ const AdminPanel = ({ contractId, vaultContractId, connectedWallet, networkPassp
                     );
                   }}
                   disabled={!!actionLoading || !withdrawAmount || !withdrawDest}
-                  className="w-full py-2 text-sm font-bold bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white rounded-xl transition-all"
+                  className="w-full py-2 bg-steel-horizon hover:bg-slate-600 disabled:opacity-50 text-white rounded-lg text-[10px] tracking-wider uppercase font-bold transition-all cursor-pointer"
                 >
-                  {actionLoading === 'propose' ? 'Processing...' : 'Create Proposal'}
+                  {actionLoading === 'propose' ? 'Proposing...' : 'Submit Proposal'}
                 </button>
               </div>
             )}
@@ -530,37 +510,36 @@ const AdminPanel = ({ contractId, vaultContractId, connectedWallet, networkPassp
         </div>
       )}
 
-      {/* Withdrawal History */}
-
-      <div className="bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden">
-        <div className="p-6 border-b border-slate-800 flex justify-between items-center">
-          <h3 className="font-bold text-white">Withdrawal History</h3>
-          <button onClick={fetchData} className="text-xs text-indigo-400 hover:text-indigo-300 font-bold uppercase tracking-widest">Refresh Logs</button>
+      {/* History table */}
+      <div className="bg-carbon-ink border border-steel-horizon/20 rounded-xl overflow-hidden text-xs">
+        <div className="p-4 border-b border-steel-horizon/10 flex justify-between items-center bg-sage-slate/20">
+          <h3 className="font-bold text-archival-chalk font-mono uppercase tracking-wider">Withdrawal History</h3>
+          <button onClick={fetchData} className="text-[9px] text-parchment-wheat hover:text-white font-mono font-bold uppercase tracking-wider border border-parchment-wheat/30 px-2 py-0.5 rounded bg-carbon-ink/40">Refresh Logs</button>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
+          <table className="w-full text-left border-collapse font-mono text-[10px]">
             <thead>
-              <tr className="bg-slate-950 text-slate-500 text-[10px] uppercase font-bold tracking-widest">
-                <th className="px-6 py-4">Destination</th>
-                <th className="px-6 py-4">Amount</th>
-                <th className="px-6 py-4 text-right">Timestamp</th>
+              <tr className="bg-sage-slate/40 text-steel-horizon uppercase font-bold tracking-widest text-[9px] border-b border-steel-horizon/10">
+                <th className="px-6 py-3">Destination Address</th>
+                <th className="px-6 py-3">Amount</th>
+                <th className="px-6 py-3 text-right">Timestamp</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800/50">
+            <tbody className="divide-y divide-steel-horizon/10 text-steel-horizon">
               {history.map((log, i) => (
                 <tr key={i} className="hover:bg-white/5 transition-colors">
-                  <td className="px-6 py-4 font-mono text-xs text-slate-300">
+                  <td className="px-6 py-3 font-mono text-xs">
                     {(log.to || '').slice(0, 8)}...{(log.to || '').slice(-8)}
                   </td>
-                  <td className="px-6 py-4 text-emerald-400 font-bold">{log.amount.toLocaleString()} XLM</td>
-                  <td className="px-6 py-4 text-right text-slate-500 text-xs">
+                  <td className="px-6 py-3 text-parchment-wheat font-bold">{log.amount.toLocaleString()} XLM</td>
+                  <td className="px-6 py-3 text-right text-[9px]">
                     {new Date(Number(log.timestamp) * 1000).toLocaleString()}
                   </td>
                 </tr>
               ))}
               {history.length === 0 && (
                 <tr>
-                  <td colSpan="3" className="px-6 py-12 text-center text-slate-600 italic">No withdrawal records found.</td>
+                  <td colSpan="3" className="px-6 py-8 text-center text-steel-horizon/60 italic">No withdrawal records found.</td>
                 </tr>
               )}
             </tbody>
