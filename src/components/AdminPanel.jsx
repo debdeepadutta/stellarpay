@@ -133,11 +133,15 @@ const AdminPanel = ({ contractId, vaultContractId, connectedWallet, networkPassp
             simulate(vaultContractId, "get_withdrawal_history")
           ]);
 
-          if (balance !== null) setVaultBalance(Number(BigInt(balance)) / 10000000);
-          if (logs !== null) setHistory(logs.map(log => ({
-            ...log,
-            amount: Number(BigInt(log.amount)) / 10000000
-          })));
+          if (balance !== null && balance !== undefined) {
+            setVaultBalance(Number(BigInt(balance)) / 10000000);
+          }
+          if (logs) {
+            setHistory(logs.map(log => ({
+              ...log,
+              amount: Number(BigInt(log.amount || 0)) / 10000000
+            })));
+          }
         }
         setLastUpdated(Date.now());
       }
@@ -543,7 +547,7 @@ const AdminPanel = ({ contractId, vaultContractId, connectedWallet, networkPassp
               {history.map((log, i) => (
                 <tr key={i} className="hover:bg-white/5 transition-colors">
                   <td className="px-6 py-4 font-mono text-xs text-slate-300">
-                    {log.to.slice(0, 8)}...{log.to.slice(-8)}
+                    {(log.to || '').slice(0, 8)}...{(log.to || '').slice(-8)}
                   </td>
                   <td className="px-6 py-4 text-emerald-400 font-bold">{log.amount.toLocaleString()} XLM</td>
                   <td className="px-6 py-4 text-right text-slate-500 text-xs">
