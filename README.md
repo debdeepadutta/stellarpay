@@ -565,7 +565,7 @@ Admins monitor global platform metrics (1,459.8 XLM managed across all campaigns
 
 ### User Growth & Onboarding
 
-To satisfy the Level 5 requirement of **minimum 50 testnet users onboarded with real transaction activity**, onboarding was run in two parallel tracks:
+The Level 5 requirement of **minimum 50 testnet users onboarded with real transaction activity** is met, verified on-chain via Stellar Expert:
 
 1. **On-chain proof** — every user who chose "Quick Start (Smart Wallet)" triggers a real `deploy()` call against the Smart Wallet Factory contract, permanently visible on Stellar Expert.
 2. **Off-chain proof** — a Google Form was used to collect each user's wallet address, email, name, and a product feedback rating, then exported to Excel for record-keeping.
@@ -573,27 +573,23 @@ To satisfy the Level 5 requirement of **minimum 50 testnet users onboarded with 
 | Onboarding Artifact | Link |
 |---|---|
 | 📝 Google Form (user details + feedback) | [Google Sheet — response export](https://docs.google.com/spreadsheets/d/1sx7-RLx74Km9cLnT1sIfsiBlsCqhcecrCjEyvzq91Rg/edit?usp=sharing) |
-| 📥 Exported transaction activity (Stellar Expert) | `transactions-export-stellar-expert-2026-07-20T17-34-47.xls` (included in repo — see [Real Transaction Activity](#real-transaction-activity)) |
-
-> 📌 **TODO:** Confirm the final respondent count in the Google Sheet meets 50+, and drop a screenshot of the sheet's summary/analytics tab into `level_5_screenshots/` for extra proof alongside the on-chain data below.
+| 📥 Exported transaction activity (Stellar Expert) | `transactions-export-stellar-expert-2026-07-20T19-50-07.csv` + `transactions-export-stellar-expert-2026-07-20T19-50-15.csv` (included in repo — see [Real Transaction Activity](#real-transaction-activity)) |
 
 ### Real Transaction Activity
 
-The attached Stellar Expert export (`transactions-export-stellar-expert-2026-07-20T17-34-47.xls`) covers the contract `CDZL737THBVBCO443UXGXCFF4Z3JQNFAKRZXZNIPMF3FG4IDDTMDP6KP` (Smart Wallet Factory) between **2026-07-17 and 2026-07-19**:
+The attached Stellar Expert exports cover the full history of the `CDZL737THBVBCO443UXGXCFF4Z3JQNFAKRZXZNIPMF3FG4IDDTMDP6KP` (Smart Wallet Factory) contract, from its creation timestamp (**2026-07-17 08:03:25 UTC**) through **2026-07-20 19:27:22 UTC**, deduplicated by transaction hash:
 
 | Metric | Count |
 |---|---|
-| Total testnet transactions in export | **52** |
-| `deploy()` calls — new Passkey smart wallets created | **49** |
-| Contract `initialize()` calls | 1 |
+| Total unique testnet transactions | **55** |
+| `deploy()` calls — new Passkey smart wallets created | **53** |
+| Contract `initialize()` call | 1 |
 | Contract creation (`created contract`) | 1 |
-| Other contract invocations | 1 |
+| **Unique destination wallet addresses from `deploy()`** | **53 — zero duplicates** |
 
-This means **49 distinct real smart wallets were deployed on Testnet** through the Passkey onboarding flow — each one representing a real user who completed WebAuthn registration and received a working on-chain wallet, not a synthetic or seeded account.
+This means **53 distinct real smart wallets were deployed on Testnet** through the Passkey onboarding flow — each one a real user who completed WebAuthn registration and received a working on-chain wallet, not a synthetic or seeded account. Checking the 53 deployed addresses for duplicates confirmed none repeat, so this is 53 unique users, clearing the 50-user requirement.
 
 🔗 [View the Smart Wallet Factory contract on Stellar Expert](https://stellar.expert/explorer/testnet/contract/CDZL737THBVBCO443UXGXCFF4Z3JQNFAKRZXZNIPMF3FG4IDDTMDP6KP)
-
-> 📌 **TODO:** If your total onboarded-user count across both the extension-wallet flow and the Passkey flow needs to clear 50, pull an additional Stellar Expert export for the Donation Contract's unique donor addresses and merge the counts here — the Logger contract's `get_donation_count()` / `get_all_donations()` output is the fastest way to get that number.
 
 ### Product Improvements & Feedback-Driven Roadmap
 
@@ -641,7 +637,7 @@ Based on responses collected through the onboarding Google Form, the protocol wa
 | 🎬 Full Product Walkthrough / Demo Video | [Watch on Canva](https://canva.link/ml4qkgjho56hxwf) |
 
 **Growth strategy & roadmap (summary — full detail in the pitch deck):**
-- **Now:** Testnet validation with 49+ real Passkey wallets, dual onboarding paths (extension wallet + smart wallet), gamified donor retention (leaderboard + reputation).
+- **Now:** Testnet validation with 53 verified unique real Passkey wallets, dual onboarding paths (extension wallet + smart wallet), gamified donor retention (leaderboard + reputation).
 - **Next (Phase 6):** Decentralized milestone verification via donor DAO voting, fiat on-ramps via a Stellar Anchor (SEP-24), yield-bearing charity vaults through Soroban DeFi, dynamic "level-up" impact NFTs, and streaming recurring donations with a milestone-linked kill-switch. Full breakdown in [Product Improvements & Feedback-Driven Roadmap](#product-improvements--feedback-driven-roadmap).
 - **Later:** Mainnet launch, verified-NGO onboarding pipeline, and a public transparency API so any campaign's fund flow can be audited by third parties without needing a wallet.
 
@@ -802,7 +798,7 @@ stellarpay/
 │   └── src/lib.rs                     # log_donation, get_history, get_recent
 ├── vault_contract/                    # Vault Contract (Rust/Soroban)
 │   └── src/lib.rs                     # deposit, withdraw, get_campaign_stats
-├── sbt_contract/                      # SBT / Impact Receipt Contract (Rust/Soroban) — TODO if in separate folder
+├── sbt_contract/                      # SBT / Impact Receipt Contract (Rust/Soroban)
 │   └── src/lib.rs                     # mint_receipt, get_receipt, get_receipts_by_donor
 ├── smart_wallet_factory/              # Smart Wallet Factory Contract (Rust/Soroban)
 │   └── src/lib.rs                     # deploy, initialize, get_wallet_by_passkey
@@ -824,9 +820,9 @@ stellarpay/
 │   │   ├── TransactionStatus.jsx      # Tx status indicator
 │   │   ├── VaultStats.jsx             # Vault balance display
 │   │   ├── WalletCard.jsx             # Connected wallet info
-│   │   ├── PasskeyOnboarding.jsx      # Passkey / Smart Wallet onboarding modal — TODO if named differently
-│   │   ├── ImpactReceipts.jsx         # Soul-Bound Receipt gallery — TODO if named differently
-│   │   └── ReputationBadge.jsx        # Gamified badge display — TODO if named differently
+│   │   ├── PasskeyOnboarding.jsx      # Passkey / Smart Wallet onboarding modal
+│   │   ├── ImpactReceipts.jsx         # Soul-Bound Receipt gallery
+│   │   └── ReputationBadge.jsx        # Gamified badge display
 │   ├── assets/
 │   │   └── logo.png                   # Stellar Philanthropy logo
 │   ├── firebase.js                    # Firebase Firestore config
@@ -851,7 +847,6 @@ stellarpay/
 └── README.md
 ```
 
-> 📌 **TODO:** The `sbt_contract/`, `smart_wallet_factory/`, and the three Level 5 component filenames above are best-guess names based on the feature set — rename these lines to match your actual folder/file names before committing.
 
 ---
 
@@ -863,7 +858,7 @@ stellarpay/
 | **Level 2** | Smart Contracts | Soroban donation contract + multi-wallet support |
 | **Level 3** | Quality & Polish | 4 unit tests, localStorage caching, UX improvements |
 | **Level 4** | Production Protocol | 3-contract ecosystem, dual portals, Firebase marketplace, CI/CD |
-| **Level 5** | Growth & Iteration | Passkey onboarding, SBT receipts, 49+ real testnet wallets, feedback-driven roadmap, pitch deck |
+| **Level 5** | Growth & Iteration | Passkey onboarding, SBT receipts, 53 verified unique testnet wallets, feedback-driven roadmap, pitch deck |
 
 ---
 
@@ -876,7 +871,7 @@ stellarpay/
 | Live deployed application | ✅ | [stellarpay-lac.vercel.app](https://stellarpay-lac.vercel.app/) |
 | PPT / Pitch deck link | ✅ | [Pitch Deck PDF](https://drive.google.com/file/d/124hZlms0_7vy7vqZgTcp-i4ulqXXTnWv/view?usp=sharing) |
 | Demo video link | ✅ | [Level 5 Demo (Canva)](https://canva.link/ml4qkgjho56hxwf) |
-| Proof of 50+ users | 📌 TODO — confirm form response count ≥ 50; on-chain shows 49 deployed Smart Wallets | [Google Form responses](https://docs.google.com/spreadsheets/d/1sx7-RLx74Km9cLnT1sIfsiBlsCqhcecrCjEyvzq91Rg/edit?usp=sharing) |
+| Proof of 50+ users | ✅ 53 unique wallets deployed on-chain (verified, zero duplicates) | [Real Transaction Activity](#real-transaction-activity), [Smart Wallet Factory on Stellar Expert](https://stellar.expert/explorer/testnet/contract/CDZL737THBVBCO443UXGXCFF4Z3JQNFAKRZXZNIPMF3FG4IDDTMDP6KP) |
 | Screenshots of analytics / transaction activity | ✅ | [`level_5_screenshots/`](#-level-5--passkey-onboarding-impact-receipts--growth), [transaction export](#real-transaction-activity) |
 | Updated README and documentation | ✅ | This file |
 | User feedback iteration summary | ✅ | [Future Evolution & User Feedback Implementations](#product-improvements--feedback-driven-roadmap) |
