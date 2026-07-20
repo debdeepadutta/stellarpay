@@ -370,10 +370,13 @@ const AdminPanel = ({ contractId, vaultContractId, connectedWallet, networkPassp
             <span className="text-[10px] font-mono text-emerald-500 bg-emerald-500/10 px-2 py-1 rounded-full">On-Chain Enforced</span>
           </div>
           <div className="p-6 grid grid-cols-2 sm:grid-cols-4 gap-4">
-            {(milestoneConfig.milestones || []).map((pct, i) => {
-              const isApproved = (milestoneConfig.approved || []).includes(pct);
+            {(milestoneConfig.milestones || []).map((m, i) => {
+              const pct = typeof m === 'object' ? m.percentage : m;
+              const isApproved = typeof m === 'object' ? m.approved : (milestoneConfig.approved || []).includes(pct);
               const isVerifier = connectedWallet?.toUpperCase() === milestoneConfig.verifier?.toUpperCase();
-              const capXlm = ((milestoneConfig.goal * pct) / 100).toLocaleString();
+              const capXlm = typeof m === 'object'
+                ? (Number(BigInt(m.cap || 0)) / 10000000).toLocaleString()
+                : ((milestoneConfig.goal * pct) / 100).toLocaleString();
               return (
                 <div
                   key={i}
