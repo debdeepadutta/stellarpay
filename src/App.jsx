@@ -71,8 +71,8 @@ const validatePublicKey = (val, fallback) => {
   return (val && val.length === 56 && val.startsWith('G')) ? val : fallback;
 };
 
-const CONTRACT_ID = "CBGFHRSQ275OQRZGOZXLO7JABDVTI5UIZLD7ETSAGJVI5WMIWGBC2TK4";
-const VAULT_CONTRACT_ID = "CB7O4AJFIBTGQODDCOPQICCSHRA35WFTIA2ZZ5O6OUMKWV4ROZIE3BZD";
+const CONTRACT_ID = validateContractId(import.meta.env.VITE_CONTRACT_ID, "CDBBFKGIDPUV65CYN75XOZYCNSACIQ2Z7NI2NB6R5NZCTFZ2PG52WOSM");
+const VAULT_CONTRACT_ID = validateContractId(import.meta.env.VITE_VAULT_CONTRACT_ID, "CBN2ZBV5ZRDDHVC4EGEW3UI7X2XZ3XWXGJYXW3ADY7KDD2APR3MGWPEI");
 const DUMMY_ACCOUNT = new Account("GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF", "0");
 const server = new Horizon.Server(import.meta.env.VITE_HORIZON_URL || "https://horizon-testnet.stellar.org");
 const rpcServer = new rpc.Server(import.meta.env.VITE_RPC_URL || "https://soroban-testnet.stellar.org");

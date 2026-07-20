@@ -23,6 +23,7 @@ async function main() {
   console.log("=== 1. BUILDING SMART CONTRACTS ===");
   runCmd("cd logger_contract && stellar contract build");
   runCmd("cd vault_contract && stellar contract build");
+  runCmd("cd sbt_contract && stellar contract build");
   runCmd("cd contracts && stellar contract build");
 
   console.log("\n=== 2. DEPLOYING CONTRACTS ===");
@@ -42,6 +43,11 @@ async function main() {
   const donationId = runCmd(`stellar contract deploy --wasm contracts/target/wasm32v1-none/release/donation_contract.wasm --source ${SOURCE_ACCOUNT} --network ${NETWORK}`);
   console.log(`Donation Contract ID: ${donationId}`);
 
+  // Deploy SBT Contract
+  console.log("Deploying SBT Contract...");
+  const sbtId = runCmd(`stellar contract deploy --wasm sbt_contract/target/wasm32v1-none/release/sbt_contract.wasm --source ${SOURCE_ACCOUNT} --network ${NETWORK}`);
+  console.log(`SBT Contract ID: ${sbtId}`);
+
   console.log("\n=== 3. INITIALIZING CONTRACTS ===");
 
   // Initialize Donation Contract
@@ -51,13 +57,23 @@ async function main() {
 
   // Initialize Logger Contract
   console.log("Initializing Logger Contract...");
-  const loggerInitHash = runCmd(`stellar contract invoke --id ${loggerId} --source-account ${SOURCE_ACCOUNT} --network ${NETWORK} -- initialize --donation_contract ${donationId}`);
+  const loggerInitHash = runCmd(`stellar contract invoke --id ${loggerId} --source-account ${SOURCE_ACCOUNT} --network ${NETWORK} -- initialize --donation_contract ${donationId} --vault_contract ${vaultId} --admin ${ADMIN_ADDRESS}`);
   console.log(`Logger Init Tx Hash: ${loggerInitHash}`);
 
   // Initialize Vault Contract
   console.log("Initializing Vault Contract...");
   const vaultInitHash = runCmd(`stellar contract invoke --id ${vaultId} --source-account ${SOURCE_ACCOUNT} --network ${NETWORK} -- initialize --admin ${ADMIN_ADDRESS} --donation_contract ${donationId} --token ${TOKEN_ADDRESS}`);
   console.log(`Vault Init Tx Hash: ${vaultInitHash}`);
+
+  // Initialize SBT Contract
+  console.log("Initializing SBT Contract...");
+  const sbtInitHash = runCmd(`stellar contract invoke --id ${sbtId} --source-account ${SOURCE_ACCOUNT} --network ${NETWORK} -- initialize --authorized_minter ${donationId}`);
+  console.log(`SBT Init Tx Hash: ${sbtInitHash}`);
+
+  // Register SBT Contract inside Donation Contract
+  console.log("Registering SBT Contract inside Donation Contract...");
+  const sbtRegisterHash = runCmd(`stellar contract invoke --id ${donationId} --source-account ${SOURCE_ACCOUNT} --network ${NETWORK} -- set_sbt_contract --sbt ${sbtId}`);
+  console.log(`SBT Register Tx Hash: ${sbtRegisterHash}`);
 
   console.log("\n=== 4. WRITING DEPLOYMENT SUMMARY ===");
   const summaryContent = `--- STELLAR PHILANTHROPY ECOSYSTEM SUMMARY (MULTI-CAMPAIGN REGISTRY) ---
@@ -67,12 +83,15 @@ CONTRACT ADDRESSES:
 Donation Contract (Registry): ${donationId}
 Logger Contract:             ${loggerId}
 Vault Contract:              ${vaultId}
+SBT Contract:                ${sbtId}
 
 INITIALIZATION PROOF:
 --------------------
 Logger Init:   ${loggerInitHash}
 Vault Init:    ${vaultInitHash}
 Donation Init: ${donationInitHash}
+SBT Init:      ${sbtInitHash}
+SBT Register:  ${sbtRegisterHash}
 
 Deploy Date: ${new Date().toISOString()}
 `;
