@@ -867,7 +867,7 @@ stellarpay/
 | Requirement | Status | Link |
 |---|---|---|
 | Public GitHub repository | ✅ | [github.com/debdeepadutta/stellarpay](https://github.com/debdeepadutta/stellarpay) |
-| Minimum 20+ meaningful commits | ✅ 25+ commits verified via `git log` | [Commit history](https://github.com/debdeepadutta/stellarpay/commits/main) |
+| Minimum 20+ meaningful commits | ✅ 50+ commits verified via `git log` | [Commit history](https://github.com/debdeepadutta/stellarpay/commits/main) |
 | Live deployed application | ✅ | [stellarpay-lac.vercel.app](https://stellarpay-lac.vercel.app/) |
 | PPT / Pitch deck link | ✅ | [Pitch Deck PDF](https://drive.google.com/file/d/124hZlms0_7vy7vqZgTcp-i4ulqXXTnWv/view?usp=sharing) |
 | Demo video link | ✅ | [Level 5 Demo (Canva)](https://canva.link/ml4qkgjho56hxwf) |
