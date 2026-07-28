@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import toast, { Toaster } from 'react-hot-toast';
 import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import { Buffer } from 'buffer';
+import { Analytics } from '@vercel/analytics/react';
 
 import { 
   Networks, 
@@ -1427,7 +1428,10 @@ function AppContent() {
 
 function App() {
   return (
-    <AppContent />
+    <>
+      <AppContent />
+      <Analytics />
+    </>
   );
 }
 
