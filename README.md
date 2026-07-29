@@ -562,19 +562,7 @@ In the "Receipts" tab, the donor sees their newly minted, non-transferable Impac
 
 Admins monitor global platform metrics (1,459.8 XLM managed across all campaigns) and deploy new initiatives from a clean, ledger-style form defining goal, milestone gates, and a verifier wallet address.
 
-**10. Live Analytics & Monitoring**
-
-<table>
-  <tr>
-    <td align="center">
-      <img src="level_5_screenshots/ss10.png" alt="Vercel Analytics Dashboard" width="860"/>
-    </td>
-  </tr>
-</table>
-
-The live deployment (`stellarpay-lac.vercel.app`) has **Vercel Analytics** integrated for post-deployment monitoring, tracking real visitor traffic, page views, and bounce rate on the production app. This satisfies the Level 5 "integrate analytics or monitoring" requirement.
-
-**11. On-Chain Transaction Proof — Stellar Expert Invocations**
+**10. On-Chain Transaction Proof — Stellar Expert Invocations**
 
 <table>
   <tr>
