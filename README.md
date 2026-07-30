@@ -20,7 +20,7 @@
 [🌐 Live Demo](https://stellarpay-lac.vercel.app/) &nbsp;·&nbsp;
 [🎬 Demo Video (Level 1–4)](https://drive.google.com/file/d/195XyArDZfn1T8xCJH_gzOuPSLEE86IdA/view?usp=sharing) &nbsp;·&nbsp;
 [🎬 Demo Video (Level 5)](https://canva.link/ml4qkgjho56hxwf) &nbsp;·&nbsp;
-[📊 Pitch Deck](https://drive.google.com/file/d/124hZlms0_7vy7vqZgTcp-i4ulqXXTnWv/view?usp=sharing) &nbsp;·&nbsp;
+[📊 Pitch Deck](https://docs.google.com/presentation/d/1gRXoXuG-ds30wgVQEjWXixP6nKjbCFmp/edit?usp=sharing&ouid=114223089307930766123&rtpof=true&sd=true) &nbsp;·&nbsp;
 [📜 Campaign Hub Contract](https://stellar.expert/explorer/testnet/contract/CDBBFKGIDPUV65CYN75XOZYCNSACIQ2Z7NI2NB6R5NZCTFZ2PG52WOSM) &nbsp;·&nbsp;
 [🔗 Inter-Contract Tx](https://stellar.expert/explorer/testnet/tx/65c2af62d4160528de7342f7dc9df35a122999c06aba78f12a944b090ad493d3)
 
@@ -808,8 +808,9 @@ Based on responses collected through the onboarding Google Form, the protocol wa
 
 | Deliverable | Link |
 |---|---|
-| 📊 Pitch Deck (Problem, Solution, Market, Architecture, Growth Strategy, Roadmap) | [View PDF](https://drive.google.com/file/d/124hZlms0_7vy7vqZgTcp-i4ulqXXTnWv/view?usp=sharing) |
+| 📊 Pitch Deck (Problem, Solution, Market, Architecture, Growth Strategy, Roadmap) | [View Deck](https://docs.google.com/presentation/d/1gRXoXuG-ds30wgVQEjWXixP6nKjbCFmp/edit?usp=sharing&ouid=114223089307930766123&rtpof=true&sd=true) |
 | 🎬 Full Product Walkthrough / Demo Video | [Watch on Canva](https://canva.link/ml4qkgjho56hxwf) |
+
 
 **Growth strategy & roadmap (summary — full detail in the pitch deck):**
 - **Now:** Testnet validation with 53 verified unique real Passkey wallets, 51 verified Google Form respondents, dual onboarding paths (extension wallet + smart wallet), gamified donor retention (leaderboard + reputation), live Vercel Analytics monitoring on production.
@@ -1054,7 +1055,7 @@ stellarpay/
 | Analytics / monitoring integrated | ✅ Vercel Analytics live on production | [Analytics & Monitoring](#-analytics--monitoring) |
 | Google Form (public, view/fill) + Excel/Sheet export (public) | ✅ | [Form](https://docs.google.com/forms/d/e/1FAIpQLSdIvW7LmJhFnBu0zC6GkQAiDboQIXX-I68F1v-_zeEII0GWsQ/viewform), [Sheet](https://docs.google.com/spreadsheets/d/1sx7-RLx74Km9cLnT1sIfsiBlsCqhcecrCjEyvzq91Rg/edit?usp=sharing), [Raw CSV](./Stellar%20Philanthropy%20-%20Tester%20Feedback%20Form%20%28Responses%29%20-%20Form%20responses%201%20%281%29.csv) |
 | Form has Rating + 3 open-ended feedback questions | ✅ Includes "Would you recommend this to others?" | [User Growth & Onboarding](#user-growth--onboarding) |
-| PPT / Pitch deck link | ✅ | [Pitch Deck PDF](https://drive.google.com/file/d/124hZlms0_7vy7vqZgTcp-i4ulqXXTnWv/view?usp=sharing) |
+| PPT / Pitch deck link | ✅ | [Pitch Deck](https://docs.google.com/presentation/d/1gRXoXuG-ds30wgVQEjWXixP6nKjbCFmp/edit?usp=sharing&ouid=114223089307930766123&rtpof=true&sd=true) |
 | Demo video link | ✅ | [Level 5 Demo (Canva)](https://canva.link/ml4qkgjho56hxwf) |
 | Proof of 50+ users | ✅ 53 unique wallets deployed on-chain (verified, zero duplicates) + 51 verified form respondents | [Real Transaction Activity](#real-transaction-activity), [Smart Wallet Factory on Stellar Expert](https://stellar.expert/explorer/testnet/contract/CDZL737THBVBCO443UXGXCFF4Z3JQNFAKRZXZNIPMF3FG4IDDTMDP6KP) |
 | Users Onboarded table (ID, Name, Email, Wallet, Feedback) | ✅ 51 rows | [Users Onboarded](#-users-onboarded-51-real-testnet-users) |
