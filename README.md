@@ -611,6 +611,7 @@ The Level 5 requirement of **minimum 50 testnet users onboarded with real transa
 |---|---|
 | 📝 Google Form (public, view/fill) | [Fill out the form](https://docs.google.com/forms/d/e/1FAIpQLSdIvW7LmJhFnBu0zC6GkQAiDboQIXX-I68F1v-_zeEII0GWsQ/viewform) |
 | 📊 Form Responses (Google Sheet, public, exportable to Excel) | [View responses](https://docs.google.com/spreadsheets/d/1sx7-RLx74Km9cLnT1sIfsiBlsCqhcecrCjEyvzq91Rg/edit?usp=sharing) |
+| 📥 Form Responses (raw CSV export, in repo) | [`Stellar Philanthropy - Tester Feedback Form (Responses) - Form responses 1 (1).csv`](./Stellar%20Philanthropy%20-%20Tester%20Feedback%20Form%20%28Responses%29%20-%20Form%20responses%201%20%281%29.csv) |
 | 📥 Exported on-chain transaction activity (Stellar Expert) | `transactions-export-stellar-expert-2026-07-20T19-50-07.csv` + `transactions-export-stellar-expert-2026-07-20T19-50-15.csv` (included in repo — see [Real Transaction Activity](#real-transaction-activity)) |
 
 **Feedback form questions:** Name, Email, Wallet Address, Product Rating (1–5), plus 3 required open-ended questions — *"What was confusing?"*, *"What feature next?"*, and *"Would you recommend this to others?"*
@@ -680,7 +681,7 @@ The Level 5 requirement of **minimum 50 testnet users onboarded with real transa
 | 51 | Snehali Dutta | shenuucutiemi@gmail.com | CANWXG...VFO3Y2Z3LWOKPBTP7OS | Rated 4/5, no issues |
 
 *(Wallet addresses truncated for table readability — full addresses are in the linked
-Google Sheet response export.)*
+Google Sheet response export and the raw CSV file in the repo.)*
 
 ---
 
@@ -786,7 +787,7 @@ Based on responses collected through the onboarding Google Form, the protocol wa
 
 > Native mobile biometric support was previously listed here but is not actually a gap — the current WebAuthn Passkey flow already uses the device's Face ID / fingerprint sensor via the mobile browser. It would only become relevant if a standalone native app or installed PWA is built later, since that would call OS-level biometric APIs directly instead of going through the browser's WebAuthn layer.
 
-> Full raw responses are in the [Google Form export](https://docs.google.com/spreadsheets/d/1sx7-RLx74Km9cLnT1sIfsiBlsCqhcecrCjEyvzq91Rg/edit?usp=sharing) if you want to trace a specific quote back to a respondent.
+> Full raw responses are in the [Google Form export](https://docs.google.com/spreadsheets/d/1sx7-RLx74Km9cLnT1sIfsiBlsCqhcecrCjEyvzq91Rg/edit?usp=sharing) or the [raw CSV file in the repo](./Stellar%20Philanthropy%20-%20Tester%20Feedback%20Form%20%28Responses%29%20-%20Form%20responses%201%20%281%29.csv) if you want to trace a specific quote back to a respondent.
 
 ---
 
@@ -1023,6 +1024,7 @@ stellarpay/
 │   ├── ss13.png                       # Stellar Expert invocations — deploy() calls (3/5)
 │   ├── ss14.png                       # Stellar Expert invocations — deploy() calls (4/5)
 │   └── ss15.png                       # Stellar Expert invocations — deploy() calls (5/5)
+├── Stellar Philanthropy - Tester Feedback Form (Responses) - Form responses 1 (1).csv  # Raw form response export (52 rows, 51 verified after dedup)
 ├── transactions-export-stellar-expert-2026-07-20T17-34-47.xls   # Level 5 real transaction proof
 ├── contract_deployment_summary.txt    # Deployed contract addresses
 └── README.md
@@ -1050,7 +1052,7 @@ stellarpay/
 | Minimum 20+ meaningful commits | ✅ 50+ commits verified via `git log` | [Commit history](https://github.com/debdeepadutta/stellarpay/commits/main) |
 | Live deployed application | ✅ | [stellarpay-lac.vercel.app](https://stellarpay-lac.vercel.app/) |
 | Analytics / monitoring integrated | ✅ Vercel Analytics live on production | [Analytics & Monitoring](#-analytics--monitoring) |
-| Google Form (public, view/fill) + Excel/Sheet export (public) | ✅ | [Form](https://docs.google.com/forms/d/e/1FAIpQLSdIvW7LmJhFnBu0zC6GkQAiDboQIXX-I68F1v-_zeEII0GWsQ/viewform), [Sheet](https://docs.google.com/spreadsheets/d/1sx7-RLx74Km9cLnT1sIfsiBlsCqhcecrCjEyvzq91Rg/edit?usp=sharing) |
+| Google Form (public, view/fill) + Excel/Sheet export (public) | ✅ | [Form](https://docs.google.com/forms/d/e/1FAIpQLSdIvW7LmJhFnBu0zC6GkQAiDboQIXX-I68F1v-_zeEII0GWsQ/viewform), [Sheet](https://docs.google.com/spreadsheets/d/1sx7-RLx74Km9cLnT1sIfsiBlsCqhcecrCjEyvzq91Rg/edit?usp=sharing), [Raw CSV](./Stellar%20Philanthropy%20-%20Tester%20Feedback%20Form%20%28Responses%29%20-%20Form%20responses%201%20%281%29.csv) |
 | Form has Rating + 3 open-ended feedback questions | ✅ Includes "Would you recommend this to others?" | [User Growth & Onboarding](#user-growth--onboarding) |
 | PPT / Pitch deck link | ✅ | [Pitch Deck PDF](https://drive.google.com/file/d/124hZlms0_7vy7vqZgTcp-i4ulqXXTnWv/view?usp=sharing) |
 | Demo video link | ✅ | [Level 5 Demo (Canva)](https://canva.link/ml4qkgjho56hxwf) |
