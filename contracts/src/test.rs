@@ -282,3 +282,5 @@ fn test_donate_to_inactive_campaign_fails() {
 }
 
 
+
+// fmt
