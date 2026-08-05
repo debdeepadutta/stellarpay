@@ -84,3 +84,4 @@ export default function ReputationBadge({ score = 0, totalDonated = 0, campaignC
     </div>
   );
 }
+
