@@ -119,3 +119,4 @@ fn test_unauthorized_log() {
     let campaign_admin = Address::generate(&env);
     client.log_donation(&attacker, &100, &campaign_admin, &1000);
 }
+
