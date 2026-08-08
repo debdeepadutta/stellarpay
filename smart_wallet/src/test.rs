@@ -34,3 +34,5 @@ fn test_json_parsing() {
     assert_eq!(client_data.challenge, "c29tZV9jaGFsbGVuZ2VfZm9yX3Rlc3Rpbmc");
 }
 
+
+// fmt
