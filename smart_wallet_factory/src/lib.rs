@@ -48,3 +48,4 @@ impl WebAuthnFactory {
         wallet_address
     }
 }
+
