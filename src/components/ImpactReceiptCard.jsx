@@ -72,3 +72,5 @@ export default function ImpactReceiptCard({ receipt }) {
   );
 }
 
+
+// fmt
