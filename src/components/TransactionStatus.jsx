@@ -102,3 +102,4 @@ const TransactionStatus = ({ status, hash, message }) => {
 };
 
 export default TransactionStatus;
+
