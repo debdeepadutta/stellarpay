@@ -102,3 +102,4 @@ const DonateXLMForm = ({ onDonate, isSending, balance, disabled }) => {
 };
 
 export default DonateXLMForm;
+
