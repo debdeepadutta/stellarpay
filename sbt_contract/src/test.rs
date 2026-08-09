@@ -65,3 +65,5 @@ fn test_sbt_zero_amount_fails() {
     client.mint(&donor, &campaign_id, &0i128, &category);
 }
 
+
+// fmt
