@@ -35,3 +35,4 @@ const VaultStats = ({ stats, isFetching }) => {
 };
 
 export default VaultStats;
+
