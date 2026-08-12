@@ -120,3 +120,5 @@ fn test_unauthorized_log() {
     client.log_donation(&attacker, &100, &campaign_admin, &1000);
 }
 
+
+// fmt
