@@ -240,3 +240,4 @@ const Card = ({ title, value, sub, icon, color }) => (
 );
 
 export default AnalyticsDashboard;
+
