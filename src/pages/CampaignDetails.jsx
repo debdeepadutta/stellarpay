@@ -385,3 +385,4 @@ const CampaignDetails = ({ address, balance, isFetchingData, handleDonate, handl
 };
 
 export default CampaignDetails;
+
