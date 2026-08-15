@@ -281,3 +281,4 @@ fn test_donate_to_inactive_campaign_fails() {
     client.donate(&campaign_id, &donor, &500);
 }
 
+
