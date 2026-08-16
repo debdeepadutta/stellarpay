@@ -135,3 +135,4 @@ const WalletCard = ({ address, balance, isFetching, lastUpdated, onBalanceRefres
 };
 
 export default WalletCard;
+
