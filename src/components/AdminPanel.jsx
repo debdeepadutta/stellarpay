@@ -551,3 +551,4 @@ const AdminPanel = ({ contractId, vaultContractId, connectedWallet, networkPassp
 };
 
 export default AdminPanel;
+
