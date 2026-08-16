@@ -251,3 +251,4 @@ const DonorLeaderboard = ({ contractId, networkPassphrase, connectedWallet, last
 };
 
 export default DonorLeaderboard;
+
