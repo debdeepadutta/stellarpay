@@ -33,3 +33,4 @@ fn test_json_parsing() {
     let (client_data, _): (ClientDataJson, usize) = serde_json_core::from_slice(json_str).unwrap();
     assert_eq!(client_data.challenge, "c29tZV9jaGFsbGVuZ2VfZm9yX3Rlc3Rpbmc");
 }
+
