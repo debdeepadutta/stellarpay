@@ -144,3 +144,4 @@ describe('Stellar Philanthropy DApp', () => {
     expect(screen.getByText(/No campaigns managed yet/i)).toBeInTheDocument();
   });
 });
+
