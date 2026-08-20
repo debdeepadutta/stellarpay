@@ -314,3 +314,5 @@ impl LoggerContract {
 
 mod test;
 
+
+// fmt
