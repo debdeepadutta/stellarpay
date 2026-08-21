@@ -759,23 +759,23 @@ Based on responses collected through the onboarding Google Form, the protocol wa
 - **User Feedback:** *"The requirement to create and connect a web3 wallet to perform donations is a significant technical hassle."*
 - **Resolution:** Implemented **Gasless Passkey Smart Wallets** — users authenticate and create an on-chain wallet instantly using device-native biometrics (Face ID / Touch ID), with zero seed phrases and zero gas fees.
 - **Implementation Commits:**
-  - [`f6ec4a3`](https://github.com/debdeepadutta/stellarpay/commit/f6ec4a3) — WebAuthn native integration
-  - [`1abea0e`](https://github.com/debdeepadutta/stellarpay/commit/1abea0e) — Passkey RP ID validation logic
+  - [`a969240`](https://github.com/debdeepadutta/stellarpay/commit/a969240) — WebAuthn native integration
+  - [`a7cf63b`](https://github.com/debdeepadutta/stellarpay/commit/a7cf63b) — Passkey RP ID validation logic
 
 #### 2. Campaign Management Controls
 - **User Feedback:** *"Frustration regarding the inability to delete created campaigns and confusion when completed campaigns remain visible."*
 - **Resolution:** Upgraded the **Admin Terminal** to support campaign deactivation and global status toggling, so only actively managed initiatives appear in the global marketplace.
 - **Implementation Commits:**
-  - [`c571448`](https://github.com/debdeepadutta/stellarpay/commit/c571448) — Admin portal and contract updates
-  - [`e6b3e1a`](https://github.com/debdeepadutta/stellarpay/commit/e6b3e1a) — Admin UI stability guards
+  - [`50c3acf`](https://github.com/debdeepadutta/stellarpay/commit/50c3acf) — Admin portal and contract updates
+  - [`d307944`](https://github.com/debdeepadutta/stellarpay/commit/d307944) — Admin UI stability guards
 
 #### 3. Transparency & Trust Verification
 - **User Feedback:** *"Strong demand for increased clarity regarding admin fund management and verification of campaign legitimacy to build trust."*
 - **Resolution:** Redesigned the visual identity into **"The Living Ledger"** and overhauled the smart contract architecture to enforce **milestone-based fund releases** plus **Soul-Bound Impact Receipts (SBTs)** minted to every donor as verifiable proof of contribution.
 - **Implementation Commits:**
-  - [`03904f8`](https://github.com/debdeepadutta/stellarpay/commit/03904f8) — "Living Ledger" visual identity redesign
-  - [`f603aa4`](https://github.com/debdeepadutta/stellarpay/commit/f603aa4) — Milestone-based fund release logic
-  - [`6718f22`](https://github.com/debdeepadutta/stellarpay/commit/6718f22) & [`f0d0d6a`](https://github.com/debdeepadutta/stellarpay/commit/f0d0d6a) — Soul-Bound Token (SBT) impact receipts
+  - [`4839b4f`](https://github.com/debdeepadutta/stellarpay/commit/4839b4f) — "Living Ledger" visual identity redesign
+  - [`459456a`](https://github.com/debdeepadutta/stellarpay/commit/459456a) — Milestone-based fund release logic
+  - [`5107095`](https://github.com/debdeepadutta/stellarpay/commit/5107095) & [`7c382a1`](https://github.com/debdeepadutta/stellarpay/commit/7c382a1) — Soul-Bound Token (SBT) impact receipts
 
 **Phase 6 roadmap (planned, not yet shipped):**
 
@@ -795,12 +795,12 @@ Based on responses collected through the onboarding Google Form, the protocol wa
 
 | User ID | Name | Email | Wallet Address | Feedback Summary | Improvement Made | Git Commit ID |
 |---|---|---|---|---|---|---|
-| 4 | Sumita Dutta | duttasumita613@gmail.com | CA76I7...MPH | Wallet creation is a hassle before donating | Gasless, seedless onboarding via WebAuthn Passkey Smart Wallets | [`f6ec4a3`](https://github.com/debdeepadutta/stellarpay/commit/f6ec4a3), [`1abea0e`](https://github.com/debdeepadutta/stellarpay/commit/1abea0e) |
-| 19 | Bristi Rekha Pal | bristipal22@gmail.com | CAJJSF...QQ6KVK | No option for admin to remove a created campaign | Admin Terminal upgraded to support campaign deactivation / status toggling | [`c571448`](https://github.com/debdeepadutta/stellarpay/commit/c571448), [`e6b3e1a`](https://github.com/debdeepadutta/stellarpay/commit/e6b3e1a) |
-| 8 | Debjani Nandy | debjaninandy2794@gmail.com | GDZD3Z...RFZ6O | No visibility into when/how admin can withdraw funds; risk of misuse | Milestone-based fund release + Soul-Bound Impact Receipts (SBTs) as on-chain proof of contribution, "Living Ledger" transparency redesign | [`03904f8`](https://github.com/debdeepadutta/stellarpay/commit/03904f8), [`f603aa4`](https://github.com/debdeepadutta/stellarpay/commit/f603aa4), [`6718f22`](https://github.com/debdeepadutta/stellarpay/commit/6718f22), [`f0d0d6a`](https://github.com/debdeepadutta/stellarpay/commit/f0d0d6a) |
-| 6 | Ranjita Garai | garairanjita998@gmail.com | GCFVKT...JTPG | Wants a way to trust the campaign admin | Same "Living Ledger" transparency redesign — milestone-based fund release + SBT proof-of-contribution | [`03904f8`](https://github.com/debdeepadutta/stellarpay/commit/03904f8), [`f603aa4`](https://github.com/debdeepadutta/stellarpay/commit/f603aa4) |
-| 18 | Rahul Chakraborty | rahul675@gmail.com | CDREN7...XAPJALW | Wants to trust that the admin is actually running the campaign | Same "Living Ledger" transparency redesign — milestone-based fund release + SBT proof-of-contribution | [`03904f8`](https://github.com/debdeepadutta/stellarpay/commit/03904f8), [`6718f22`](https://github.com/debdeepadutta/stellarpay/commit/6718f22) |
-| 31 | Tanmay Chakraborty | tanmaychakraborty247@gmail.com | CBBBXD...ONID5KGTH | Admin has no access to delete campaigns; wants transparency | Admin Terminal campaign deactivation (delete-flow) + "Living Ledger" transparency redesign | [`c571448`](https://github.com/debdeepadutta/stellarpay/commit/c571448), [`f0d0d6a`](https://github.com/debdeepadutta/stellarpay/commit/f0d0d6a) |
+| 4 | Sumita Dutta | duttasumita613@gmail.com | CA76I7...MPH | Wallet creation is a hassle before donating | Gasless, seedless onboarding via WebAuthn Passkey Smart Wallets | [`a969240`](https://github.com/debdeepadutta/stellarpay/commit/a969240), [`a7cf63b`](https://github.com/debdeepadutta/stellarpay/commit/a7cf63b) |
+| 19 | Bristi Rekha Pal | bristipal22@gmail.com | CAJJSF...QQ6KVK | No option for admin to remove a created campaign | Admin Terminal upgraded to support campaign deactivation / status toggling | [`50c3acf`](https://github.com/debdeepadutta/stellarpay/commit/50c3acf), [`d307944`](https://github.com/debdeepadutta/stellarpay/commit/d307944) |
+| 8 | Debjani Nandy | debjaninandy2794@gmail.com | GDZD3Z...RFZ6O | No visibility into when/how admin can withdraw funds; risk of misuse | Milestone-based fund release + Soul-Bound Impact Receipts (SBTs) as on-chain proof of contribution, "Living Ledger" transparency redesign | [`4839b4f`](https://github.com/debdeepadutta/stellarpay/commit/4839b4f), [`459456a`](https://github.com/debdeepadutta/stellarpay/commit/459456a), [`5107095`](https://github.com/debdeepadutta/stellarpay/commit/5107095), [`7c382a1`](https://github.com/debdeepadutta/stellarpay/commit/7c382a1) |
+| 6 | Ranjita Garai | garairanjita998@gmail.com | GCFVKT...JTPG | Wants a way to trust the campaign admin | Same "Living Ledger" transparency redesign — milestone-based fund release + SBT proof-of-contribution | [`4839b4f`](https://github.com/debdeepadutta/stellarpay/commit/4839b4f), [`459456a`](https://github.com/debdeepadutta/stellarpay/commit/459456a) |
+| 18 | Rahul Chakraborty | rahul675@gmail.com | CDREN7...XAPJALW | Wants to trust that the admin is actually running the campaign | Same "Living Ledger" transparency redesign — milestone-based fund release + SBT proof-of-contribution | [`4839b4f`](https://github.com/debdeepadutta/stellarpay/commit/4839b4f), [`5107095`](https://github.com/debdeepadutta/stellarpay/commit/5107095) |
+| 31 | Tanmay Chakraborty | tanmaychakraborty247@gmail.com | CBBBXD...ONID5KGTH | Admin has no access to delete campaigns; wants transparency | Admin Terminal campaign deactivation (delete-flow) + "Living Ledger" transparency redesign | [`50c3acf`](https://github.com/debdeepadutta/stellarpay/commit/50c3acf), [`7c382a1`](https://github.com/debdeepadutta/stellarpay/commit/7c382a1) |
 
 ---
 
