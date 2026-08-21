@@ -18,7 +18,7 @@
 **A production-ready decentralized philanthropy marketplace built on the Stellar blockchain using Soroban smart contracts. Admins launch fundraising campaigns on-chain. Donors browse a global marketplace, contribute XLM — either via a traditional wallet or a completely gasless, seedless Passkey smart wallet — and track impact in real time, across a five-contract on-chain ecosystem with no central authority.**
 
 [🌐 Live Demo](https://stellarpay-lac.vercel.app/) &nbsp;·&nbsp;
-[🎬 Demo Video](https://drive.google.com/file/d/1yKNgJHNPZAS22bIjNFjGqqG1t_i7xSMv/view?usp=sharing) &nbsp;·&nbsp;
+[🎬 Demo Video](https://drive.google.com/file/d/1RUxtb6qNVl9fv0pcRoKeS3tWhpMAa324/view?usp=sharing) &nbsp;·&nbsp;
 [📊 Pitch Deck](https://docs.google.com/presentation/d/1gRXoXuG-ds30wgVQEjWXixP6nKjbCFmp/edit?usp=sharing&ouid=114223089307930766123&rtpof=true&sd=true) &nbsp;·&nbsp;
 [📜 Campaign Hub Contract](https://stellar.expert/explorer/testnet/contract/CDBBFKGIDPUV65CYN75XOZYCNSACIQ2Z7NI2NB6R5NZCTFZ2PG52WOSM) &nbsp;·&nbsp;
 [🔗 Inter-Contract Tx](https://stellar.expert/explorer/testnet/tx/65c2af62d4160528de7342f7dc9df35a122999c06aba78f12a944b090ad493d3)
@@ -808,7 +808,7 @@ Based on responses collected through the onboarding Google Form, the protocol wa
 | Deliverable | Link |
 |---|---|
 | 📊 Pitch Deck (Problem, Solution, Market, Architecture, Growth Strategy, Roadmap) | [View Deck](https://docs.google.com/presentation/d/1gRXoXuG-ds30wgVQEjWXixP6nKjbCFmp/edit?usp=sharing&ouid=114223089307930766123&rtpof=true&sd=true) |
-| 🎬 Full Product Walkthrough / Demo Video | [Watch Demo](https://drive.google.com/file/d/1yKNgJHNPZAS22bIjNFjGqqG1t_i7xSMv/view?usp=sharing) |
+| 🎬 Full Product Walkthrough / Demo Video | [Watch Demo](https://drive.google.com/file/d/1RUxtb6qNVl9fv0pcRoKeS3tWhpMAa324/view?usp=sharing) |
 
 
 **Growth strategy & roadmap (summary — full detail in the pitch deck):**
@@ -1055,7 +1055,7 @@ stellarpay/
 | Google Form (public, view/fill) + Excel/Sheet export (public) | ✅ | [Form](https://docs.google.com/forms/d/e/1FAIpQLSdIvW7LmJhFnBu0zC6GkQAiDboQIXX-I68F1v-_zeEII0GWsQ/viewform), [Sheet](https://docs.google.com/spreadsheets/d/1sx7-RLx74Km9cLnT1sIfsiBlsCqhcecrCjEyvzq91Rg/edit?usp=sharing), [Raw CSV](./Stellar%20Philanthropy%20-%20Tester%20Feedback%20Form%20%28Responses%29%20-%20Form%20responses%201%20%281%29.csv) |
 | Form has Rating + 3 open-ended feedback questions | ✅ Includes "Would you recommend this to others?" | [User Growth & Onboarding](#user-growth--onboarding) |
 | PPT / Pitch deck link | ✅ | [Pitch Deck](https://docs.google.com/presentation/d/1gRXoXuG-ds30wgVQEjWXixP6nKjbCFmp/edit?usp=sharing&ouid=114223089307930766123&rtpof=true&sd=true) |
-| Demo video link | ✅ | [Final Demo Video](https://drive.google.com/file/d/1yKNgJHNPZAS22bIjNFjGqqG1t_i7xSMv/view?usp=sharing) |
+| Demo video link | ✅ | [Final Demo Video](https://drive.google.com/file/d/1RUxtb6qNVl9fv0pcRoKeS3tWhpMAa324/view?usp=sharing) |
 | Proof of 50+ users | ✅ 53 unique wallets deployed on-chain (verified, zero duplicates) + 51 verified form respondents | [Real Transaction Activity](#real-transaction-activity), [Smart Wallet Factory on Stellar Expert](https://stellar.expert/explorer/testnet/contract/CDZL737THBVBCO443UXGXCFF4Z3JQNFAKRZXZNIPMF3FG4IDDTMDP6KP) |
 | Users Onboarded table (ID, Name, Email, Wallet, Feedback) | ✅ 51 rows | [Users Onboarded](#-users-onboarded-51-real-testnet-users) |
 | Feedback Implementation table (+ Git commit links) | ✅ | [Feedback Implementation Table](#-feedback-implementation-table) |
