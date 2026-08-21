@@ -174,7 +174,7 @@ const MobileAuth = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-950 text-slate-200 flex flex-col items-center justify-center font-sans">
+      <div className="min-h-screen bg-transparent text-slate-200 flex flex-col items-center justify-center font-sans">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500 mb-4"></div>
         <p className="text-sm text-slate-400">Loading secure session...</p>
       </div>
@@ -182,7 +182,7 @@ const MobileAuth = () => {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-200 flex items-center justify-center px-6 font-sans">
+    <div className="min-h-screen bg-transparent text-slate-200 flex items-center justify-center px-6 font-sans">
       <Toaster position="top-center" />
       <div className="max-w-md w-full bg-slate-900 border border-white/10 rounded-3xl p-8 shadow-2xl shadow-indigo-500/5">
         <div className="text-center mb-8">

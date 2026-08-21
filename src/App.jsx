@@ -991,7 +991,7 @@ function AppContent() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-200 selection:bg-indigo-500/30 font-sans">
+    <div className="min-h-screen bg-transparent text-slate-200 selection:bg-indigo-500/30 font-sans">
       <style>{`
         @keyframes fadeIn {
           from { opacity: 0; transform: translateY(10px); }
