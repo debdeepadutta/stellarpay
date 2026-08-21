@@ -1,23 +1,23 @@
 import React from 'react';
 
 const CATEGORY_ICONS = {
-  general:     '🌐',
-  education:   '📚',
-  health:      '❤️',
+  general: '🌐',
+  education: '📚',
+  health: '❤️',
   environment: '🌿',
-  disaster:    '🆘',
-  community:   '🏘️',
-  arts:        '🎨',
+  disaster: '🆘',
+  community: '🏘️',
+  arts: '🎨',
 };
 
 const CATEGORY_COLORS = {
-  general:     'border-slate-500/30 bg-slate-800/50',
-  education:   'border-blue-500/30 bg-blue-900/20',
-  health:      'border-red-500/30 bg-red-900/20',
-  environment: 'border-emerald-500/30 bg-emerald-900/20',
-  disaster:    'border-amber-500/30 bg-amber-900/20',
-  community:   'border-purple-500/30 bg-purple-900/20',
-  arts:        'border-pink-500/30 bg-pink-900/20',
+  general:     'border-slate-500/60 bg-slate-900/95 shadow-lg',
+  education:   'border-blue-500/60 bg-slate-900/95 shadow-lg',
+  health:      'border-red-500/60 bg-slate-900/95 shadow-lg',
+  environment: 'border-emerald-500/60 bg-slate-900/95 shadow-lg',
+  disaster:    'border-amber-500/60 bg-slate-900/95 shadow-lg',
+  community:   'border-purple-500/60 bg-slate-900/95 shadow-lg',
+  arts:        'border-pink-500/60 bg-slate-900/95 shadow-lg',
 };
 
 /**
@@ -33,8 +33,8 @@ export default function ImpactReceiptCard({ receipt }) {
 
   const date = receipt.timestamp
     ? new Date(Number(BigInt(receipt.timestamp)) * 1000).toLocaleDateString(undefined, {
-        year: 'numeric', month: 'short', day: 'numeric'
-      })
+      year: 'numeric', month: 'short', day: 'numeric'
+    })
     : '—';
 
   const catKey = receipt.category?.toString() || 'general';

@@ -3,14 +3,14 @@ import { useParams, Link } from 'react-router-dom';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { db } from '../firebase';
 import { Helmet } from 'react-helmet-async';
-import { 
-  Networks, 
-  TransactionBuilder, 
-  Operation, 
-  Account, 
-  rpc, 
+import {
+  Networks,
+  TransactionBuilder,
+  Operation,
+  Account,
+  rpc,
   scValToNative,
-  nativeToScVal 
+  nativeToScVal
 } from "@stellar/stellar-sdk";
 import toast from 'react-hot-toast';
 
@@ -38,39 +38,39 @@ const CampaignDetails = ({ address, balance, isFetchingData, handleDonate, handl
         if (docSnap.exists()) {
           const data = { id: docSnap.id, ...docSnap.data() };
           const cid = data.donationContractId || data.contractId;
-          
+
           let chainTotal = data.totalDonated || 0;
           let isOnChain = false;
-          
+
           if (cid && cid.length === 56 && cid.startsWith('C')) {
             try {
               const rpcServer = new rpc.Server("https://soroban-testnet.stellar.org");
               const campaignSymbol = nativeToScVal(docSnap.id.substring(0, 32), { type: "symbol" });
-              const builder = new TransactionBuilder(new Account("GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF", "0"), { 
-                fee: "100", 
-                networkPassphrase: Networks.TESTNET 
+              const builder = new TransactionBuilder(new Account("GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF", "0"), {
+                fee: "100",
+                networkPassphrase: Networks.TESTNET
               });
-              
-              const txInfo = builder.addOperation(Operation.invokeContractFunction({ 
-                contract: cid, 
-                function: "get_campaign_info", 
-                args: [campaignSymbol] 
+
+              const txInfo = builder.addOperation(Operation.invokeContractFunction({
+                contract: cid,
+                function: "get_campaign_info",
+                args: [campaignSymbol]
               })).setTimeout(30).build();
-              
+
               const resInfo = await rpcServer.simulateTransaction(txInfo);
               if (rpc.Api.isSimulationSuccess(resInfo)) {
                 const infoVal = scValToNative(resInfo.result.retval);
                 if (infoVal !== null && infoVal !== undefined) {
                   isOnChain = true;
-                  
-                  const builder2 = new TransactionBuilder(new Account("GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF", "0"), { 
-                    fee: "100", 
-                    networkPassphrase: Networks.TESTNET 
+
+                  const builder2 = new TransactionBuilder(new Account("GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF", "0"), {
+                    fee: "100",
+                    networkPassphrase: Networks.TESTNET
                   });
-                  const txTotal = builder2.addOperation(Operation.invokeContractFunction({ 
-                    contract: cid, 
-                    function: "get_campaign_total", 
-                    args: [campaignSymbol] 
+                  const txTotal = builder2.addOperation(Operation.invokeContractFunction({
+                    contract: cid,
+                    function: "get_campaign_total",
+                    args: [campaignSymbol]
                   })).setTimeout(30).build();
                   const resTotal = await rpcServer.simulateTransaction(txTotal);
                   if (rpc.Api.isSimulationSuccess(resTotal)) {
@@ -86,7 +86,7 @@ const CampaignDetails = ({ address, balance, isFetchingData, handleDonate, handl
               console.warn("RPC check failed:", rpcErr);
             }
           }
-          
+
           setCampaign({ ...data, totalDonated: chainTotal, isOnChain });
         } else {
           toast.error("Campaign not found");
@@ -149,13 +149,13 @@ const CampaignDetails = ({ address, balance, isFetchingData, handleDonate, handl
     const url = window.location.href;
     navigator.clipboard.writeText(url);
     toast.success("Link copied to clipboard", {
-        icon: '🔗',
-        style: {
-          borderRadius: '8px',
-          background: '#0A0D13',
-          color: '#E2E8F0',
-          border: '1px solid rgba(96, 115, 134, 0.2)'
-        },
+      icon: '🔗',
+      style: {
+        borderRadius: '8px',
+        background: '#0A0D13',
+        color: '#E2E8F0',
+        border: '1px solid rgba(96, 115, 134, 0.2)'
+      },
     });
   };
 
@@ -220,7 +220,7 @@ const CampaignDetails = ({ address, balance, isFetchingData, handleDonate, handl
 
       {/* Admin Panel controls banner */}
       {campaign.isActive && address && address.toLowerCase() === campaign.adminWallet?.toLowerCase() && (
-        <div className="bg-carbon-ink border border-steel-horizon/30 rounded-2xl p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-6 mb-8">
+        <div className="bg-carbon-ink border border-steel-horizon/20 rounded-2xl p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-6 mb-8">
           <div className="flex gap-4">
             <div className="w-10 h-10 rounded-xl bg-sage-slate border border-steel-horizon/20 flex items-center justify-center text-sm">⚙️</div>
             <div>
@@ -228,7 +228,7 @@ const CampaignDetails = ({ address, balance, isFetchingData, handleDonate, handl
               <p className="text-steel-horizon text-xs mt-1">You own this campaign. You may deactivate it permanently to block donations.</p>
             </div>
           </div>
-          <button 
+          <button
             onClick={async () => {
               if (window.confirm("Deactivate this campaign? This blocks all donations on-chain permanently.")) {
                 setIsDeactivating(true);
@@ -257,7 +257,7 @@ const CampaignDetails = ({ address, balance, isFetchingData, handleDonate, handl
             </div>
           </div>
           {address && address.toLowerCase() === campaign.adminWallet?.toLowerCase() && (
-            <button 
+            <button
               onClick={handleRegister}
               disabled={isRegistering}
               className="px-4 py-2 bg-amber-950 hover:bg-amber-900 border border-amber-500/20 text-amber-300 font-bold rounded-lg text-xs transition-all shrink-0 cursor-pointer"
@@ -281,7 +281,7 @@ const CampaignDetails = ({ address, balance, isFetchingData, handleDonate, handl
                 {campaign.region || 'Global'}
               </span>
             </div>
-            
+
             <h1 className="text-4xl md:text-5xl font-bold text-archival-chalk font-display uppercase tracking-tight">
               {campaign.name}
             </h1>
@@ -298,8 +298,8 @@ const CampaignDetails = ({ address, balance, isFetchingData, handleDonate, handl
             </div>
 
             <div className="w-full h-1.5 bg-sage-slate rounded-full overflow-hidden">
-              <div 
-                className="h-full bg-forest-moss transition-all duration-700" 
+              <div
+                className="h-full bg-forest-moss transition-all duration-700"
                 style={{ width: `${progress}%` }}
               ></div>
             </div>
@@ -331,33 +331,33 @@ const CampaignDetails = ({ address, balance, isFetchingData, handleDonate, handl
             loggerContractId={import.meta.env.VITE_LOGGER_CONTRACT_ID}
             campaignId={campaign.contractCampaignId || campaign.id}
           />
-          
+
           <MatchingPoolBanner
             vaultContractId={import.meta.env.VITE_VAULT_CONTRACT_ID}
             campaignId={campaign.contractCampaignId || campaign.id}
             lastDonationAt={lastDonationAt}
           />
 
-          <DonateXLMForm 
-            address={address} 
-            onDonate={(r, a) => handleDonate(campaign.id, campaign.donationContractId || campaign.contractId, a)} 
-            isSending={isSending} 
-            txStatus={txStatus} 
-            txHash={txHash} 
+          <DonateXLMForm
+            address={address}
+            onDonate={(r, a) => handleDonate(campaign.id, campaign.donationContractId || campaign.contractId, a)}
+            isSending={isSending}
+            txStatus={txStatus}
+            txHash={txHash}
             disabled={!campaign.isOnChain || !campaign.isActive}
           />
 
-          <DonorLeaderboard 
-            contractId={campaign.donationContractId || campaign.contractId} 
-            connectedWallet={address} 
+          <DonorLeaderboard
+            contractId={campaign.donationContractId || campaign.contractId}
+            connectedWallet={address}
             lastDonationAt={lastDonationAt}
             campaignId={campaign.id}
           />
 
-          <WalletCard 
-            address={address} 
-            balance={balance} 
-            isFetching={isFetchingData} 
+          <WalletCard
+            address={address}
+            balance={balance}
+            isFetching={isFetchingData}
             lastUpdated={lastUpdated.wallet}
             onBalanceRefresh={fetchData}
           />

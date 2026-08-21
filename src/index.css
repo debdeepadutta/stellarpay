@@ -11,7 +11,7 @@
 
   --font-display: 'Space Grotesk', sans-serif;
   --font-sans: 'Plus Jakarta Sans', sans-serif;
-  
+
   --animate-pulse-slow: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
@@ -19,11 +19,9 @@
   font-family: 'Plus Jakarta Sans', system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
-
   color-scheme: dark;
   color: #E2E8F0;
   background-color: #131720;
-
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -43,6 +41,7 @@ body {
   background-repeat: no-repeat;
 }
 
+/* Stronger dark overlay so bright areas of the image don't bleed through panels */
 body::before {
   content: "";
   position: fixed;
@@ -50,8 +49,8 @@ body::before {
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(19, 23, 32, 0.5); /* Overlay to ensure text readability */
-  z-index: -1;
+  background: rgba(6, 8, 14, 0.70);
+  z-index: 0;
 }
 
 #root {
@@ -60,13 +59,57 @@ body::before {
   z-index: 1;
 }
 
-/* Custom Ledger & Perforation Utilities */
+/* ─── Ledger container (legacy class) ───────────────────────────────────── */
 .ledger-container {
-  background-color: rgba(10, 13, 19, 0.85); /* Increased opacity since blur is removed */
-  border: 1px solid rgba(226, 232, 240, 0.15);
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+  background-color: rgba(10, 13, 19, 0.88);
+  border: 1px solid rgba(96, 115, 134, 0.5);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5);
 }
 
+/* ─── Universal panel fix ───────────────────────────────────────────────── */
+/* bg-carbon-ink (#0A0D13) and bg-slate-* are solid colors that don't respect
+   Tailwind opacity modifiers in CSS variables. We override them globally so
+   every card/panel gets a clearly visible semi-transparent dark background. */
+
+[class~="bg-carbon-ink"],
+[class*="bg-carbon-ink/"] {
+  background-color: rgba(10, 13, 19, 0.88) !important;
+}
+
+[class~="bg-sage-slate"] {
+  background-color: rgba(19, 23, 32, 0.88) !important;
+}
+
+[class~="bg-slate-900"],
+[class*="bg-slate-900/"] {
+  background-color: rgba(15, 23, 42, 0.92) !important;
+}
+
+[class~="bg-slate-950"],
+[class*="bg-slate-950/"] {
+  background-color: rgba(2, 6, 23, 0.94) !important;
+}
+
+[class~="bg-slate-800"],
+[class*="bg-slate-800/"] {
+  background-color: rgba(30, 41, 59, 0.90) !important;
+}
+
+/* ─── Borders — boost visibility ────────────────────────────────────────── */
+/* Token borders at /10 and /20 opacity are invisible over a photo bg.
+   We raise the alpha channel globally so they are crisp and legible. */
+[class*="border-steel-horizon/10"],
+[class*="border-steel-horizon/20"],
+[class*="border-steel-horizon/30"] {
+  border-color: rgba(96, 115, 134, 0.5) !important;
+}
+
+[class*="border-white/5"],
+[class*="border-white/10"] {
+  border-color: rgba(255, 255, 255, 0.18) !important;
+}
+
+/* ─── Perforated receipt edges ─────────────────────────────────────────── */
 .perforated-edge {
   background-image: radial-gradient(circle, transparent 30%, rgba(245, 244, 240, 0.9) 30%);
   background-size: 12px 12px;
@@ -75,23 +118,22 @@ body::before {
 }
 
 .perforated-edge-dark {
-  background-image: radial-gradient(circle, transparent 30%, rgba(10, 13, 19, 0.8) 30%);
+  background-image: radial-gradient(circle, transparent 30%, rgba(10, 13, 19, 0.85) 30%);
   background-size: 12px 12px;
   background-position: bottom;
   background-repeat: repeat-x;
 }
 
-/* Enhancing global buttons for better contrast against the new background */
+/* ─── Buttons ───────────────────────────────────────────────────────────── */
 button {
-  transition: all 0.3s ease;
+  transition: all 0.25s ease;
 }
 
 button:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
 }
 
 button:active {
   transform: translateY(0);
 }
-
