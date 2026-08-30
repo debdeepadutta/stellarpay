@@ -688,7 +688,7 @@ Google Sheet response export and the raw CSV file in the repo.)*
 
 ### Real Transaction Activity
 
-The attached Stellar Expert exports cover the full history of the `CDZL737THBVBCO443UXGXCFF4Z3JQNFAKRZXZNIPMF3FG4IDDTMDP6KP` (Smart Wallet Factory) contract, from its creation timestamp (**2026-08-30 10:00:00 UTC**) through **2026-08-30 13:00:00 UTC**, deduplicated by transaction hash:
+The attached Stellar Expert exports cover the full history of the `CDZL737THBVBCO443UXGXCFF4Z3JQNFAKRZXZNIPMF3FG4IDDTMDP6KP` (Smart Wallet Factory) contract, from its creation timestamp (**2026-07-17 08:03:25 UTC**) through **2026-08-30 13:00:00 UTC**, deduplicated by transaction hash:
 
 | Metric | Count |
 |---|---|
