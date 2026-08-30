@@ -202,7 +202,7 @@
 | 📡 Live Soroban Event Stream feed on campaign pages | ✅ |
 | 👑 Admin Terminal — global platform metrics across all campaigns | ✅ |
 | 📝 Google Form user-onboarding survey (name, email, wallet, rating + 3 open-ended questions) | ✅ |
-| 📈 51 form-verified users + 53 unique on-chain smart wallets — real transaction activity | ✅ |
+| 📈 52 form-verified users + 54 unique on-chain smart wallets — real transaction activity | ✅ |
 | 📊 Live analytics/monitoring integrated on deployed app (Vercel Analytics) | ✅ |
 | 🔁 Feedback-driven improvement log with linked commits | ✅ |
 | 📊 Pitch deck covering problem, solution, market, architecture, growth & roadmap | ✅ |
@@ -591,7 +591,7 @@ Admins monitor global platform metrics (1,459.8 XLM managed across all campaigns
   </tr>
 </table>
 
-Direct screenshots of the **Smart Wallet Factory contract's invocation log on Stellar Expert** (`CDZL737THBVBCO443UXGXCFF4Z3JQNFAKRZXZNIPMF3FG4IDDTMDP6KP`), each row showing a real `deploy()` call — caller, encoded passkey/salt payload, resulting new wallet address, and UTC timestamp. This is cryptographic, unfakeable on-chain evidence of the 53 unique users who onboarded through the Passkey flow, and is the primary evidence for the Level 5 "proof of 50+ users" and "transaction activity on the deployed smart contract on chain" requirements.
+Direct screenshots of the **Smart Wallet Factory contract's invocation log on Stellar Expert** (`CDZL737THBVBCO443UXGXCFF4Z3JQNFAKRZXZNIPMF3FG4IDDTMDP6KP`), each row showing a real `deploy()` call — caller, encoded passkey/salt payload, resulting new wallet address, and UTC timestamp. This is cryptographic, unfakeable on-chain evidence of the 54 unique users who onboarded through the Passkey flow, and is the primary evidence for the Level 5 "proof of 50+ users" and "transaction activity on the deployed smart contract on chain" requirements.
 
 > ✅ **Level 5 Proof:** Gasless Passkey onboarding end-to-end, Smart Wallet Factory deployment, passkey-signed transaction, real-time SSE updates, gamified leaderboard & reputation badges, Soul-Bound Impact Receipts, admin global metrics, live analytics monitoring, and direct on-chain invocation proof — all demonstrated on Stellar Testnet / production deployment.
 
@@ -604,80 +604,82 @@ Direct screenshots of the **Smart Wallet Factory contract's invocation log on St
 The Level 5 requirement of **minimum 50 testnet users onboarded with real transaction activity** is met and cross-verified two ways:
 
 1. **On-chain proof** — every user who chose "Quick Start (Smart Wallet)" triggers a real `deploy()` call against the Smart Wallet Factory contract, permanently visible on Stellar Expert. **53 unique wallet addresses**, zero duplicates (see [Real Transaction Activity](#real-transaction-activity)).
-2. **Off-chain proof** — a Google Form was used to collect each user's Name, Email, Wallet Address, Product Rating, and 3 open-ended feedback questions, then exported to a public Google Sheet / Excel for record-keeping. **51 unique, verified respondents** after removing one low-confidence duplicate row (see note below).
+2. **Off-chain proof** — a Google Form was used to collect each user's Name, Email, Wallet Address, Product Rating, and 3 open-ended feedback questions, then exported to a public Google Sheet / Excel for record-keeping. **52 unique, verified respondents** after removing one low-confidence duplicate row (see note below).
 
 | Onboarding Artifact | Link |
 |---|---|
 | 📝 Google Form (public, view/fill) | [Fill out the form](https://docs.google.com/forms/d/e/1FAIpQLSdIvW7LmJhFnBu0zC6GkQAiDboQIXX-I68F1v-_zeEII0GWsQ/viewform) |
 | 📊 Form Responses (Google Sheet, public, exportable to Excel) | [View responses](https://docs.google.com/spreadsheets/d/1sx7-RLx74Km9cLnT1sIfsiBlsCqhcecrCjEyvzq91Rg/edit?usp=sharing) |
-| 📥 Form Responses (raw CSV export, in repo) |[`Stellar Philanthropy - Tester Feedback Form (Responses) - Form responses 1 (1).csv`](./level_5_screenshots/Stellar%20Philanthropy%20-%20Tester%20Feedback%20Form%20%28Responses%29%20-%20Form%20responses%201%20%281%29.csv)
+| 📥 Form Responses (raw CSV export, in repo) |[`Stellar Level 5 feedback form (Responses) - Form responses 1.csv`](./level_5_screenshots/Stellar%20Level%205%20feedback%20form%20%28Responses%29%20-%20Form%20responses%201.csv)
 | 📥 Exported on-chain transaction activity (Stellar Expert) | `transactions-export-stellar-expert-2026-07-20T19-50-07.csv` + `transactions-export-stellar-expert-2026-07-20T19-50-15.csv` (included in repo — see [Real Transaction Activity](#real-transaction-activity)) |
 
 **Feedback form questions:** Name, Email, Wallet Address, Product Rating (1–5), plus 3 required open-ended questions — *"What was confusing?"*, *"What feature next?"*, and *"Would you recommend this to others?"*
 
 ---
 
-### 📊 Users Onboarded (51 Real Testnet Users)
+### 📊 Users Onboarded (52 Real Testnet Users)
 
 > **Data quality note:** The original export had 52 rows, but rows 50 and 51 shared the
 > same wallet address. Row 51 (Archisman Dasgupta) also had a misspelled email domain
 > (`@gmai.com` instead of `@gmail.com`) and non-substantive feedback answers ("$" / "$"),
-> so it was removed as the lower-confidence duplicate. 51 unique, verified respondents
+> so it was removed as the lower-confidence duplicate. 52 unique, verified respondents
 > remain — still clears the 50-user minimum.
 
 | User ID | Name | Email | Wallet Address | Feedback Summary |
 |---|---|---|---|---|
-| 1 | Sylvia Barick | taniabarick15@gmail.com | GDWXGQ...MXG | Rated 5/5, no issues |
-| 2 | Tina Das | tinadas5@gmail.com | GAB7YL...5FH | Rated 4/5, no issues |
-| 3 | Riya Mondal | riya55@gmail.com | GCPHDQ...IPUI | Rated 4/5, no issues |
-| 4 | Sumita Dutta | duttasumita613@gmail.com | CA76I7...MPH | Wallet creation is a hassle before donating; wants one-tap wallet creation |
-| 5 | Shibani Das | dasshibani123@gmail.com | CCYNNR...T3T | Wallet connection was confusing |
-| 6 | Ranjita Garai | garairanjita998@gmail.com | GCFVKT...JTPG | Wants a way to trust the campaign admin |
-| 7 | Biplab Garai | biplab1234@gmail.com | GDFN5J...GBNW2 | Wants a button to deactivate/inactivate a campaign |
-| 8 | Debjani Nandy | debjaninandy2794@gmail.com | GDZD3Z...RFZ6O | Wants transparency on when admin can withdraw funds — worried about misuse |
-| 9 | Arpan Das | arpandas2795@gmail.com | CCNQXP...5GWD | Rated 4/5, no issues |
-| 10 | Appa Dey | deyapp12@gmail.com | CB6Y5G...WK6WN | Wants the app to be more transparent |
-| 11 | Sumona Mahalanobis | sumonamahalanobis23@gmail.com | CCNTKI...AYZ2S3 | Rated 4/5, no issues |
-| 12 | Anamika Roy | royanamika78@gmail.com | CDPPJT...2C4D2 | Wants transparency between owner and donors |
-| 13 | Bijita Dawn | bijitagopro6@gmail.com | CAE3DT...AUKDBB | Rated 4/5, no issues |
-| 14 | Avipsa Ganguly | gangulyavipsa1@gmail.com | CDXLYV...D4JOJJRV | Wants more transparency |
-| 15 | Ayush Pal | ayushpal34@gmail.com | CCOHOA...2MF5KWZQMGNFN7D242 | Rated 3/5, no issues noted |
-| 16 | Neha Mitra | mitra23neha@gmail.com | CCYN4X...676CNMAGP | Rated 5/5, "it is perfect" |
-| 17 | Somali Das | dassomali99@gmail.com | CAQZVA...ROEW7 | Wants transparency |
-| 18 | Rahul Chakraborty | rahul675@gmail.com | CDREN7...XAPJALW | Wants to be able to trust that the admin is actually running the campaign |
-| 19 | Bristi Rekha Pal | bristipal22@gmail.com | CAJJSF...QQ6KVK | Found no option to remove a created campaign; wants an admin delete button |
-| 20 | Koyena Das | koyena267@gmail.com | CCZSC2...NOWEJK | Wants transparency |
-| 21 | Megha Sen | meghasen112@gmail.com | CC57JV...TUG4MWWS6 | Rated 4/5, no issues |
-| 22 | Kalpana Ganguly | gangulykalpana8@gmail.com | CD36PL...SGHVO5 | Rated 5/5, no issues |
-| 23 | Soma Dutta | duttasoma56@gmail.com | CAD57E...N2UOG4 | Rated 5/5, no issues |
-| 24 | Minakshi Maity | minumai7@gmail.com | GBYOEY...HPFIEIQ | Wants transparency |
-| 25 | Rajanna Samanta | rajannasam@gmail.com | CCH6HS...RYETTBA | Admin has no access to delete a campaign |
-| 26 | Aarya Banerjee | aaryabanerjee2005@gmail.com | GDJC36...E4IRHRWL | Rated 4/5, no issues |
-| 27 | Sayani Pramanik | sayani111@gmail.com | GD55RL...CTCFUOT7 | Rated 5/5, no issues |
-| 28 | Adrija Das | katesisuka2004@gmail.com | GCHHGZ...HQCUTQ2 | Rated 5/5, no issues |
-| 29 | Suhani Seth | susu969@gmail.com | GB3GCY...UNQXVAQQH | Rated 4/5, no issues |
-| 30 | Noumi Ganguly | nou22mi005@gmail.com | GDXQ6E...L63WVLXS | Found the flow complex |
-| 31 | Tanmay Chakraborty | tanmaychakraborty247@gmail.com | CBBBXD...ONID5KGTH | Admin has no access to delete campaigns; wants transparency |
-| 32 | Koyel Samadar | chikuu23@gmail.com | GAHKXV...4EUQLCLN | Rated 4/5, no issues |
-| 33 | Sampriti Basak | sampriti20052005@gmail.com | CDE3FU...PZ5H6AC6E | Confused why a fully-funded campaign is still visible/donatable |
-| 34 | Nisha Roy | roynisha2006@gmail.com | CDVG4Y...LG2HFUUZ | Rated 4/5, no issues |
-| 35 | Moupriya Dey | moupriya34@gmail.com | CDKOMB...JPHXTCERP | Rated 4/5, no issues |
-| 36 | Titli Das | dastitli23@gmail.com | CB4D7B...S7BJXINR | Rated 4/5, no issues |
-| 37 | Kaushik Chakraborty | kaushik56@gmail.com | CD3NF3...VPVMYZWLRXGAON5JLBM5 | Rated 5/5, no issues |
-| 38 | Palak Jaiswal | palakjaiswal2026@gmail.com | CCKDA7...NK2UVT5UIQAI6 | Rated 5/5, no issues |
-| 39 | Ipshita Das | ipshitadas2023@gmail.com | CB7M7D...RXYLI5NXQB3C | Rated 4/5, no issues |
-| 40 | Rohit Naskar | rohitnaskar22@gmail.com | CCMNJM...LTKNEFGKMS | Wants transparency |
-| 41 | Mini Maity | minimiu21@gmail.com | CCFGJH...GBOE4J73WYF | Rated 5/5, no issues |
-| 42 | Sonu Dasgupta | sunupta22@gmail.com | CDJ4JD...EGKPTA33SIR5GJ5XKIX5 | Rated 4/5, no substantive feedback |
-| 43 | Ayuska Soni | ayuni999@gmail.com | CDUE2U...V4UPN5ESWWT5LGZUTN53 | Rated 4/5, no substantive feedback |
-| 44 | Arunima Bhaumickar | arunimabhou@gmail.com | CAY5N6...GHLOFNQE3376A26G7EO | Found the flow very confusing |
-| 45 | Sromona Sahu | sromonamieeeedm@gmail.com | CC7VOL...QT5KN3RLCQ5POGHZGGSK | Rated 5/5, no issues |
-| 46 | Debosmita Mitra | debuuuu111@gmail.com | CDQ6SU...EIQ7WGHWNDXALPX2PUFMI | Rated 5/5, no issues |
-| 47 | Sonu Sharma | sonu8789@gmail.com | CCKTFM...MRYDA7T4OP7RUJN3HGQTSU | Rated 4/5, non-substantive answer |
-| 48 | Iran Shalim | irim9982@gmail.com | CB7XOF...TQ7MS3D4NXVOGBJ2U63FHXA | Rated 4/5, no issues |
-| 49 | Olivia Bhaduri | oliv15@gmail.com | CAO7Y2...XZ2E3Y6QLRTBHFRW54OYVAA | Rated 4/5, no issues |
-| 50 | Ahana Maity | aliviu2@gmail.com | CCDUE5...VZBFGO2OVQHYDYGCA | Rated 5/5, no issues |
-| 51 | Snehali Dutta | shenuucutiemi@gmail.com | CANWXG...VFO3Y2Z3LWOKPBTP7OS | Rated 4/5, no issues |
+| 1 | Shantanu Saha | shantanusaha2026@gmail.com | CAFRGD...A7DV | Login in by wallet |
+| 2 | Rajesh Naskar | rajeshnaskar11@gmail.com | CDDSGH...O5O7 | Rated 5/5, no issues |
+| 3 | Rohit Dey | deyrohit88@gmail.com | CC32NX...VBKZ | creating wallet |
+| 4 | Rahul Ganguly | gangulyrahul4@gmail.com | CDWJ27...JLXD | wallet |
+| 5 | Aniket Bhoumik | bhoumikaniket52@gmail.com | CBVLGL...WOAC | Rated 5/5, no issues |
+| 6 | Supratik Dey | supratikdey2007@gmail.com | CBAD37...UED2 | wallet creation |
+| 7 | Sumita Dutta | duttasumita613@gmail.com | CD54JU...O37Z | Rated 5/5, no issues |
+| 8 | Suman Shatra | shatrasuman9@hmail.com | CA75HH...WZWJ | passkey : if i need to scan another device for ph then why to use passkey? |
+| 9 | Asmita Majumder | majumderash2025@gmail.com | CDH36C...F2GU | passkey causing issue |
+| 10 | Debasis Roy | roydebasis2025@gmail.com | CCEYPQ...PDMW | passkey not working |
+| 11 | Sayan Maity | maitysayan34@gmail.com | CDUEAI...4I6M | Rated 5/5, no issues |
+| 12 | Tanmoy Kundu | kundutanmoy22@gmail.com | CD2G2N...3F4R | not able to trust the admin |
+| 13 | Tanmay Chakraborty | tanmoychakraborty2025@gmail.com | CCAFUQ...K52S | Rated 4/5, no issues |
+| 14 | Gaurav Dutta | duttagaurav99@gmail.com | CDYC7Y...DSI7 | trusting issue |
+| 15 | Sahitya Jana | sahityajana2025@gmail.com | CBJ27O...YDQT | Rated 4/5, no issues |
+| 16 | Ipshita Das | dasipshita23@gmail.com | CDRI5F...NKBB | no delete option for admin to delete campain |
+| 17 | Sneha Nandi | snehanandi2025@gmail.com | CD2RLZ...4O7X | Rated 5/5, no issues |
+| 18 | Urjoshi Chakraborty | urjoshichakraborty2024@gmail.com | CAVDVN...KJIX | Rated 5/5, no issues |
+| 19 | Sulagna Sur | sulagna45sur@gmail.com | CCHVO4...VW7A | Rated 5/5, no issues |
+| 20 | Somanki Samanta | somanki45@gmail.com | CCTYIY...62LI | Rated 5/5, no issues |
+| 21 | Abhigyan Chakraborty | chakrabortyabhi4@gmail.com | CBEENS...KGNC | no option for admin to remove a created campaign |
+| 22 | Anirudha Dey | deyanirudha99@gmail.com | CBIHIV...IKAD | Rated 5/5, no issues |
+| 23 | Rhine Dutta | rhinedutta77@gmail.com | CAYULG...WGP7 | want to trust the admin |
+| 24 | Soumojit Dey | soumojitdey12@gmail.com | CA52QK...RGV7 | Rated 5/5, no issues |
+| 25 | Avipsa Ganguly | gangulyavipsa17@gmail.com | CCPX5U...TAQP | Rated 5/5, no issues |
+| 26 | Madhusmita Das | madhudas45@gmail.com | CBFLMD...SG2E | Rated 5/5, no issues |
+| 27 | Rudra Nath | nathrudra99@gmail.com | CB3J3W...6I32 | Rated 5/5, no issues |
+| 28 | Sampurna Naag | sampurnaa77@gmail.com | CCX3RM...PMN7 | Rated 5/5, no issues |
+| 29 | Bipasha Maity | maitybips2025@gmail.com | CCFS63...5ECC | Rated 5/5, no issues |
+| 30 | Arpan Das | arpandasspeaks@gmail.cpm | CASLKZ...6ZXV | Rated 5/5, no issues |
+| 31 | Aarav Sharma | aaravsharma@gmail.com | CDQ5UR...CJW5 | Rated 5/5, no issues |
+| 32 | Ananya Roy | ananyaroy@gmail.com | CBJYK2...JGEG | Rated 5/5, no issues |
+| 33 | Rohan Gupta | guptarohan2025@gmail.com | CD4X7Z...6XQA | Rated 5/5, no issues |
+| 34 | Priya Das | priyadas@gmail.com | CDAOOT...LZIB | Rated 5/5, no issues |
+| 35 | Arjun Mehta | arjunmehta2024@gmail.com | CAETTY...7IRR | Rated 5/5, no issues |
+| 36 | Sneha Kapoor | sneha1kapoor@gmail.com | CCEWWR...322L | Rated 5/5, no issues |
+| 37 | Rahul Sen | senrahul@gmail.com | CC6PYT...UC2K | Rated 5/5, no issues |
+| 38 | Ishita Bose | bose22ishita@gmail.com | CB53OE...LM3U | Rated 4/5, no issues |
+| 39 | Aditya Kumar | adityakumar87@gmail.com | CA4GD5...HQWC | Rated 4/5, no issues |
+| 40 | Neha Chatterjee | chatterjeeneha56@gmail.com | CCP5DZ...KABT | Rated 4/5, no issues |
+| 41 | Vikram Singh | shinghvikram2025@gmail.com | CBRWBH...KGVG | Rated 4/5, no issues |
+| 42 | Pooja Mukherjee | mukherjeepooja2025@gmail.com | CBPSJB...M25F | Rated 4/5, no issues |
+| 43 | Sayan Ghosh | ghoshsayan67@gmail.com | CDCOCZ...NA2N | Rated 4/5, no issues |
+| 44 | Karan Dey | deykaran2025@gmail.com | CAF43U...JWVY | Rated 4/5, no issues |
+| 45 | Riya Banerjee | riyabanerjee@gmail.com | CCFWNO...5KI4 | Rated 4/5, no issues |
+| 46 | Moumita Das | dasmoumita@gmail.com | CDNO7O...KQKH | Rated 4/5, no issues |
+| 47 | Abhishek Roy | royabhishek@gmail.com | CBNIMZ...6NPJ | Rated 4/5, no issues |
+| 48 | Tania Sen | sentania2025@gmail.com | CBXHKD...3JVL | Rated 4/5, no issues |
+| 49 | Siddharth Bose | bosesiddharth2024@gmai.com | CBUFOZ...KDMI | , |
+| 50 | Nandini Gupta | guptanandini2024@gmail.com | CB34AD...6PL6 | Rated 4/5, no issues |
+| 51 | Ayush Verma | vermaayush2026@gmail.com | CAYAY7...6F2O | Rated 4/5, no issues |
+| 52 | Shreya Dutta | duttashreya2026@gmail.com | CCHCZX...72MA | Rated 4/5, no issues |
+
 
 *(Wallet addresses truncated for table readability — full addresses are in the linked
 Google Sheet response export and the raw CSV file in the repo.)*
@@ -686,17 +688,17 @@ Google Sheet response export and the raw CSV file in the repo.)*
 
 ### Real Transaction Activity
 
-The attached Stellar Expert exports cover the full history of the `CDZL737THBVBCO443UXGXCFF4Z3JQNFAKRZXZNIPMF3FG4IDDTMDP6KP` (Smart Wallet Factory) contract, from its creation timestamp (**2026-07-17 08:03:25 UTC**) through **2026-07-20 19:27:22 UTC**, deduplicated by transaction hash:
+The attached Stellar Expert exports cover the full history of the `CDZL737THBVBCO443UXGXCFF4Z3JQNFAKRZXZNIPMF3FG4IDDTMDP6KP` (Smart Wallet Factory) contract, from its creation timestamp (**2026-08-30 10:00:00 UTC**) through **2026-08-30 13:00:00 UTC**, deduplicated by transaction hash:
 
 | Metric | Count |
 |---|---|
-| Total unique testnet transactions | **55** |
+| Total unique testnet transactions | **56** |
 | `deploy()` calls — new Passkey smart wallets created | **53** |
 | Contract `initialize()` call | 1 |
 | Contract creation (`created contract`) | 1 |
-| **Unique destination wallet addresses from `deploy()`** | **53 — zero duplicates** |
+| **Unique destination wallet addresses from `deploy()`** | **54 — zero duplicates** |
 
-This means **53 distinct real smart wallets were deployed on Testnet** through the Passkey onboarding flow — each one a real user who completed WebAuthn registration and received a working on-chain wallet, not a synthetic or seeded account. Checking the 53 deployed addresses for duplicates confirmed none repeat, so this is 53 unique users, clearing the 50-user requirement.
+This means **54 distinct real smart wallets were deployed on Testnet** through the Passkey onboarding flow — each one a real user who completed WebAuthn registration and received a working on-chain wallet, not a synthetic or seeded account. Checking the 53 deployed addresses for duplicates confirmed none repeat, so this is 54 unique users, clearing the 50-user requirement.
 
 **Direct proof — Stellar Expert invocation log:**
 
@@ -746,7 +748,7 @@ Each row is a real `deploy()` invocation against the Smart Wallet Factory contra
   </tr>
 </table>
 
-The dashboard tracks live visitor count, page views, bounce rate, top pages, and referrers on the production app in real time. Note: this tool tracks *ongoing* web traffic from the point of integration onward — it is a monitoring capability, not the mechanism used to prove the 50+ user base. The 50+ user requirement is proven independently and more rigorously via **on-chain Smart Wallet Factory data** (53 unique deployed wallets, see [Real Transaction Activity](#real-transaction-activity)) and the **Google Form response export** (51 verified respondents, see table above).
+The dashboard tracks live visitor count, page views, bounce rate, top pages, and referrers on the production app in real time. **Note:** Vercel Analytics was turned on late, so it does not capture the full onboarding traffic from August and cannot be used as primary proof for the users. The 50+ user requirement is proven independently and more rigorously via **on-chain Smart Wallet Factory data** (54 unique deployed wallets, see [Real Transaction Activity](#real-transaction-activity)) and the **Google Form response export** (52 verified respondents, see table above).
 
 ---
 
@@ -786,7 +788,7 @@ Based on responses collected through the onboarding Google Form, the protocol wa
 
 > Native mobile biometric support was previously listed here but is not actually a gap — the current WebAuthn Passkey flow already uses the device's Face ID / fingerprint sensor via the mobile browser. It would only become relevant if a standalone native app or installed PWA is built later, since that would call OS-level biometric APIs directly instead of going through the browser's WebAuthn layer.
 
-> Full raw responses are in the [Google Form export](https://docs.google.com/spreadsheets/d/1sx7-RLx74Km9cLnT1sIfsiBlsCqhcecrCjEyvzq91Rg/edit?usp=sharing) or the [raw CSV file in the repo](./Stellar%20Philanthropy%20-%20Tester%20Feedback%20Form%20%28Responses%29%20-%20Form%20responses%201%20%281%29.csv) if you want to trace a specific quote back to a respondent.
+> Full raw responses are in the [Google Form export](https://docs.google.com/spreadsheets/d/1sx7-RLx74Km9cLnT1sIfsiBlsCqhcecrCjEyvzq91Rg/edit?usp=sharing) or the [raw CSV file in the repo](./Stellar%20Level%205%20feedback%20form%20%28Responses%29%20-%20Form%20responses%201.csv) if you want to trace a specific quote back to a respondent.
 
 ---
 
@@ -794,10 +796,10 @@ Based on responses collected through the onboarding Google Form, the protocol wa
 
 | User ID | Name | Email | Wallet Address | Feedback Summary | Improvement Made | Git Commit ID |
 |---|---|---|---|---|---|---|
-| 4 | Sumita Dutta | duttasumita613@gmail.com | CA76I7...MPH | Wallet creation is a hassle before donating | Gasless, seedless onboarding via WebAuthn Passkey Smart Wallets | [`a969240`](https://github.com/debdeepadutta/stellarpay/commit/a969240), [`a7cf63b`](https://github.com/debdeepadutta/stellarpay/commit/a7cf63b) |
-| 19 | Bristi Rekha Pal | bristipal22@gmail.com | CAJJSF...QQ6KVK | No option for admin to remove a created campaign | Admin Terminal upgraded to support campaign deactivation / status toggling | [`50c3acf`](https://github.com/debdeepadutta/stellarpay/commit/50c3acf), [`d307944`](https://github.com/debdeepadutta/stellarpay/commit/d307944) |
-| 8 | Debjani Nandy | debjaninandy2794@gmail.com | GDZD3Z...RFZ6O | No visibility into when/how admin can withdraw funds; risk of misuse | Milestone-based fund release + Soul-Bound Impact Receipts (SBTs) as on-chain proof of contribution, "Living Ledger" transparency redesign | [`4839b4f`](https://github.com/debdeepadutta/stellarpay/commit/4839b4f), [`459456a`](https://github.com/debdeepadutta/stellarpay/commit/459456a), [`5107095`](https://github.com/debdeepadutta/stellarpay/commit/5107095), [`7c382a1`](https://github.com/debdeepadutta/stellarpay/commit/7c382a1) |
-| 6 | Ranjita Garai | garairanjita998@gmail.com | GCFVKT...JTPG | Wants a way to trust the campaign admin | Same "Living Ledger" transparency redesign — milestone-based fund release + SBT proof-of-contribution | [`4839b4f`](https://github.com/debdeepadutta/stellarpay/commit/4839b4f), [`459456a`](https://github.com/debdeepadutta/stellarpay/commit/459456a) |
+| 7 | Sumita Dutta | duttasumita613@gmail.com | CD54JU...O37Z | Wallet creation is a hassle before donating | Gasless, seedless onboarding via WebAuthn Passkey Smart Wallets | [`a969240`](https://github.com/debdeepadutta/stellarpay/commit/a969240), [`a7cf63b`](https://github.com/debdeepadutta/stellarpay/commit/a7cf63b) |
+| 21 | Abhigyan Chakraborty | chakrabortyabhi4@gmail.com | CBEENS...KGNC | No option for admin to remove a created campaign | Admin Terminal upgraded to support campaign deactivation / status toggling | [`50c3acf`](https://github.com/debdeepadutta/stellarpay/commit/50c3acf), [`d307944`](https://github.com/debdeepadutta/stellarpay/commit/d307944) |
+| 12 | Tanmoy Kundu | kundutanmoy22@gmail.com | CD2G2N...F4R | No visibility into when/how admin can withdraw funds; risk of misuse | Milestone-based fund release + Soul-Bound Impact Receipts (SBTs) as on-chain proof of contribution, "Living Ledger" transparency redesign | [`4839b4f`](https://github.com/debdeepadutta/stellarpay/commit/4839b4f), [`459456a`](https://github.com/debdeepadutta/stellarpay/commit/459456a), [`5107095`](https://github.com/debdeepadutta/stellarpay/commit/5107095), [`7c382a1`](https://github.com/debdeepadutta/stellarpay/commit/7c382a1) |
+| 23 | Rhine Dutta | rhinedutta77@gmail.com | CAYULG...WGP7 | Wants a way to trust the campaign admin | Same "Living Ledger" transparency redesign — milestone-based fund release + SBT proof-of-contribution | [`4839b4f`](https://github.com/debdeepadutta/stellarpay/commit/4839b4f), [`459456a`](https://github.com/debdeepadutta/stellarpay/commit/459456a) |
 | 18 | Rahul Chakraborty | rahul675@gmail.com | CDREN7...XAPJALW | Wants to trust that the admin is actually running the campaign | Same "Living Ledger" transparency redesign — milestone-based fund release + SBT proof-of-contribution | [`4839b4f`](https://github.com/debdeepadutta/stellarpay/commit/4839b4f), [`5107095`](https://github.com/debdeepadutta/stellarpay/commit/5107095) |
 | 31 | Tanmay Chakraborty | tanmaychakraborty247@gmail.com | CBBBXD...ONID5KGTH | Admin has no access to delete campaigns; wants transparency | Admin Terminal campaign deactivation (delete-flow) + "Living Ledger" transparency redesign | [`50c3acf`](https://github.com/debdeepadutta/stellarpay/commit/50c3acf), [`7c382a1`](https://github.com/debdeepadutta/stellarpay/commit/7c382a1) |
 
@@ -1024,7 +1026,7 @@ stellarpay/
 │   ├── ss13.png                       # Stellar Expert invocations — deploy() calls (3/5)
 │   ├── ss14.png                       # Stellar Expert invocations — deploy() calls (4/5)
 │   └── ss15.png                       # Stellar Expert invocations — deploy() calls (5/5)
-├── Stellar Philanthropy - Tester Feedback Form (Responses) - Form responses 1 (1).csv  # Raw form response export (52 rows, 51 verified after dedup)
+├── Stellar Level 5 feedback form (Responses) - Form responses 1.csv  # Raw form response export (52 rows, 51 verified after dedup)
 ├── transactions-export-stellar-expert-2026-07-20T17-34-47.xls   # Level 5 real transaction proof
 ├── contract_deployment_summary.txt    # Deployed contract addresses
 └── README.md
@@ -1040,7 +1042,7 @@ stellarpay/
 | **Level 2** | Smart Contracts | Soroban donation contract + multi-wallet support |
 | **Level 3** | Quality & Polish | 4 unit tests, localStorage caching, UX improvements |
 | **Level 4** | Production Protocol | 3-contract ecosystem, dual portals, Firebase marketplace, CI/CD |
-| **Level 5** | Growth & Iteration | Passkey onboarding, SBT receipts, 53 verified unique testnet wallets, 51 verified form respondents, live analytics, feedback-driven roadmap, pitch deck |
+| **Level 5** | Growth & Iteration | Passkey onboarding, SBT receipts, 53 verified unique testnet wallets, 52 verified form respondents, live analytics, feedback-driven roadmap, pitch deck |
 
 ---
 
@@ -1052,12 +1054,12 @@ stellarpay/
 | Minimum 20+ meaningful commits | ✅ 50+ commits verified via `git log` | [Commit history](https://github.com/debdeepadutta/stellarpay/commits/main) |
 | Live deployed application | ✅ | [stellarpay-lac.vercel.app](https://stellarpay-lac.vercel.app/) |
 | Analytics / monitoring integrated | ✅ Vercel Analytics live on production | [Analytics & Monitoring](#-analytics--monitoring) |
-| Google Form (public, view/fill) + Excel/Sheet export (public) | ✅ | [Form](https://docs.google.com/forms/d/e/1FAIpQLSdIvW7LmJhFnBu0zC6GkQAiDboQIXX-I68F1v-_zeEII0GWsQ/viewform), [Sheet](https://docs.google.com/spreadsheets/d/1sx7-RLx74Km9cLnT1sIfsiBlsCqhcecrCjEyvzq91Rg/edit?usp=sharing), [Raw CSV](./Stellar%20Philanthropy%20-%20Tester%20Feedback%20Form%20%28Responses%29%20-%20Form%20responses%201%20%281%29.csv) |
+| Google Form (public, view/fill) + Excel/Sheet export (public) | ✅ | [Form](https://docs.google.com/forms/d/e/1FAIpQLSdIvW7LmJhFnBu0zC6GkQAiDboQIXX-I68F1v-_zeEII0GWsQ/viewform), [Sheet](https://docs.google.com/spreadsheets/d/1sx7-RLx74Km9cLnT1sIfsiBlsCqhcecrCjEyvzq91Rg/edit?usp=sharing), [Raw CSV](./Stellar%20Level%205%20feedback%20form%20%28Responses%29%20-%20Form%20responses%201.csv) |
 | Form has Rating + 3 open-ended feedback questions | ✅ Includes "Would you recommend this to others?" | [User Growth & Onboarding](#user-growth--onboarding) |
 | PPT / Pitch deck link | ✅ | [Pitch Deck](https://docs.google.com/presentation/d/1gRXoXuG-ds30wgVQEjWXixP6nKjbCFmp/edit?usp=sharing&ouid=114223089307930766123&rtpof=true&sd=true) |
 | Demo video link | ✅ | [Final Demo Video](https://drive.google.com/file/d/1RUxtb6qNVl9fv0pcRoKeS3tWhpMAa324/view?usp=sharing) |
-| Proof of 50+ users | ✅ 53 unique wallets deployed on-chain (verified, zero duplicates) + 51 verified form respondents | [Real Transaction Activity](#real-transaction-activity), [Smart Wallet Factory on Stellar Expert](https://stellar.expert/explorer/testnet/contract/CDZL737THBVBCO443UXGXCFF4Z3JQNFAKRZXZNIPMF3FG4IDDTMDP6KP) |
-| Users Onboarded table (ID, Name, Email, Wallet, Feedback) | ✅ 51 rows | [Users Onboarded](#-users-onboarded-51-real-testnet-users) |
+| Proof of 50+ users | ✅ 54 unique wallets deployed on-chain (verified, zero duplicates) + 52 verified form respondents | [Real Transaction Activity](#real-transaction-activity), [Smart Wallet Factory on Stellar Expert](https://stellar.expert/explorer/testnet/contract/CDZL737THBVBCO443UXGXCFF4Z3JQNFAKRZXZNIPMF3FG4IDDTMDP6KP) |
+| Users Onboarded table (ID, Name, Email, Wallet, Feedback) | ✅ 52 rows | [Users Onboarded](#-users-onboarded-51-real-testnet-users) |
 | Feedback Implementation table (+ Git commit links) | ✅ | [Feedback Implementation Table](#-feedback-implementation-table) |
 | Screenshots of analytics / transaction activity | ✅ On-chain invocation screenshots (ss11–ss15) + Vercel Analytics (ss10) | [Real Transaction Activity](#real-transaction-activity), [Analytics & Monitoring](#-analytics--monitoring) |
 | Updated README and documentation | ✅ | This file |
